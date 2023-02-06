@@ -1,0 +1,78 @@
+[build-system]
+requires = ['poetry-core>=1.0.0']
+build-backend = 'poetry.core.masonry.api'
+
+[tool.poetry]
+name = 'devine'
+version = '1.0.0'
+description = 'Open-Source Movie, TV, and Music Downloading Solution'
+license = 'GPL-3.0-only'
+authors = ['rlaphoenix <rlaphoenix@pm.me>']
+readme = 'README.md'
+homepage = 'https://github.com/devine/devine'
+repository = 'https://github.com/devine/devine'
+keywords = ['widevine', 'drm', 'downloader']
+classifiers = [
+    'Development Status :: 4 - Beta',
+    'Environment :: Console',
+    'Intended Audience :: End Users/Desktop',
+    'Natural Language :: English',
+    'Operating System :: OS Independent',
+    'Topic :: Multimedia :: Video',
+    'Topic :: Security :: Cryptography',
+]
+
+[tool.poetry.dependencies]
+python = ">=3.8.6,<3.12"
+appdirs = "^1.4.4"
+Brotli = "^1.0.9"
+click = "^8.1.3"
+colorama = "^0.4.6"
+coloredlogs = "^15.0.1"
+construct = "^2.8.8"
+crccheck = "^1.3.0"
+jsonpickle = "^3.0.1"
+langcodes = { extras = ["data"], version = "^3.3.0" }
+lxml = "^4.9.2"
+m3u8 = "^3.4.0"
+pproxy = "^2.7.8"
+protobuf = "4.21.6"
+pycaption = "^2.1.1"
+pycryptodomex = "^3.17.0"
+pyjwt = "^2.6.0"
+pymediainfo = "^6.0.1"
+pymp4 = "^1.2.0"
+pymysql = "^1.0.2"
+pywidevine = { extras = ["serve"], version = "^1.6.0" }
+PyYAML = "^6.0"
+requests = { extras = ["socks"], version = "^2.28.2" }
+"ruamel.yaml" = "^0.17.21"
+sortedcontainers = "^2.4.0"
+subtitle-filter = "^1.4.4"
+tqdm = "^4.64.1"
+Unidecode = "^1.3.6"
+urllib3 = "^1.26.14"
+
+[tool.poetry.dev-dependencies]
+pre-commit = "^3.0.4"
+mypy = "^0.991"
+mypy-protobuf = "^3.3.0"
+types-protobuf = "^3.19.22"
+types-PyMySQL = "^1.0.19.2"
+types-requests = "^2.28.11.8"
+isort = "^5.12.0"
+
+[tool.poetry.scripts]
+devine = 'devine.core.__main__:main'
+
+[tool.isort]
+line_length = 120
+
+[tool.mypy]
+exclude = '_pb2\.pyi?$'
+check_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+follow_imports = 'silent'
+ignore_missing_imports = true
+no_implicit_optional = true
