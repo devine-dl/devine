@@ -1,13 +1,13 @@
 <p align="center">
     <img src="https://rawcdn.githack.com/rlaphoenix/pywidevine/077a3aa6bec14777c06cbdcb47041eee9791c06e/docs/images/widevine_icon_24.png">
-    <a href="https://github.com/devine/devine">Devine</a>
+    <a href="https://github.com/devine-dl/devine">Devine</a>
     <br/>
     <sup><em>Open-Source Movie, TV, and Music Downloading Solution</em></sup>
 </p>
 
 <p align="center">
-    <a href="https://github.com/devine/devine/actions/workflows/ci.yml">
-        <img src="https://github.com/devine/devine/actions/workflows/ci.yml/badge.svg" alt="Build status">
+    <a href="https://github.com/devine-dl/devine/actions/workflows/ci.yml">
+        <img src="https://github.com/devine-dl/devine/actions/workflows/ci.yml/badge.svg" alt="Build status">
     </a>
     <a href="https://python.org">
         <img src="https://img.shields.io/badge/python-3.8.6%2B-informational" alt="Python version">
@@ -125,7 +125,7 @@ easily rebase your fork to that commit to update.
 However, please make sure you look at changes between each version before rebasing and resolve any breaking changes and
 deprecations when rebasing to a new version.
 
-1. Fork the project with `git` or GitHub [(fork)](https://github.com/devine/devine/fork).
+1. Fork the project with `git` or GitHub [(fork)](https://github.com/devine-dl/devine/fork).
 2. Head inside the root `devine` directory and create a `services` directory.
 3. Within that `services` folder you may install or create service code.
 
@@ -240,7 +240,7 @@ If you start to get sick of putting something in your CLI call, then I recommend
 The following steps are instructions on downloading, preparing, and running the code under a [Poetry] environment.
 You can skip steps 3-5 with a simple `pip install .` call instead, but you miss out on a wide array of benefits.
 
-1. `git clone https://github.com/devine/devine`
+1. `git clone https://github.com/devine-dl/devine`
 2. `cd devine`
 3. (optional) `poetry config virtualenvs.in-project true`
 4. `poetry install`

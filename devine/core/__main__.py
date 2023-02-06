@@ -20,7 +20,7 @@ def main(version: bool, debug: bool) -> None:
 
     log.info(f"Devine version {__version__} Copyright (c) 2019-{datetime.now().year} rlaphoenix")
     log.info("Convenient Widevine-DRM Downloader and Decrypter.")
-    log.info("https://github.com/devine/devine")
+    log.info("https://github.com/devine-dl/devine")
     if version:
         return
 
