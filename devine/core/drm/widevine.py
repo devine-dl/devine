@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import subprocess
 import sys
-from typing import Any, Optional, Union, Callable
+from typing import Any, Callable, Optional, Union
 from uuid import UUID
 
 import m3u8
@@ -199,7 +199,7 @@ class Widevine:
                         for i, (kid, key) in enumerate(self.content_keys.items())
                     ],
                     *[
-                        # Apple TV+ needs this as their files do not use the KID supplied in it's manifest
+                        # some services use a blank KID on the file, but real KID for license server
                         "label={}:key_id={}:key={}".format(i, "00" * 16, key.lower())
                         for i, (kid, key) in enumerate(self.content_keys.items(), len(self.content_keys))
                     ]

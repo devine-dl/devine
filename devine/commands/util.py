@@ -102,3 +102,72 @@ def crop(path: Path, aspect: str, letter: bool, offset: int, preview: bool) -> N
             if ffmpeg_call.stdout:
                 ffmpeg_call.stdout.close()
             ffmpeg_call.wait()
+
+
+@util.command(name="range")
+@click.argument("path", type=Path)
+@click.option("--full/--limited", is_flag=True,
+              help="Full: 0..255, Limited: 16..235 (16..240 YUV luma)")
+@click.option("-p", "--preview", is_flag=True, default=False,
+              help="Instantly preview the newly-set video range in MPV (or ffplay if mpv is unavailable).")
+def range_(path: Path, full: bool, preview: bool) -> None:
+    """
+    Losslessly set the Video Range flag to full or limited at the bit-stream level.
+    You may provide a path to a file, or a folder of mkv and/or mp4 files.
+
+    If you ever notice blacks not being quite black, and whites not being quite white,
+    then you're video may have the range set to the wrong value. Flip its range to the
+    opposite value and see if that fixes it.
+    """
+    executable = get_binary_path("ffmpeg")
+    if not executable:
+        raise click.ClickException("FFmpeg executable \"ffmpeg\" not found but is required.")
+
+    if path.is_dir():
+        paths = list(path.glob("*.mkv")) + list(path.glob("*.mp4"))
+    else:
+        paths = [path]
+    for video_path in paths:
+        try:
+            video_track = next(iter(MediaInfo.parse(video_path).video_tracks or []))
+        except StopIteration:
+            raise click.ClickException("There's no video tracks in the provided file.")
+
+        metadata_key = {
+            "HEVC": "hevc_metadata",
+            "AVC": "h264_metadata"
+        }.get(video_track.commercial_name)
+        if not metadata_key:
+            raise click.ClickException(f"{video_track.commercial_name} Codec not supported.")
+
+        if preview:
+            out_path = ["-f", "mpegts", "-"]  # pipe
+        else:
+            out_path = [str(video_path.with_stem(".".join(filter(bool, [
+                video_path.stem,
+                video_track.language,
+                "range",
+                ["limited", "full"][full]
+            ]))).with_suffix({
+                # ffmpeg's MKV muxer does not yet support HDR
+                "HEVC": ".h265",
+                "AVC": ".h264"
+            }.get(video_track.commercial_name, ".mp4")))]
+
+        ffmpeg_call = subprocess.Popen([
+            executable, "-y",
+            "-i", str(video_path),
+            "-map", "0:v:0",
+            "-c", "copy",
+            "-bsf:v", f"{metadata_key}=video_full_range_flag={int(full)}"
+        ] + out_path, stdout=subprocess.PIPE)
+        try:
+            if preview:
+                previewer = get_binary_path("mpv", "ffplay")
+                if not previewer:
+                    raise click.ClickException("MPV/FFplay executables weren't found but are required for previewing.")
+                subprocess.Popen((previewer, "-"), stdin=ffmpeg_call.stdout)
+        finally:
+            if ffmpeg_call.stdout:
+                ffmpeg_call.stdout.close()
+            ffmpeg_call.wait()

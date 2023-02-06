@@ -240,7 +240,7 @@ class Track:
             with open(save_path, "wb") as f:
                 for file in sorted(segments_dir.iterdir()):
                     data = file.read_bytes()
-                    # Apple TV+ needs this done to fix audio decryption
+                    # fix audio decryption
                     data = re.sub(b"(tfhd\x00\x02\x00\x1a\x00\x00\x00\x01\x00\x00\x00)\x02", b"\\g<1>\x01", data)
                     f.write(data)
                     file.unlink()  # delete, we don't need it anymore
