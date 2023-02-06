@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="https://rawcdn.githack.com/rlaphoenix/pywidevine/077a3aa6bec14777c06cbdcb47041eee9791c06e/docs/images/widevine_icon_24.png">
+    <img src="https://user-images.githubusercontent.com/17136956/216880837-478f3ec7-6af6-4cca-8eef-5c98ff02104c.png">
     <a href="https://github.com/devine-dl/devine">Devine</a>
     <br/>
     <sup><em>Open-Source Movie, TV, and Music Downloading Solution</em></sup>
@@ -278,7 +278,6 @@ Please refrain from spam or asking for questions that infringe upon a Service's 
 
 ## Credit
 
-- Widevine Icon © Google.
 - The awesome community for their shared research and insight into the Widevine Protocol and Key Derivation.
 
 ## Contributors
