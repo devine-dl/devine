@@ -171,3 +171,55 @@ def range_(path: Path, full: bool, preview: bool) -> None:
             if ffmpeg_call.stdout:
                 ffmpeg_call.stdout.close()
             ffmpeg_call.wait()
+
+
+@util.command()
+@click.argument("path", type=Path)
+@click.option("-m", "--map", "map_", type=str, default="0",
+              help="Test specific streams by setting FFmpeg's -map parameter.")
+def test(path: Path, map_: str) -> None:
+    """
+    Decode an entire video and check for any corruptions or errors using FFmpeg.
+    You may provide a path to a file, or a folder of mkv and/or mp4 files.
+
+    Tests all streams within the file by default. Subtitles cannot be tested.
+    You may choose specific streams using the -m/--map parameter. E.g.,
+    '0:v:0' to test the first video stream, or '0:a' to test all audio streams.
+    """
+    executable = get_binary_path("ffmpeg")
+    if not executable:
+        raise click.ClickException("FFmpeg executable \"ffmpeg\" not found but is required.")
+
+    if path.is_dir():
+        paths = list(path.glob("*.mkv")) + list(path.glob("*.mp4"))
+    else:
+        paths = [path]
+    for video_path in paths:
+        print("Starting...")
+        p = subprocess.Popen([
+            executable, "-hide_banner",
+            "-benchmark",
+            "-i", str(video_path),
+            "-map", map_,
+            "-sn",
+            "-f", "null",
+            "-"
+        ], stderr=subprocess.PIPE, universal_newlines=True)
+        reached_output = False
+        errors = 0
+        for line in p.stderr:
+            line = line.strip()
+            if "speed=" in line:
+                reached_output = True
+            if not reached_output:
+                continue
+            if line.startswith("["):  # error of some kind
+                errors += 1
+                stream, error = line.split("] ", maxsplit=1)
+                stream = stream.split(" @ ")[0]
+                line = f"{stream} ERROR: {error}"
+            print(line)
+        p.stderr.close()
+        print(f"Finished with {errors} Errors, Cleaning up...")
+        p.terminate()
+        p.wait()
