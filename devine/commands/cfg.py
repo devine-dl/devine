@@ -45,6 +45,10 @@ def cfg(ctx: click.Context, key: str, value: str, unset: bool, list_: bool) -> N
 
     if not data:
         log.warning(f"{config_path} has no configuration data, yet")
+        # yaml.load() returns `None` if the input data is blank instead of a usable object
+        # force a usable object by making one and removing the only item within it
+        data = yaml.load("""__TEMP__: null""")
+        del data["__TEMP__"]
 
     if list_:
         yaml.dump(data, sys.stdout)
