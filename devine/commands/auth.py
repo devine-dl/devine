@@ -237,7 +237,9 @@ def add(ctx: click.Context, profile: str, service: str, cookie: Optional[str] = 
             log.info("Skipped adding a Credential...")
 
     if cookie:
-        cookie = cookie.rename((config.directories.cookies / service / profile).with_suffix(".txt"))
+        final_path = (config.directories.cookies / service / profile).with_suffix(".txt")
+        final_path.parent.mkdir(parents=True, exist_ok=True)
+        cookie = cookie.rename(final_path)
         log.info(f"Moved Cookie file to: {cookie}")
 
     if credential:
