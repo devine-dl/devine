@@ -70,7 +70,7 @@ class Config:
             raise FileNotFoundError(f"Config file path ({path}) was not found")
         if not path.is_file():
             raise FileNotFoundError(f"Config file path ({path}) is not to a file.")
-        return cls(**yaml.safe_load(path.read_text(encoding="utf8")))
+        return cls(**yaml.safe_load(path.read_text(encoding="utf8")) or {})
 
 
 # noinspection PyProtectedMember
