@@ -1,5 +1,6 @@
 import logging
 import tkinter.filedialog
+from collections import defaultdict
 from pathlib import Path
 from typing import Optional
 
@@ -36,27 +37,23 @@ def list_(ctx: click.Context, service: Optional[str] = None) -> None:
     log = ctx.obj
     service_f = service
 
-    profiles: dict[str, dict[str, list]] = {}
+    auth_data: dict[str, dict[str, list]] = defaultdict(lambda: defaultdict(list))
+
     for cookie_dir in config.directories.cookies.iterdir():
         service = cookie_dir.name
-        profiles[service] = {}
         for cookie in cookie_dir.glob("*.txt"):
-            if cookie.stem not in profiles[service]:
-                profiles[service][cookie.stem] = ["Cookie"]
+            if cookie.stem not in auth_data[service]:
+                auth_data[service][cookie.stem].append("Cookie")
 
     for service, credentials in config.credentials.items():
-        if service not in profiles:
-            profiles[service] = {}
-        for profile, credential in credentials.items():
-            if profile not in profiles[service]:
-                profiles[service][profile] = []
-            profiles[service][profile].append("Credential")
+        for profile in credentials:
+            auth_data[service][profile].append("Credential")
 
-    for service, profiles in profiles.items():
+    for service, profiles in dict(sorted(auth_data.items())).items():  # type:ignore
         if service_f and service != service_f.upper():
             continue
         log.info(service)
-        for profile, authorizations in profiles.items():
+        for profile, authorizations in dict(sorted(profiles.items())).items():
             log.info(f'  "{profile}": {", ".join(authorizations)}')
 
 
