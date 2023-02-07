@@ -1,4 +1,5 @@
 import logging
+import sys
 import tkinter.filedialog
 from collections import defaultdict
 from pathlib import Path
@@ -239,6 +240,9 @@ def add(ctx: click.Context, profile: str, service: str, cookie: Optional[str] = 
     if cookie:
         final_path = (config.directories.cookies / service / profile).with_suffix(".txt")
         final_path.parent.mkdir(parents=True, exist_ok=True)
+        if final_path.exists():
+            log.error(f"A Cookie file for the Profile {profile} on {service} already exists.")
+            sys.exit(1)
         cookie = cookie.rename(final_path)
         log.info(f"Moved Cookie file to: {cookie}")
 
