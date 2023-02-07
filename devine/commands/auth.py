@@ -251,6 +251,10 @@ def add(ctx: click.Context, profile: str, service: str, cookie: Optional[str] = 
         yaml, data = YAML(), None
         yaml.default_flow_style = False
         data = yaml.load(config_path)
+        if "credentials" not in data:
+            data["credentials"] = {}
+        if service not in data["credentials"]:
+            data["credentials"][service] = {}
         data["credentials"][service][profile] = credential.dumps()
         yaml.dump(data, config_path)
         log.info(f"Added Credential: {credential}")
