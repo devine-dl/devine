@@ -39,11 +39,12 @@ def list_(ctx: click.Context, service: Optional[str] = None) -> None:
 
     auth_data: dict[str, dict[str, list]] = defaultdict(lambda: defaultdict(list))
 
-    for cookie_dir in config.directories.cookies.iterdir():
-        service = cookie_dir.name
-        for cookie in cookie_dir.glob("*.txt"):
-            if cookie.stem not in auth_data[service]:
-                auth_data[service][cookie.stem].append("Cookie")
+    if config.directories.cookies.exists():
+        for cookie_dir in config.directories.cookies.iterdir():
+            service = cookie_dir.name
+            for cookie in cookie_dir.glob("*.txt"):
+                if cookie.stem not in auth_data[service]:
+                    auth_data[service][cookie.stem].append("Cookie")
 
     for service, credentials in config.credentials.items():
         for profile in credentials:
