@@ -74,6 +74,9 @@ class Config:
 
 
 # noinspection PyProtectedMember
-config = Config.from_yaml(Config._Directories.user_configs / Config._Filenames.root_config)
+try:
+    config = Config.from_yaml(Config._Directories.user_configs / Config._Filenames.root_config)
+except FileNotFoundError:
+    config = Config()
 
 __ALL__ = (config,)
