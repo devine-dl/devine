@@ -54,7 +54,7 @@ class Config:
             setattr(self.filenames, name, filename)
 
         self.headers: dict = kwargs.get("headers") or {}
-        self.key_vaults: list[dict[str, Any]] = kwargs.get("key_vaults")
+        self.key_vaults: list[dict[str, Any]] = kwargs.get("key_vaults", [])
         self.muxing: dict = kwargs.get("muxing") or {}
         self.nordvpn: dict = kwargs.get("nordvpn") or {}
         self.profiles: dict = kwargs.get("profiles") or {}
