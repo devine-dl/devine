@@ -356,7 +356,10 @@ class DASH:
         fallback_query: Optional[str] = None
     ) -> list[str]:
         segment_urls: list[str] = []
-        segment_template = representation.find("SegmentTemplate") or fallback_segment_template
+        if representation.find("SegmentTemplate") is not None:
+            segment_template = representation.find("SegmentTemplate")
+        else:
+            segment_template = fallback_segment_template
         base_url = representation.findtext("BaseURL") or fallback_base_url
 
         if segment_template is None:
