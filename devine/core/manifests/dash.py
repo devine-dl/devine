@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import base64
-from hashlib import md5
-
 import math
 import re
 from copy import copy
-from typing import Any, Optional, Union, Callable
+from hashlib import md5
+from typing import Any, Callable, Optional, Union
 from urllib.parse import urljoin, urlparse
 from uuid import UUID
 
@@ -17,8 +16,8 @@ from pywidevine.pssh import PSSH
 from requests import Session
 
 from devine.core.drm import Widevine
-from devine.core.tracks import Tracks, Video, Audio, Subtitle
-from devine.core.utilities import is_close_match, FPS
+from devine.core.tracks import Audio, Subtitle, Tracks, Video
+from devine.core.utilities import is_close_match
 from devine.core.utils.xml import load_xml
 
 
@@ -248,7 +247,10 @@ class DASH:
                             fps=(
                                 rep.get("frameRate") or
                                 adaptation_set.get("frameRate") or
-                                FPS.parse(rep.find("SegmentBase").get("timescale"))
+                                (
+                                    rep.find("SegmentBase").get("timescale") if
+                                    rep.find("SegmentBase") else None
+                                )
                             ),
                             drm=drm
                         ) if track_type is Video else dict(
