@@ -249,7 +249,7 @@ class DASH:
                                 adaptation_set.get("frameRate") or
                                 (
                                     rep.find("SegmentBase").get("timescale") if
-                                    rep.find("SegmentBase") else None
+                                    rep.find("SegmentBase") is not None else None
                                 )
                             ),
                             drm=drm
