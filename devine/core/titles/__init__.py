@@ -6,3 +6,6 @@ from .song import Album, Song
 
 Title_T = Union[Movie, Episode, Song]
 Titles_T = Union[Movies, Series, Album]
+
+
+__ALL__ = (Episode, Series, Movie, Movies, Album, Song, Title_T, Titles_T)
