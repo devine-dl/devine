@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 import logging
+import math
 import random
 import re
 import sys
@@ -71,6 +72,9 @@ class dl:
     @click.option("-r", "--range", "range_", type=click.Choice(Video.Range, case_sensitive=False),
                   default=Video.Range.SDR,
                   help="Video Color Range, defaults to SDR.")
+    @click.option("-c", "--channels", type=float,
+                  default=None,
+                  help="Audio Channel(s) to download. Matches sub-channel layouts like 5.1 with 6.0 implicitly.")
     @click.option("-w", "--wanted", type=SEASON_RANGE, default=None,
                   help="Wanted episodes, e.g. `S01-S05,S07`, `S01E01-S02E03`, `S02-S02E03`, e.t.c, defaults to all.")
     @click.option("-l", "--lang", type=LANGUAGE_RANGE, default="en",
@@ -243,6 +247,7 @@ class dl:
         vbitrate: int,
         abitrate: int,
         range_: Video.Range,
+        channels: float,
         wanted: list[str],
         lang: list[str],
         v_lang: list[str],
@@ -370,6 +375,11 @@ class dl:
                 title.tracks.select_audio(lambda x: x.bitrate and x.bitrate // 1000 == abitrate)
                 if not title.tracks.audio:
                     self.log.error(f"There's no {abitrate}kbps Audio Track...")
+            if channels:
+                title.tracks.select_audio(lambda x: math.ceil(x.channels) == math.ceil(channels))
+                if not title.tracks.audio:
+                    self.log.error(f"There's no {channels} Audio Track...")
+                    sys.exit(1)
 
             if lang and "all" not in lang:
                 title.tracks.audio = title.tracks.select_per_language(title.tracks.audio, lang)
