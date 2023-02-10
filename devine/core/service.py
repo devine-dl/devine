@@ -30,14 +30,15 @@ class Service(metaclass=ABCMeta):
     def __init__(self, ctx: click.Context):
         self.config = ctx.obj.config
 
-        assert ctx.parent is not None
-        assert ctx.parent.parent is not None
-
         self.log = logging.getLogger(self.__class__.__name__)
         self.session = self.get_session()
         self.cache = Cacher(self.__class__.__name__)
 
-        self.proxy = ctx.parent.params["proxy"]
+        if ctx.parent:
+            self.proxy = ctx.parent.params["proxy"]
+        else:
+            self.proxy = None
+
         if not self.proxy and self.GEOFENCE:
             # no explicit proxy, let's get one to GEOFENCE if needed
             current_region = get_ip_info(self.session)["country"].lower()
@@ -50,6 +51,7 @@ class Service(metaclass=ABCMeta):
                     if self.proxy:
                         self.log.info(f" + {self.proxy} (from {proxy_provider.__class__.__name__})")
                         break
+
         if self.proxy:
             self.session.proxies.update({"all": self.proxy})
             proxy_parse = urlparse(self.proxy)
