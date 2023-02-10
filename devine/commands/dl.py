@@ -183,7 +183,7 @@ class dl:
 
         if proxy:
             requested_provider = None
-            if re.match(rf"^[a-z]+:.+$", proxy, re.IGNORECASE):
+            if re.match(r"^[a-z]+:.+$", proxy, re.IGNORECASE):
                 # requesting proxy from a specific proxy provider
                 requested_provider, proxy = proxy.split(":", maxsplit=1)
             if re.match(r"^[a-z]{2}(?:\d+)?$", proxy, re.IGNORECASE):

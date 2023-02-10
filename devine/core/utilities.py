@@ -74,7 +74,7 @@ def sanitize_filename(filename: str, spacer: str = ".") -> str:
     filename = filename.\
         replace("/", " & ").\
         replace(";", " & ")  # e.g. multi-episode filenames
-    filename = re.sub(rf"[:; ]", spacer, filename)  # structural chars to (spacer)
+    filename = re.sub(r"[:; ]", spacer, filename)  # structural chars to (spacer)
     filename = re.sub(r"[\\*!?¿,'\"()<>|$#]", "", filename)  # not filename safe chars
     filename = re.sub(rf"[{spacer}]{{2,}}", spacer, filename)  # remove extra neighbouring (spacer)s
 
