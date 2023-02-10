@@ -41,7 +41,7 @@ class Service(metaclass=ABCMeta):
         if not self.proxy and self.GEOFENCE:
             # no explicit proxy, let's get one to GEOFENCE if needed
             current_region = get_ip_info(self.session)["country"].lower()
-            if not any([x.lower() == current_region for x in self.GEOFENCE]):
+            if not any(x.lower() == current_region for x in self.GEOFENCE):
                 requested_proxy = self.GEOFENCE[0]  # first is likely main region
                 self.log.info(f"Current IP region is blocked by the service, getting Proxy to {requested_proxy}")
                 # current region is not in any of the service's supported regions
