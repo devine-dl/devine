@@ -74,23 +74,27 @@ class Audio(Track):
         self.descriptive = bool(descriptive)
 
     @staticmethod
-    def parse_channels(channels: Union[str, float]) -> str:
+    def parse_channels(channels: Union[str, int, float]) -> float:
         """
-        Converts a string to a float-like string which represents audio channels.
-        It does not handle values that are incorrect/out of bounds or e.g. 6.0->5.1, as that
-        isn't what this is intended for.
+        Converts a Channel string to a float representing audio channel count and layout.
         E.g. "3" -> "3.0", "2.1" -> "2.1", ".1" -> "0.1".
-        """
-        # TODO: Support all possible DASH channel configurations (https://datatracker.ietf.org/doc/html/rfc8216)
-        if channels.upper() == "A000":
-            return "2.0"
-        if channels.upper() == "F801":
-            return "5.1"
 
-        try:
-            return str(float(channels))
-        except ValueError:
-            return str(channels)
+        This does not validate channel strings as genuine channel counts or valid layouts.
+        It does not convert the value to assume a sub speaker channel layout, e.g. 5.1->6.0.
+        It also does not support expanded surround sound channel layout strings like 7.1.2.
+        """
+        if isinstance(channels, str):
+            # TODO: Support all possible DASH channel configurations (https://datatracker.ietf.org/doc/html/rfc8216)
+            if channels.upper() == "A000":
+                return 2.0
+            elif channels.upper() == "F801":
+                return 5.1
+            elif channels.replace("ch", "").replace(".", "", 1).isdigit():
+                # e.g., '2ch', '2', '2.0', '5.1ch', '5.1'
+                return float(channels.replace("ch", ""))
+            raise NotImplementedError(f"Unsupported Channels string value, '{channels}'")
+
+        return float(channels)
 
     def get_track_name(self) -> Optional[str]:
         """Return the base Track Name."""
@@ -106,7 +110,7 @@ class Audio(Track):
         return " | ".join(filter(bool, [
             "AUD",
             f"[{self.codec.value}]",
-            (self.channels or "?") + (f" (JOC {self.joc})" if self.joc else ""),
+            str(self.channels or "?") + (f" (JOC {self.joc})" if self.joc else ""),
             f"{self.bitrate // 1000 if self.bitrate else '?'} kb/s",
             str(self.language),
             self.get_track_name(),
