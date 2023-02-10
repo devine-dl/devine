@@ -65,7 +65,8 @@ class Service(metaclass=ABCMeta):
     # Otherwise, the base service code (if any) of the function will be executed on call.
     # The functions will be executed in shown order.
 
-    def get_session(self) -> requests.Session:
+    @staticmethod
+    def get_session() -> requests.Session:
         """
         Creates a Python-requests Session, adds common headers
         from config, cookies, retry handler, and a proxy if available.
