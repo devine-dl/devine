@@ -62,6 +62,12 @@ class dl:
     @click.option("-a", "--acodec", type=click.Choice(Audio.Codec, case_sensitive=False),
                   default=None,
                   help="Audio Codec to download, defaults to any codec.")
+    @click.option("-vb", "--vbitrate", type=int,
+                  default=None,
+                  help="Video Bitrate to download (in kbps), defaults to highest available.")
+    @click.option("-ab", "--abitrate", type=int,
+                  default=None,
+                  help="Audio Bitrate to download (in kbps), defaults to highest available.")
     @click.option("-r", "--range", "range_", type=click.Choice(Video.Range, case_sensitive=False),
                   default=Video.Range.SDR,
                   help="Video Color Range, defaults to SDR.")
@@ -229,11 +235,31 @@ class dl:
         self.cli._result_callback = self.result
 
     def result(
-        self, service: Service, quality: Optional[int], vcodec: Video.Codec,
-        acodec: Optional[Audio.Codec], range_: Video.Range, wanted: list[str], lang: list[str], v_lang: list[str],
-        s_lang: list[str], audio_only: bool, subs_only: bool, chapters_only: bool, slow: bool, list_: bool,
-        list_titles: bool, skip_dl: bool, export: Optional[Path], cdm_only: Optional[bool], no_folder: bool,
-        no_source: bool, workers: int, *_: Any, **__: Any
+        self,
+        service: Service,
+        quality: Optional[int],
+        vcodec: Video.Codec,
+        acodec: Optional[Audio.Codec],
+        vbitrate: int,
+        abitrate: int,
+        range_: Video.Range,
+        wanted: list[str],
+        lang: list[str],
+        v_lang: list[str],
+        s_lang: list[str],
+        audio_only: bool,
+        subs_only: bool,
+        chapters_only: bool,
+        slow: bool, list_: bool,
+        list_titles: bool,
+        skip_dl: bool,
+        export: Optional[Path],
+        cdm_only: Optional[bool],
+        no_folder: bool,
+        no_source: bool,
+        workers: int,
+        *_: Any,
+        **__: Any
     ) -> None:
         if cdm_only is None:
             vaults_only = None
@@ -306,6 +332,11 @@ class dl:
                 # filter video tracks
                 title.tracks.select_video(lambda x: x.codec == vcodec)
                 title.tracks.select_video(lambda x: x.range == range_)
+                if vbitrate:
+                    title.tracks.select_video(lambda x: x.bitrate and x.bitrate // 1000 == vbitrate)
+                    if not title.tracks.videos:
+                        self.log.error(f"There's no {vbitrate}kbps Video Track...")
+                        sys.exit(1)
                 if quality:
                     title.tracks.with_resolution(quality)
                 if not title.tracks.videos:
@@ -335,6 +366,10 @@ class dl:
                 if not title.tracks.audio:
                     self.log.error(f"There's no {acodec.name} Audio Tracks...")
                     sys.exit(1)
+            if abitrate:
+                title.tracks.select_audio(lambda x: x.bitrate and x.bitrate // 1000 == abitrate)
+                if not title.tracks.audio:
+                    self.log.error(f"There's no {abitrate}kbps Audio Track...")
 
             if lang and "all" not in lang:
                 title.tracks.audio = title.tracks.select_per_language(title.tracks.audio, lang)
