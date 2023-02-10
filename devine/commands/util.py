@@ -74,16 +74,17 @@ def crop(path: Path, aspect: str, letter: bool, offset: int, preview: bool) -> N
         if preview:
             out_path = ["-f", "mpegts", "-"]  # pipe
         else:
-            out_path = [str(video_path.with_stem(".".join(filter(bool, [
+            out_path = [str(video_path.with_name(".".join(filter(bool, [
                 video_path.stem,
                 video_track.language,
                 "crop",
-                str(offset or "")
-            ]))).with_suffix({
-                # ffmpeg's MKV muxer does not yet support HDR
-                "HEVC": ".h265",
-                "AVC": ".h264"
-            }.get(video_track.commercial_name, ".mp4")))]
+                str(offset or ""),
+                {
+                    # ffmpeg's MKV muxer does not yet support HDR
+                    "HEVC": "h265",
+                    "AVC": "h264"
+                }.get(video_track.commercial_name, ".mp4")
+            ]))))]
 
         ffmpeg_call = subprocess.Popen([
             executable, "-y",
@@ -143,16 +144,17 @@ def range_(path: Path, full: bool, preview: bool) -> None:
         if preview:
             out_path = ["-f", "mpegts", "-"]  # pipe
         else:
-            out_path = [str(video_path.with_stem(".".join(filter(bool, [
+            out_path = [str(video_path.with_name(".".join(filter(bool, [
                 video_path.stem,
                 video_track.language,
                 "range",
-                ["limited", "full"][full]
-            ]))).with_suffix({
-                # ffmpeg's MKV muxer does not yet support HDR
-                "HEVC": ".h265",
-                "AVC": ".h264"
-            }.get(video_track.commercial_name, ".mp4")))]
+                ["limited", "full"][full],
+                {
+                    # ffmpeg's MKV muxer does not yet support HDR
+                    "HEVC": "h265",
+                    "AVC": "h264"
+                }.get(video_track.commercial_name, ".mp4")
+            ]))))]
 
         ffmpeg_call = subprocess.Popen([
             executable, "-y",
