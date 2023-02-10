@@ -1,7 +1,7 @@
 import re
 from abc import ABC
 from collections import Counter
-from typing import Any, Optional, Union, Iterable
+from typing import Any, Iterable, Optional, Union
 
 from langcodes import Language
 from pymediainfo import MediaInfo

@@ -11,11 +11,11 @@ from langcodes import Language, closest_supported_match
 from devine.core.config import config
 from devine.core.constants import LANGUAGE_MAX_DISTANCE, LANGUAGE_MUX_MAP, AnyTrack, TrackT
 from devine.core.tracks.audio import Audio
-from devine.core.tracks.track import Track
 from devine.core.tracks.chapter import Chapter
 from devine.core.tracks.subtitle import Subtitle
+from devine.core.tracks.track import Track
 from devine.core.tracks.video import Video
-from devine.core.utilities import sanitize_filename, is_close_match
+from devine.core.utilities import is_close_match, sanitize_filename
 from devine.core.utils.collections import as_list, flatten
 
 

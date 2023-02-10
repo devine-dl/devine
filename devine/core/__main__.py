@@ -6,7 +6,7 @@ import coloredlogs
 
 from devine.core import __version__
 from devine.core.commands import Commands
-from devine.core.constants import context_settings, LOG_FORMAT
+from devine.core.constants import LOG_FORMAT, context_settings
 
 
 @click.command(cls=Commands, invoke_without_command=True, context_settings=context_settings)

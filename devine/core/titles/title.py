@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Optional, Union, Any
+from typing import Any, Optional, Union
 
 from langcodes import Language
 from pymediainfo import MediaInfo

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from hashlib import md5
-from typing import Union, Any, Optional
+from typing import Any, Optional, Union
 
 import m3u8
 import requests
@@ -12,8 +12,8 @@ from pywidevine.cdm import Cdm as WidevineCdm
 from pywidevine.pssh import PSSH
 from requests import Session
 
-from devine.core.drm import ClearKey, Widevine, DRM_T
-from devine.core.tracks import Tracks, Video, Audio, Subtitle
+from devine.core.drm import DRM_T, ClearKey, Widevine
+from devine.core.tracks import Audio, Subtitle, Tracks, Video
 from devine.core.utilities import is_close_match
 
 

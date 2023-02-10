@@ -1,6 +1,6 @@
 import subprocess
 from pathlib import Path
-from typing import Union, Optional
+from typing import Optional, Union
 
 from devine.core.utilities import get_binary_path
 

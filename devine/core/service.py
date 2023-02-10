@@ -3,21 +3,21 @@ from __future__ import annotations
 import base64
 import logging
 from abc import ABCMeta, abstractmethod
-from http.cookiejar import MozillaCookieJar, CookieJar
+from http.cookiejar import CookieJar, MozillaCookieJar
 from typing import Optional, Union
 from urllib.parse import urlparse
 
 import click
 import requests
-from requests.adapters import Retry, HTTPAdapter
+from requests.adapters import HTTPAdapter, Retry
 
+from devine.core.cacher import Cacher
 from devine.core.config import config
 from devine.core.constants import AnyTrack
-from devine.core.titles import Titles_T, Title_T
+from devine.core.credential import Credential
+from devine.core.titles import Title_T, Titles_T
 from devine.core.tracks import Chapter, Tracks
 from devine.core.utilities import get_ip_info
-from devine.core.cacher import Cacher
-from devine.core.credential import Credential
 
 
 class Service(metaclass=ABCMeta):

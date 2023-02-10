@@ -4,15 +4,14 @@ import importlib.util
 import re
 import shutil
 import sys
+import unicodedata
+from pathlib import Path
+from types import ModuleType
+from typing import AsyncIterator, Optional, Sequence, Union
 from urllib.parse import urlparse
 
 import pproxy
 import requests
-import unicodedata
-from pathlib import Path
-from types import ModuleType
-from typing import Optional, Union, Sequence, AsyncIterator
-
 from langcodes import Language, closest_match
 from pymp4.parser import Box
 from unidecode import unidecode

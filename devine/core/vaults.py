@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import Iterator, Optional, Union, Any
+from typing import Any, Iterator, Optional, Union
 from uuid import UUID
 
-from devine.core.vault import Vault
 from devine.core.config import config
 from devine.core.utilities import import_module_by_path
+from devine.core.vault import Vault
 
 _VAULTS = sorted(
     (

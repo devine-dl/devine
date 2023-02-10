@@ -15,7 +15,7 @@ from functools import partial
 from http.cookiejar import MozillaCookieJar
 from pathlib import Path
 from threading import Event
-from typing import Any, Optional, Callable
+from typing import Any, Callable, Optional
 
 import click
 import jsonpickle
@@ -27,18 +27,18 @@ from pywidevine.remotecdm import RemoteCdm
 from tqdm import tqdm
 
 from devine.core.config import config
-from devine.core.constants import AnyTrack, context_settings, LOG_FORMATTER, DRM_SORT_MAP
-from devine.core.drm import Widevine, DRM_T
-from devine.core.proxies import Basic, NordVPN, Hola
+from devine.core.constants import DRM_SORT_MAP, LOG_FORMATTER, AnyTrack, context_settings
+from devine.core.credential import Credential
+from devine.core.drm import DRM_T, Widevine
+from devine.core.proxies import Basic, Hola, NordVPN
 from devine.core.service import Service
 from devine.core.services import Services
-from devine.core.titles import Title_T, Movie, Song
+from devine.core.titles import Movie, Song, Title_T
 from devine.core.titles.episode import Episode
 from devine.core.tracks import Audio, Video
-from devine.core.utilities import is_close_match, get_binary_path
+from devine.core.utilities import get_binary_path, is_close_match
 from devine.core.utils.click_types import LANGUAGE_RANGE, QUALITY, SEASON_RANGE, ContextData
 from devine.core.utils.collections import merge_dict
-from devine.core.credential import Credential
 from devine.core.utils.subprocess import ffprobe
 from devine.core.vaults import Vaults
 

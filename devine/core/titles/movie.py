@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, Optional, Union, Iterable
+from typing import Any, Iterable, Optional, Union
 
 from langcodes import Language
 from pymediainfo import MediaInfo

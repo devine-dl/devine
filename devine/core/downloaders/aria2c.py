@@ -1,7 +1,7 @@
 import asyncio
 import subprocess
 from pathlib import Path
-from typing import Union, Optional
+from typing import Optional, Union
 
 from devine.core.config import config
 from devine.core.utilities import get_binary_path, start_pproxy

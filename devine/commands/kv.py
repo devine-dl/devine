@@ -7,10 +7,10 @@ from typing import Optional
 
 import click
 
-from devine.core.vault import Vault
 from devine.core.config import config
 from devine.core.constants import context_settings
 from devine.core.services import Services
+from devine.core.vault import Vault
 from devine.core.vaults import Vaults
 
 

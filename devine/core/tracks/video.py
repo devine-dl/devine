@@ -11,9 +11,9 @@ from typing import Any, Optional, Union
 from langcodes import Language
 
 from devine.core.config import config
-from devine.core.tracks.track import Track
 from devine.core.tracks.subtitle import Subtitle
-from devine.core.utilities import get_binary_path, get_boxes, FPS
+from devine.core.tracks.track import Track
+from devine.core.utilities import FPS, get_binary_path, get_boxes
 
 
 class Video(Track):
