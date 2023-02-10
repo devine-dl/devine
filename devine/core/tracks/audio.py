@@ -87,10 +87,6 @@ class Audio(Track):
         if channels.upper() == "F801":
             return "5.1"
 
-        if str(channels).isdigit():
-            # This is to avoid incorrectly transforming channels=6 to 6.0, for example
-            return f"{channels}ch"
-
         try:
             return str(float(channels))
         except ValueError:
