@@ -375,6 +375,7 @@ class dl:
                 title.tracks.select_audio(lambda x: x.bitrate and x.bitrate // 1000 == abitrate)
                 if not title.tracks.audio:
                     self.log.error(f"There's no {abitrate}kbps Audio Track...")
+                    sys.exit(1)
             if channels:
                 title.tracks.select_audio(lambda x: math.ceil(x.channels) == math.ceil(channels))
                 if not title.tracks.audio:
