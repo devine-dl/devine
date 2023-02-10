@@ -110,7 +110,7 @@ class Audio(Track):
         return " | ".join(filter(bool, [
             "AUD",
             f"[{self.codec.value}]",
-            (self.channels or "2.0?") + (f" (JOC {self.joc})" if self.joc else ""),
+            (self.channels or "?") + (f" (JOC {self.joc})" if self.joc else ""),
             f"{self.bitrate // 1000 if self.bitrate else '?'} kb/s",
             str(self.language),
             self.get_track_name(),
