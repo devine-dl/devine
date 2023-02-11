@@ -164,9 +164,13 @@ class HLS:
             else:
                 drm = None
 
+            joc = 0
             if media.type == "AUDIO":
                 track_type = Audio
                 codec = audio_codecs_by_group_id.get(media.group_id)
+                if media.channels.endswith("/JOC"):
+                    joc = int(media.channels.split("/JOC")[0])
+                    media.channels = "5.1"
             else:
                 track_type = Subtitle
                 codec = Subtitle.Codec.WebVTT  # assuming WebVTT, codec info isn't shown
@@ -184,6 +188,7 @@ class HLS:
                 **(dict(
                     bitrate=0,  # TODO: M3U doesn't seem to state bitrate?
                     channels=media.channels,
+                    joc=joc,
                     descriptive="public.accessibility.describes-video" in (media.characteristics or ""),
                 ) if track_type is Audio else dict(
                     forced=media.forced == "YES",
