@@ -170,7 +170,13 @@ class Subtitle(Track):
                 caption_set: pycaption.CaptionSet = pycaption.CaptionSet(caption_lists)
                 return caption_set
             if codec == Subtitle.Codec.WebVTT:
-                text = data.decode("utf8").replace("\r", "").replace("\n\n\n", "\n \n\n").replace("\n\n<", "\n<")
+                # Segmented VTT when merged may have the WEBVTT headers part of the next caption
+                # if they are not separated far enough from the previous caption, hence the \n\n
+                text = data.decode("utf8"). \
+                    replace("WEBVTT", "\n\nWEBVTT"). \
+                    replace("\r", ""). \
+                    replace("\n\n\n", "\n \n\n"). \
+                    replace("\n\n<", "\n<")
                 captions: pycaption.CaptionSet = pycaption.WebVTTReader().read(text)
                 return captions
         except pycaption.exceptions.CaptionReadSyntaxError:
