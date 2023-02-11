@@ -7,6 +7,7 @@ import random
 import re
 import sys
 import time
+import traceback
 from collections import defaultdict
 from concurrent import futures
 from concurrent.futures import ThreadPoolExecutor
@@ -480,6 +481,7 @@ class dl:
                                 if e:
                                     self.DL_POOL_STOP.set()
                                     pool.shutdown(wait=False, cancel_futures=True)
+                                    traceback.print_exception(e)
                                     self.log.error(f"Download worker threw an unhandled exception: {e!r}")
                                     return
                                 else:
