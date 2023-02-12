@@ -49,6 +49,9 @@ class DASH:
             raise TypeError(f"Expected session to be a {Session}, not {session!r}")
 
         res = session.get(url, **args)
+        if res.url != url:
+            url = res.url
+
         if not res.ok:
             raise requests.ConnectionError(
                 "Failed to request the MPD document.",
