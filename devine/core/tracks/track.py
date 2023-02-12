@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import re
+import shutil
 import subprocess
 from enum import Enum
 from pathlib import Path
@@ -312,7 +313,8 @@ class Track:
         if not self.path:
             return False
         target = Path(target)
-        ok = self.path.rename(target).resolve() == target.resolve()
+
+        ok = Path(shutil.move(self.path, target)).resolve() == target.resolve()
         if ok:
             self.path = target
         return ok
@@ -326,7 +328,7 @@ class Track:
         if not target.exists() or not self.path:
             return False
         self.path.unlink()
-        ok = target.rename(self.path) == self.path
+        ok = Path(shutil.move(target, self.path)).resolve() == self.path.resolve()
         if not ok:
             return False
         return self.move(target)

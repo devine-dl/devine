@@ -5,6 +5,7 @@ import logging
 import math
 import random
 import re
+import shutil
 import sys
 import time
 import traceback
@@ -674,7 +675,7 @@ class dl:
         final_dir.mkdir(parents=True, exist_ok=True)
         final_path = final_dir / f"{final_filename}{muxed_path.suffix}"
 
-        muxed_path.rename(final_path)
+        shutil.move(muxed_path, final_path)
         self.log.info(f" + Moved to {final_path}")
 
     @staticmethod
