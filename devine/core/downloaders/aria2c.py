@@ -11,7 +11,8 @@ async def aria2c(
     uri: Union[str, list[str]],
     out: Path,
     headers: Optional[dict] = None,
-    proxy: Optional[str] = None
+    proxy: Optional[str] = None,
+    byte_range: Optional[str] = None
 ) -> int:
     """
     Download files using Aria2(c).
@@ -67,6 +68,9 @@ async def aria2c(
             # and the code is not set up to uncompress the data
             continue
         arguments.extend(["--header", f"{header}: {value}"])
+
+    if byte_range:
+        arguments.extend(["--header", f"Range: bytes={byte_range}"])
 
     if proxy and proxy.lower().split(":")[0] != "http":
         # HTTPS proxies not supported by Aria2c.
