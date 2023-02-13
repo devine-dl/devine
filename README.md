@@ -291,6 +291,7 @@ Please refrain from spam or asking for questions that infringe upon a Service's 
 <a href="https://github.com/nyuszika7h"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/482367?v=4&h=25&w=25&fit=cover&mask=circle&maxage=7d" alt=""/></a>
 <a href="https://github.com/bccornfo"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/98013276?v=4&h=25&w=25&fit=cover&mask=circle&maxage=7d" alt=""/></a>
 <a href="https://github.com/Arias800"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/24809312?v=4&h=25&w=25&fit=cover&mask=circle&maxage=7d" alt=""/></a>
+<a href="https://github.com/varyg1001"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/88599103?v=4&h=25&w=25&fit=cover&mask=circle&maxage=7d" alt=""/></a>
 
 ## License
 
