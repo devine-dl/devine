@@ -4,7 +4,7 @@ build-backend = 'poetry.core.masonry.api'
 
 [tool.poetry]
 name = 'devine'
-version = '1.1.0'
+version = '1.2.0'
 description = 'Open-Source Movie, TV, and Music Downloading Solution'
 license = 'GPL-3.0-only'
 authors = ['rlaphoenix <rlaphoenix@pm.me>']
