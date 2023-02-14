@@ -212,6 +212,9 @@ def add(ctx: click.Context, profile: str, service: str, cookie: Optional[str] = 
 
     if cookie:
         cookie = Path(cookie)
+        if not cookie.is_file():
+            log.error(f"No such file or directory: {cookie}.")
+            sys.exit(1)
     else:
         print("Opening File Dialogue, select a Cookie file to import.")
         cookie = tkinter.filedialog.askopenfilename(
