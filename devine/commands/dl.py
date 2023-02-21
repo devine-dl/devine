@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import html
 import logging
 import math
@@ -22,6 +23,7 @@ from typing import Any, Callable, Optional
 
 import click
 import jsonpickle
+import pycaption
 import yaml
 from pymediainfo import MediaInfo
 from pywidevine.cdm import Cdm as WidevineCdm
@@ -30,15 +32,17 @@ from pywidevine.remotecdm import RemoteCdm
 from tqdm import tqdm
 
 from devine.core.config import config
-from devine.core.constants import DRM_SORT_MAP, LOG_FORMATTER, AnyTrack, context_settings
+from devine.core.constants import LOG_FORMATTER, AnyTrack, context_settings
 from devine.core.credential import Credential
+from devine.core.downloaders import aria2c
 from devine.core.drm import DRM_T, Widevine
+from devine.core.manifests import DASH, HLS
 from devine.core.proxies import Basic, Hola, NordVPN
 from devine.core.service import Service
 from devine.core.services import Services
 from devine.core.titles import Movie, Song, Title_T
 from devine.core.titles.episode import Episode
-from devine.core.tracks import Audio, Video
+from devine.core.tracks import Audio, Subtitle, Video
 from devine.core.utilities import get_binary_path, is_close_match
 from devine.core.utils.click_types import LANGUAGE_RANGE, QUALITY, SEASON_RANGE, ContextData
 from devine.core.utils.collections import merge_dict
@@ -417,50 +421,6 @@ class dl:
             if list_:
                 continue  # only wanted to see what tracks were available and chosen
 
-            # Prepare Track DRM (if any)
-            for track in title.tracks:
-                if not track.drm and isinstance(track, (Video, Audio)):
-                    # service might not list DRM in manifest, get from stream data
-                    try:
-                        track.drm = [Widevine.from_track(track, service.session)]
-                    except Widevine.Exceptions.PSSHNotFound:
-                        # it might not have Widevine DRM, or might not have found the PSSH
-                        self.log.warning("No Widevine PSSH was found for this track, is it DRM free?")
-                if track.drm:
-                    # choose first-available DRM in order of Enum value
-                    track.drm = next(iter(sorted(track.drm, key=lambda x: DRM_SORT_MAP.index(x.__class__.__name__))))
-                    if isinstance(track.drm, Widevine):
-                        # Get Widevine Content Keys now, this must be done in main thread due to SQLite objects
-                        self.log.info(f"Getting {track.drm.__class__.__name__} Keys for: {track}")
-                        self.prepare_drm(
-                            drm=track.drm,
-                            licence=partial(
-                                service.get_widevine_license,
-                                title=title,
-                                track=track
-                            ),
-                            certificate=partial(
-                                service.get_widevine_service_certificate,
-                                title=title,
-                                track=track
-                            ),
-                            cdm_only=cdm_only,
-                            vaults_only=vaults_only
-                        )
-
-                        if export:
-                            keys = {}
-                            if export.is_file():
-                                keys = jsonpickle.loads(export.read_text(encoding="utf8"))
-                            if str(title) not in keys:
-                                keys[str(title)] = {}
-                            keys[str(title)][str(track)] = {
-                                kid: key
-                                for kid, key in track.drm.content_keys.items()
-                                if kid in track.drm.kids
-                            }
-                            export.write_text(jsonpickle.dumps(keys, indent=4), encoding="utf8")
-
             if skip_dl:
                 self.log.info("Skipping Download...")
             else:
@@ -472,7 +432,17 @@ class dl:
                                     self.download_track,
                                     service=service,
                                     track=track,
-                                    title=title
+                                    title=title,
+                                    prepare_drm=partial(
+                                        self.prepare_drm,
+                                        track=track,
+                                        title=title,
+                                        certificate=service.get_widevine_service_certificate,
+                                        licence=service.get_widevine_license,
+                                        cdm_only=cdm_only,
+                                        vaults_only=vaults_only,
+                                        export=export
+                                    )
                                 )
                                 for track in title.tracks
                             )):
@@ -507,11 +477,97 @@ class dl:
 
         self.log.info("Processed all titles!")
 
+    def prepare_drm(
+        self,
+        drm: DRM_T,
+        track: AnyTrack,
+        title: Title_T,
+        certificate: Callable,
+        licence: Callable,
+        cdm_only: bool = False,
+        vaults_only: bool = False,
+        export: Optional[Path] = None
+    ):
+        """
+        Prepare the DRM by getting decryption data like KIDs, Keys, and such.
+        The DRM object should be ready for decryption once this function ends.
+        """
+        if not drm:
+            return
+
+        if isinstance(drm, Widevine):
+            self.log.info(f"Licensing Content Keys using Widevine for {drm.pssh.dumps()}")
+
+            for kid in drm.kids:
+                if kid in drm.content_keys:
+                    continue
+
+                if not cdm_only:
+                    content_key, vault_used = self.vaults.get_key(kid)
+                    if content_key:
+                        drm.content_keys[kid] = content_key
+                        self.log.info(f" + {kid.hex}:{content_key} ({vault_used})")
+                        add_count = self.vaults.add_key(kid, content_key, excluding=vault_used)
+                        self.log.info(f" + Cached to {add_count}/{len(self.vaults) - 1} Vaults")
+                    elif vaults_only:
+                        self.log.error(f" - No Content Key found in any Vault for {kid.hex}")
+                        sys.exit(1)
+
+                if kid not in drm.content_keys and not vaults_only:
+                    from_vaults = drm.content_keys.copy()
+
+                    try:
+                        drm.get_content_keys(
+                            cdm=self.cdm,
+                            licence=licence,
+                            certificate=certificate
+                        )
+                    except ValueError as e:
+                        self.log.error(str(e))
+                        sys.exit(1)
+
+                    for kid_, key in drm.content_keys.items():
+                        msg = f" + {kid_.hex}:{key}"
+                        if kid_ == kid:
+                            msg += " *"
+                        if key == "0" * 32:
+                            msg += " (Unusable!)"
+                        self.log.info(msg)
+
+                    drm.content_keys = {
+                        kid_: key
+                        for kid_, key in drm.content_keys.items()
+                        if key and key.count("0") != len(key)
+                    }
+
+                    # The CDM keys may have returned blank content keys for KIDs we got from vaults.
+                    # So we re-add the keys from vaults earlier overwriting blanks or removed KIDs data.
+                    drm.content_keys.update(from_vaults)
+
+                    cached_keys = self.vaults.add_keys(drm.content_keys)
+                    self.log.info(f" + Newly added to {cached_keys}/{len(drm.content_keys)} Vaults")
+
+                    if kid not in drm.content_keys:
+                        self.log.error(f" - No usable key was returned for {kid.hex}, cannot continue")
+                        sys.exit(1)
+
+            if export:
+                keys = {}
+                if export.is_file():
+                    keys = jsonpickle.loads(export.read_text(encoding="utf8"))
+                if str(title) not in keys:
+                    keys[str(title)] = {}
+                if str(track) not in keys[str(title)]:
+                    keys[str(title)][str(track)] = {}
+                keys[str(title)][str(track)].update(drm.content_keys)
+                export.write_text(jsonpickle.dumps(keys, indent=4), encoding="utf8")
+
     def download_track(
         self,
         service: Service,
         track: AnyTrack,
-        title: Title_T
+        title: Title_T,
+        prepare_drm: Callable
     ):
         time.sleep(1)
         if self.DL_POOL_STOP.is_set():
@@ -523,16 +579,107 @@ class dl:
             proxy = None
 
         self.log.info(f"Downloading: {track}")
-        track.download(config.directories.temp, headers=service.session.headers, proxy=proxy)
+
+        if config.directories.temp.is_file():
+            self.log.error(f"Temp Directory '{config.directories.temp}' must be a Directory, not a file")
+            sys.exit(1)
+
+        config.directories.temp.mkdir(parents=True, exist_ok=True)
+
+        save_path = config.directories.temp / f"{track.__class__.__name__}_{track.id}.mp4"
+        if isinstance(track, Subtitle):
+            save_path = save_path.with_suffix(f".{track.codec.extension}")
+
+        if track.descriptor != track.Descriptor.URL:
+            save_dir = save_path.with_name(save_path.name + "_segments")
+        else:
+            save_dir = save_path.parent
+
+        # Delete any pre-existing temp files matching this track.
+        # We can't re-use or continue downloading these tracks as they do not use a
+        # lock file. Or at least the majority don't. Even if they did I've encountered
+        # corruptions caused by sudden interruptions to the lock file.
+        for existing_file in config.directories.temp.glob(f"{save_path.stem}.*{save_path.suffix}"):
+            # e.g., foo.decrypted.mp4, foo.repack.mp4, and such
+            existing_file.unlink()
+        if save_dir.exists() and save_dir.name.endswith("_segments"):
+            shutil.rmtree(save_dir)
+
+        if track.descriptor == track.Descriptor.M3U:
+            HLS.download_track(
+                track=track,
+                save_dir=save_dir,
+                session=service.session,
+                proxy=proxy,
+                license_widevine=prepare_drm
+            )
+        elif track.descriptor == track.Descriptor.MPD:
+            DASH.download_track(
+                track=track,
+                save_dir=save_dir,
+                session=service.session,
+                proxy=proxy,
+                license_widevine=prepare_drm
+            )
+
+        # no else-if as DASH may convert the track to URL descriptor
+        if track.descriptor == track.Descriptor.URL:
+            asyncio.run(aria2c(
+                track.url,
+                save_path,
+                service.session.headers,
+                proxy if track.needs_proxy else None
+            ))
+            track.path = save_path
+
+            if not track.drm and isinstance(track, (Video, Audio)):
+                try:
+                    track.drm = [Widevine.from_track(track, service.session)]
+                except Widevine.Exceptions.PSSHNotFound:
+                    # it might not have Widevine DRM, or might not have found the PSSH
+                    self.log.warning("No Widevine PSSH was found for this track, is it DRM free?")
+
+            if track.drm:
+                drm = track.drm[0]  # just use the first supported DRM system for now
+                if isinstance(drm, Widevine):
+                    # license and grab content keys
+                    prepare_drm(drm)
+                drm.decrypt(track)
+                if callable(track.OnDecrypted):
+                    track.OnDecrypted(track)
+        else:
+            with open(save_path, "wb") as f:
+                for file in save_dir.iterdir():
+                    f.write(file.read_bytes())
+                    file.unlink()
+            save_dir.rmdir()
+            track.path = save_path
+
+        if track.path.stat().st_size <= 3:  # Empty UTF-8 BOM == 3 bytes
+            raise IOError(
+                "Download failed, the downloaded file is empty. "
+                f"This {'was' if track.needs_proxy else 'was not'} downloaded with a proxy." +
+                (
+                    " Perhaps you need to set `needs_proxy` as True to use the proxy for this track."
+                    if not track.needs_proxy else ""
+                )
+            )
+
+        if (
+            isinstance(track, Subtitle) and
+            track.codec not in (Subtitle.Codec.SubRip, Subtitle.Codec.SubStationAlphav4)
+        ):
+            caption_set = track.parse(track.path.read_bytes(), track.codec)
+            track.merge_same_cues(caption_set)
+            srt = pycaption.SRTWriter().write(caption_set)
+            # NOW sometimes has this, when it isn't, causing mux problems
+            srt = srt.replace("MULTI-LANGUAGE SRT\n", "")
+            track.path.write_text(srt, encoding="utf8")
+            track.codec = Subtitle.Codec.SubRip
+            track.move(track.path.with_suffix(".srt"))
+
         if callable(track.OnDownloaded):
             track.OnDownloaded(track)
-
-        if track.drm:
-            self.log.info(f"Decrypting file with {track.drm.__class__.__name__} DRM...")
-            track.drm.decrypt(track)
-            self.log.info(" + Decrypted")
-            if callable(track.OnDecrypted):
-                track.OnDecrypted(track)
 
         if track.needs_repack:
             self.log.info("Repackaging stream with FFMPEG (fix malformed streams)")
@@ -573,81 +720,6 @@ class dl:
                 self.log.error(" - Track needs to have CC extracted, but ccextractor wasn't found")
                 sys.exit(1)
             self.log.info(" + No EIA-CC Captions...")
-
-    def prepare_drm(
-        self,
-        drm: DRM_T,
-        certificate: Callable,
-        licence: Callable,
-        cdm_only: bool = False,
-        vaults_only: bool = False
-    ) -> None:
-        """
-        Prepare the DRM by getting decryption data like KIDs, Keys, and such.
-        The DRM object should be ready for decryption once this function ends.
-        """
-        if not drm:
-            return
-
-        if isinstance(drm, Widevine):
-            self.log.info(f"PSSH: {drm.pssh.dumps()}")
-            self.log.info("KIDs:")
-            for kid in drm.kids:
-                self.log.info(f" + {kid.hex}")
-
-            for kid in drm.kids:
-                if kid in drm.content_keys:
-                    continue
-
-                if not cdm_only:
-                    content_key, vault_used = self.vaults.get_key(kid)
-                    if content_key:
-                        drm.content_keys[kid] = content_key
-                        self.log.info(f"Content Key: {kid.hex}:{content_key} ({vault_used})")
-                        add_count = self.vaults.add_key(kid, content_key, excluding=vault_used)
-                        self.log.info(f" + Cached to {add_count}/{len(self.vaults) - 1} Vaults")
-                    elif vaults_only:
-                        self.log.error(f" - No Content Key found in vaults for {kid.hex}")
-                        sys.exit(1)
-
-                if kid not in drm.content_keys and not vaults_only:
-                    from_vaults = drm.content_keys.copy()
-
-                    try:
-                        drm.get_content_keys(
-                            cdm=self.cdm,
-                            licence=licence,
-                            certificate=certificate
-                        )
-                    except ValueError as e:
-                        self.log.error(str(e))
-                        sys.exit(1)
-
-                    self.log.info("Content Keys:")
-                    for kid_, key in drm.content_keys.items():
-                        msg = f" + {kid_.hex}:{key}"
-                        if kid_ == kid:
-                            msg += " *"
-                        if key == "0" * 32:
-                            msg += " [Unusable!]"
-                        self.log.info(msg)
-
-                    drm.content_keys = {
-                        kid_: key
-                        for kid_, key in drm.content_keys.items()
-                        if key and key.count("0") != len(key)
-                    }
-
-                    # The CDM keys may have returned blank content keys for KIDs we got from vaults.
-                    # So we re-add the keys from vaults earlier overwriting blanks or removed KIDs data.
-                    drm.content_keys.update(from_vaults)
-
-                    cached_keys = self.vaults.add_keys(drm.content_keys)
-                    self.log.info(f" + Newly added to {cached_keys}/{len(drm.content_keys)} Vaults")
-
-                    if kid not in drm.content_keys:
-                        self.log.error(f" - No Content Key with the KID ({kid.hex}) was returned...")
-                        sys.exit(1)
 
     def mux_tracks(self, title: Title_T, season_folder: bool = True, add_source: bool = True) -> None:
         """Mux Tracks, Delete Pre-Mux files, and move to the final location."""

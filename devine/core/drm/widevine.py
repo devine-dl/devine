@@ -205,7 +205,7 @@ class Widevine:
                     ]
                 ]),
                 "--temp_dir", config.directories.temp
-            ])
+            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except subprocess.CalledProcessError as e:
             raise subprocess.SubprocessError(f"Failed to Decrypt! Shaka Packager Error: {e}")
         track.swap(decrypted_path)

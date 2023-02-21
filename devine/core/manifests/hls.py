@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 import re
+import sys
 from hashlib import md5
-from typing import Any, Optional, Union
+from pathlib import Path
+from typing import Any, Callable, Optional, Union
 
 import m3u8
 import requests
@@ -11,7 +15,10 @@ from m3u8 import M3U8
 from pywidevine.cdm import Cdm as WidevineCdm
 from pywidevine.pssh import PSSH
 from requests import Session
+from tqdm import tqdm
 
+from devine.core.constants import AnyTrack
+from devine.core.downloaders import aria2c
 from devine.core.drm import DRM_T, ClearKey, Widevine
 from devine.core.tracks import Audio, Subtitle, Tracks, Video
 from devine.core.utilities import is_close_match
@@ -68,14 +75,12 @@ class HLS:
 
         return cls(master)
 
-    def to_tracks(self, language: Union[str, Language], **args: Any) -> Tracks:
+    def to_tracks(self, language: Union[str, Language]) -> Tracks:
         """
         Convert a Variant Playlist M3U(8) document to Video, Audio and Subtitle Track objects.
 
         Parameters:
             language: Language you expect the Primary Track to be in.
-            args: You may pass any arbitrary named header to be passed to all requests made within
-                this method.
 
         All Track objects' URL will be to another M3U(8) document. However, these documents
         will be Invariant Playlists and contain the list of segments URIs among other metadata.
@@ -95,20 +100,6 @@ class HLS:
                 audio_codec = Audio.Codec.from_codecs(playlist.stream_info.codecs)
                 audio_codecs_by_group_id[audio_group] = audio_codec
 
-            if session_drm:
-                drm = session_drm
-            else:
-                # keys may be in the invariant playlist instead, annoying...
-                res = self.session.get(url, **args)
-                if not res.ok:
-                    raise requests.ConnectionError(
-                        "Failed to request an invariant M3U(8) document.",
-                        response=res
-                    )
-
-                invariant_playlist = m3u8.loads(res.text, url)
-                drm = HLS.get_drm(invariant_playlist.keys)
-
             try:
                 # TODO: Any better way to figure out the primary track type?
                 Video.Codec.from_codecs(playlist.stream_info.codecs)
@@ -125,7 +116,7 @@ class HLS:
                 is_original_lang=True,  # TODO: All we can do is assume Yes
                 bitrate=playlist.stream_info.average_bandwidth or playlist.stream_info.bandwidth,
                 descriptor=Video.Descriptor.M3U,
-                drm=drm,
+                drm=session_drm,
                 extra=playlist,
                 # video track args
                 **(dict(
@@ -147,23 +138,6 @@ class HLS:
             if not re.match("^https?://", url):
                 url = media.base_uri + url
 
-            if media.type == "AUDIO":
-                if session_drm:
-                    drm = session_drm
-                else:
-                    # keys may be in the invariant playlist instead, annoying...
-                    res = self.session.get(url, **args)
-                    if not res.ok:
-                        raise requests.ConnectionError(
-                            "Failed to request an invariant M3U(8) document.",
-                            response=res
-                        )
-
-                    invariant_playlist = m3u8.loads(res.text, url)
-                    drm = HLS.get_drm(invariant_playlist.keys)
-            else:
-                drm = None
-
             joc = 0
             if media.type == "AUDIO":
                 track_type = Audio
@@ -182,7 +156,7 @@ class HLS:
                 language=media.language or language,  # HLS media may not have language info, fallback if needed
                 is_original_lang=language and is_close_match(media.language, [language]),
                 descriptor=Audio.Descriptor.M3U,
-                drm=drm,
+                drm=session_drm if media.type == "AUDIO" else None,
                 extra=media,
                 # audio track args
                 **(dict(
@@ -197,6 +171,129 @@ class HLS:
             ))
 
         return tracks
+
+    @staticmethod
+    def download_track(
+        track: AnyTrack,
+        save_dir: Path,
+        session: Optional[Session] = None,
+        proxy: Optional[str] = None,
+        license_widevine: Optional[Callable] = None
+    ) -> None:
+        if not session:
+            session = Session()
+        elif not isinstance(session, Session):
+            raise TypeError(f"Expected session to be a {Session}, not {session!r}")
+
+        if not track.needs_proxy and proxy:
+            proxy = None
+
+        if proxy:
+            session.proxies.update({
+                "all": proxy
+            })
+
+        log = logging.getLogger("HLS")
+
+        master = m3u8.loads(
+            # should be an invariant m3u8 playlist URI
+            session.get(track.url).text,
+            uri=track.url
+        )
+
+        if not master.segments:
+            log.error("Track's HLS playlist has no segments, expecting an invariant M3U8 playlist.")
+            sys.exit(1)
+
+        init_data = None
+        last_segment_key: tuple[Optional[Union[ClearKey, Widevine]], Optional[m3u8.Key]] = (None, None)
+
+        for i, segment in enumerate(tqdm(master.segments, unit="segments")):
+            segment_filename = str(i).zfill(len(str(len(master.segments))))
+            segment_save_path = (save_dir / segment_filename).with_suffix(".mp4")
+
+            if segment.key and last_segment_key[1] != segment.key:
+                # try:
+                #     drm = HLS.get_drm([segment.key])
+                # except NotImplementedError:
+                #     drm = None  # never mind, try with master.keys
+                # if not drm and master.keys:
+                #     # TODO: segment might have multiple keys but m3u8 only grabs the last!
+                #     drm = HLS.get_drm(master.keys)
+                try:
+                    drm = HLS.get_drm(
+                        # TODO: We append master.keys because m3u8 class only puts the last EXT-X-KEY
+                        #       to the segment.key property, not supporting multi-drm scenarios.
+                        #       By re-adding every single EXT-X-KEY found, we can at least try to get
+                        #       a suitable key. However, it may not match the right segment/timeframe!
+                        #       It will try to use the first key provided where possible.
+                        keys=[segment.key] + master.keys,
+                        proxy=proxy
+                    )
+                except NotImplementedError as e:
+                    log.error(str(e))
+                    sys.exit(1)
+                else:
+                    if drm:
+                        drm = drm[0]  # just use the first supported DRM system for now
+                        log.debug("Got segment key, %s", drm)
+                        if isinstance(drm, Widevine):
+                            # license and grab content keys
+                            if not license_widevine:
+                                raise ValueError("license_widevine func must be supplied to use Widevine DRM")
+                            license_widevine(drm)
+                        last_segment_key = (drm, segment.key)
+
+            if callable(track.OnSegmentFilter) and track.OnSegmentFilter(segment):
+                continue
+
+            if segment.init_section and (not init_data or segment.discontinuity):
+                # Only use the init data if there's no init data yet (e.g., start of file)
+                # or if EXT-X-DISCONTINUITY is reached at the same time as EXT-X-MAP.
+                # Even if a new EXT-X-MAP is supplied, it may just be duplicate and would
+                # be unnecessary and slow to re-download the init data each time.
+                if not segment.init_section.uri.startswith(segment.init_section.base_uri):
+                    segment.init_section.uri = segment.init_section.base_uri + segment.init_section.uri
+
+                log.debug("Got new init segment, %s", segment.init_section.uri)
+                res = session.get(segment.init_section.uri)
+                res.raise_for_status()
+                init_data = res.content
+
+            if not segment.uri.startswith(segment.base_uri):
+                segment.uri = segment.base_uri + segment.uri
+
+            asyncio.run(aria2c(
+                segment.uri,
+                segment_save_path,
+                session.headers,
+                proxy
+            ))
+            # TODO: More like `segment.path`, but this will do for now
+            #       Needed for the drm.decrypt() call couple lines down
+            track.path = segment_save_path
+
+            if isinstance(track, Audio) or init_data:
+                with open(track.path, "rb+") as f:
+                    segment_data = f.read()
+                    if isinstance(track, Audio):
+                        # fix audio decryption on ATVP by fixing the sample description index
+                        # TODO: Is this in mpeg data, or init data?
+                        segment_data = re.sub(
+                            b"(tfhd\x00\x02\x00\x1a\x00\x00\x00\x01\x00\x00\x00)\x02",
+                            b"\\g<1>\x01",
+                            segment_data
+                        )
+                    # prepend the init data to be able to decrypt
+                    if init_data:
+                        f.seek(0)
+                        f.write(init_data)
+                        f.write(segment_data)
+
+            if last_segment_key[0]:
+                last_segment_key[0].decrypt(track)
+                if callable(track.OnDecrypted):
+                    track.OnDecrypted(track)
 
     @staticmethod
     def get_drm(

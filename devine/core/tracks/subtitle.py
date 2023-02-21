@@ -4,7 +4,6 @@ import subprocess
 from collections import defaultdict
 from enum import Enum
 from io import BytesIO
-from pathlib import Path
 from typing import Any, Iterable, Optional
 
 import pycaption
@@ -379,19 +378,6 @@ class Subtitle(Track):
                 rm_author=True
             )
             sub.save()
-
-    def download(self, *args, **kwargs) -> Path:
-        save_path = super().download(*args, **kwargs)
-        if self.codec not in (Subtitle.Codec.SubRip, Subtitle.Codec.SubStationAlphav4):
-            caption_set = self.parse(save_path.read_bytes(), self.codec)
-            self.merge_same_cues(caption_set)
-            srt = pycaption.SRTWriter().write(caption_set)
-            # NowTV sometimes has this, when it isn't, causing mux problems
-            srt = srt.replace("MULTI-LANGUAGE SRT\n", "")
-            save_path.write_text(srt, encoding="utf8")
-            self.codec = Subtitle.Codec.SubRip
-            self.move(self.path.with_suffix(".srt"))
-        return save_path
 
     def __str__(self) -> str:
         return " | ".join(filter(bool, [
