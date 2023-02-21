@@ -414,12 +414,9 @@ class DASH:
                     session.headers,
                     proxy
                 ))
-                # TODO: More like `segment.path`, but this will do for now
-                #       Needed for the drm.decrypt() call couple lines down
-                track.path = segment_save_path
 
                 if isinstance(track, Audio) or init_data:
-                    with open(track.path, "rb+") as f:
+                    with open(segment_save_path, "rb+") as f:
                         segment_data = f.read()
                         if isinstance(track, Audio):
                             # fix audio decryption on ATVP by fixing the sample description index
@@ -437,7 +434,8 @@ class DASH:
 
                 if drm:
                     # TODO: What if the manifest does not mention DRM, but has DRM
-                    drm.decrypt(track)
+                    drm.decrypt(segment_save_path)
+                    track.drm = None
                     if callable(track.OnDecrypted):
                         track.OnDecrypted(track)
         elif segment_list is not None:
@@ -485,12 +483,9 @@ class DASH:
                         proxy,
                         byte_range=segment_url.get("mediaRange")
                     ))
-                    # TODO: More like `segment.path`, but this will do for now
-                    #       Needed for the drm.decrypt() call couple lines down
-                    track.path = segment_save_path
 
                     if isinstance(track, Audio) or init_data:
-                        with open(track.path, "rb+") as f:
+                        with open(segment_save_path, "rb+") as f:
                             segment_data = f.read()
                             if isinstance(track, Audio):
                                 # fix audio decryption on ATVP by fixing the sample description index
@@ -508,7 +503,8 @@ class DASH:
 
                     if drm:
                         # TODO: What if the manifest does not mention DRM, but has DRM
-                        drm.decrypt(track)
+                        drm.decrypt(segment_save_path)
+                        track.drm = None
                         if callable(track.OnDecrypted):
                             track.OnDecrypted(track)
         elif segment_base is not None or base_url:

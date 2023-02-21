@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import base64
+import shutil
 import subprocess
 import sys
+from pathlib import Path
 from typing import Any, Callable, Optional, Union
 from uuid import UUID
 
@@ -14,7 +16,7 @@ from pywidevine.pssh import PSSH
 from requests import Session
 
 from devine.core.config import config
-from devine.core.constants import AnyTrack, TrackT
+from devine.core.constants import AnyTrack
 from devine.core.utilities import get_binary_path, get_boxes
 from devine.core.utils.subprocess import ffprobe
 
@@ -212,7 +214,7 @@ class Widevine:
             finally:
                 cdm.close(session_id)
 
-    def decrypt(self, track: TrackT) -> None:
+    def decrypt(self, path: Path) -> None:
         """
         Decrypt a Track with Widevine DRM.
         Raises:
@@ -227,15 +229,15 @@ class Widevine:
         executable = get_binary_path("shaka-packager", f"packager-{platform}", f"packager-{platform}-x64")
         if not executable:
             raise EnvironmentError("Shaka Packager executable not found but is required.")
-        if not track.path or not track.path.exists():
-            raise ValueError("Tried to decrypt a track that has not yet been downloaded.")
+        if not path or not path.exists():
+            raise ValueError("Tried to decrypt a file that does not exist.")
 
-        decrypted_path = track.path.with_suffix(f".decrypted{track.path.suffix}")
+        decrypted_path = path.with_suffix(f".decrypted{path.suffix}")
         config.directories.temp.mkdir(parents=True, exist_ok=True)
         try:
             subprocess.check_call([
                 executable,
-                f"input={track.path},stream=0,output={decrypted_path}",
+                f"input={path},stream=0,output={decrypted_path}",
                 "--enable_raw_key_decryption", "--keys",
                 ",".join([
                     *[
@@ -252,8 +254,9 @@ class Widevine:
             ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except subprocess.CalledProcessError as e:
             raise subprocess.SubprocessError(f"Failed to Decrypt! Shaka Packager Error: {e}")
-        track.swap(decrypted_path)
-        track.drm = None
+
+        path.unlink()
+        shutil.move(decrypted_path, path)
 
     class Exceptions:
         class PSSHNotFound(Exception):

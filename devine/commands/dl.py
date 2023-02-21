@@ -630,7 +630,6 @@ class dl:
                 service.session.headers,
                 proxy if track.needs_proxy else None
             ))
-            track.path = save_path
 
             if not track.drm and isinstance(track, (Video, Audio)):
                 try:
@@ -644,7 +643,9 @@ class dl:
                 if isinstance(drm, Widevine):
                     # license and grab content keys
                     prepare_drm(drm)
-                drm.decrypt(track)
+                drm.decrypt(save_path)
+                track.drm = None
+                track.path = save_path
                 if callable(track.OnDecrypted):
                     track.OnDecrypted(track)
         else:

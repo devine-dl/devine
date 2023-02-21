@@ -269,12 +269,9 @@ class HLS:
                 session.headers,
                 proxy
             ))
-            # TODO: More like `segment.path`, but this will do for now
-            #       Needed for the drm.decrypt() call couple lines down
-            track.path = segment_save_path
 
             if isinstance(track, Audio) or init_data:
-                with open(track.path, "rb+") as f:
+                with open(segment_save_path, "rb+") as f:
                     segment_data = f.read()
                     if isinstance(track, Audio):
                         # fix audio decryption on ATVP by fixing the sample description index
@@ -291,7 +288,8 @@ class HLS:
                         f.write(segment_data)
 
             if last_segment_key[0]:
-                last_segment_key[0].decrypt(track)
+                last_segment_key[0].decrypt(segment_save_path)
+                track.drm = None
                 if callable(track.OnDecrypted):
                     track.OnDecrypted(track)
 

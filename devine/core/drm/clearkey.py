@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+import shutil
+from pathlib import Path
 from typing import Optional, Union
 from urllib.parse import urljoin
 
 import requests
 from Cryptodome.Cipher import AES
 from m3u8.model import Key
-
-from devine.core.constants import TrackT
 
 
 class ClearKey:
@@ -34,20 +34,20 @@ class ClearKey:
         self.key: bytes = key
         self.iv: bytes = iv
 
-    def decrypt(self, track: TrackT) -> None:
+    def decrypt(self, path: Path) -> None:
         """Decrypt a Track with AES Clear Key DRM."""
-        if not track.path or not track.path.exists():
-            raise ValueError("Tried to decrypt a track that has not yet been downloaded.")
+        if not path or not path.exists():
+            raise ValueError("Tried to decrypt a file that does not exist.")
 
         decrypted = AES. \
             new(self.key, AES.MODE_CBC, self.iv). \
-            decrypt(track.path.read_bytes())
+            decrypt(path.read_bytes())
 
-        decrypted_path = track.path.with_suffix(f".decrypted{track.path.suffix}")
+        decrypted_path = path.with_suffix(f".decrypted{path.suffix}")
         decrypted_path.write_bytes(decrypted)
 
-        track.swap(decrypted_path)
-        track.drm = None
+        path.unlink()
+        shutil.move(decrypted_path, path)
 
     @classmethod
     def from_m3u_key(cls, m3u_key: Key, proxy: Optional[str] = None) -> ClearKey:
