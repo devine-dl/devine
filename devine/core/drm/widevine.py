@@ -114,6 +114,50 @@ class Widevine:
 
         return cls(pssh=PSSH(pssh), kid=kid)
 
+    @classmethod
+    def from_init_data(cls, init_data: bytes) -> Widevine:
+        """
+        Get PSSH and KID from within Initialization Segment Data.
+
+        This should only be used if a PSSH could not be provided directly.
+        It is *rare* to need to use this.
+
+        Raises:
+            PSSHNotFound - If the PSSH was not found within the data.
+            KIDNotFound - If the KID was not found within the data or PSSH.
+        """
+        if not init_data:
+            raise ValueError("Init data should be provided.")
+        if not isinstance(init_data, bytes):
+            raise TypeError(f"Expected init data to be bytes, not {init_data!r}")
+
+        kid: Optional[UUID] = None
+        pssh_boxes: list[Container] = list(get_boxes(init_data, b"pssh"))
+        tenc_boxes: list[Container] = list(get_boxes(init_data, b"tenc"))
+
+        # try get via ffprobe, needed for non mp4 data e.g. WEBM from Google Play
+        probe = ffprobe(init_data)
+        if probe:
+            for stream in probe.get("streams") or []:
+                enc_key_id = stream.get("tags", {}).get("enc_key_id")
+                if enc_key_id:
+                    kid = UUID(bytes=base64.b64decode(enc_key_id))
+
+        pssh_boxes.sort(key=lambda b: {
+            PSSH.SystemId.Widevine: 0,
+            PSSH.SystemId.PlayReady: 1
+        }[b.system_ID])
+
+        pssh = next(iter(pssh_boxes), None)
+        if not pssh:
+            raise Widevine.Exceptions.PSSHNotFound("PSSH was not found in track data.")
+
+        tenc = next(iter(tenc_boxes), None)
+        if not kid and tenc and tenc.key_ID.int != 0:
+            kid = tenc.key_ID
+
+        return cls(pssh=PSSH(pssh), kid=kid)
+
     @property
     def pssh(self) -> PSSH:
         """Get Protection System Specific Header Box."""
