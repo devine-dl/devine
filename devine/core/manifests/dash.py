@@ -392,6 +392,17 @@ class DASH:
                 ))
                 res.raise_for_status()
                 init_data = res.content
+                if not drm:
+                    try:
+                        drm = Widevine.from_init_data(init_data)
+                    except Widevine.Exceptions.PSSHNotFound:
+                        # it might not have Widevine DRM, or might not have found the PSSH
+                        log.warning("No Widevine PSSH was found for this track, is it DRM free?")
+                    else:
+                        # license and grab content keys
+                        if not license_widevine:
+                            raise ValueError("license_widevine func must be supplied to use Widevine DRM")
+                        license_widevine(drm)
 
             for i, segment_url in enumerate(tqdm(segment_urls, unit="segments")):
                 segment_filename = str(i).zfill(len(str(len(segment_urls))))
@@ -447,6 +458,17 @@ class DASH:
                     res = session.get(source_url)
                     res.raise_for_status()
                     init_data = res.content
+                    if not drm:
+                        try:
+                            drm = Widevine.from_init_data(init_data)
+                        except Widevine.Exceptions.PSSHNotFound:
+                            # it might not have Widevine DRM, or might not have found the PSSH
+                            log.warning("No Widevine PSSH was found for this track, is it DRM free?")
+                        else:
+                            # license and grab content keys
+                            if not license_widevine:
+                                raise ValueError("license_widevine func must be supplied to use Widevine DRM")
+                            license_widevine(drm)
 
                 for i, segment_url in enumerate(tqdm(segment_list.findall("SegmentURL"), unit="segments")):
                     segment_filename = str(i).zfill(len(str(len(segment_urls))))
