@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import time
+from queue import Empty, Queue
+from threading import Lock
 from typing import Iterator, Optional, Union
 from uuid import UUID
 
@@ -7,7 +10,6 @@ import pymysql
 from pymysql.cursors import DictCursor
 
 from devine.core.services import Services
-from devine.core.utils.atomicsql import AtomicSQL
 from devine.core.vault import Vault
 
 
@@ -21,15 +23,13 @@ class MySQL(Vault):
         """
         super().__init__(name)
         self.slug = f"{host}:{database}:{username}"
-        self.con = pymysql.connect(
+        self.con_pool = ConnectionPool(dict(
             host=host,
             db=database,
             user=username,
             cursorclass=DictCursor,
             **kwargs
-        )
-        self.adb = AtomicSQL()
-        self.ticket = self.adb.load(self.con)
+        ), 5)
 
         self.permissions = self.get_permissions()
         if not self.has_permission("SELECT"):
@@ -43,37 +43,44 @@ class MySQL(Vault):
         if isinstance(kid, UUID):
             kid = kid.hex
 
-        c = self.adb.safe_execute(
-            self.ticket,
-            lambda db, cursor: cursor.execute(
+        conn = self.con_pool.get()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute(
                 # TODO: SQL injection risk
                 f"SELECT `id`, `key_` FROM `{service}` WHERE `kid`=%s AND `key_`!=%s",
-                [kid, "0" * 32]
+                (kid, "0" * 32)
             )
-        ).fetchone()
-        if not c:
-            return None
-
-        return c["key_"]
+            cek = cursor.fetchone()
+            if not cek:
+                return None
+            return cek["key_"]
+        finally:
+            cursor.close()
+            self.con_pool.put(conn)
 
     def get_keys(self, service: str) -> Iterator[tuple[str, str]]:
         if not self.has_table(service):
             # no table, no keys, simple
             return None
 
-        c = self.adb.safe_execute(
-            self.ticket,
-            lambda db, cursor: cursor.execute(
+        conn = self.con_pool.get()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute(
                 # TODO: SQL injection risk
                 f"SELECT `kid`, `key_` FROM `{service}` WHERE `key_`!=%s",
-                ["0" * 32]
+                ("0" * 32,)
             )
-        )
+            for row in cursor.fetchall():
+                yield row["kid"], row["key_"]
+        finally:
+            cursor.close()
+            self.con_pool.put(conn)
 
-        for row in c.fetchall():
-            yield row["kid"], row["key_"]
-
-    def add_key(self, service: str, kid: Union[UUID, str], key: str, commit: bool = False) -> bool:
+    def add_key(self, service: str, kid: Union[UUID, str], key: str) -> bool:
         if not key or key.count("0") == len(key):
             raise ValueError("You cannot add a NULL Content Key to a Vault.")
 
@@ -82,39 +89,38 @@ class MySQL(Vault):
 
         if not self.has_table(service):
             try:
-                self.create_table(service, commit)
+                self.create_table(service)
             except PermissionError:
                 return False
 
         if isinstance(kid, UUID):
             kid = kid.hex
 
-        if self.adb.safe_execute(
-            self.ticket,
-            lambda db, cursor: cursor.execute(
+        conn = self.con_pool.get()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute(
                 # TODO: SQL injection risk
                 f"SELECT `id` FROM `{service}` WHERE `kid`=%s AND `key_`=%s",
-                [kid, key]
+                (kid, key)
             )
-        ).fetchone():
-            # table already has this exact KID:KEY stored
-            return True
-
-        self.adb.safe_execute(
-            self.ticket,
-            lambda db, cursor: cursor.execute(
+            if cursor.fetchone():
+                # table already has this exact KID:KEY stored
+                return True
+            cursor.execute(
                 # TODO: SQL injection risk
                 f"INSERT INTO `{service}` (kid, key_) VALUES (%s, %s)",
                 (kid, key)
             )
-        )
-
-        if commit:
-            self.commit()
+        finally:
+            conn.commit()
+            cursor.close()
+            self.con_pool.put(conn)
 
         return True
 
-    def add_keys(self, service: str, kid_keys: dict[Union[UUID, str], str], commit: bool = False) -> int:
+    def add_keys(self, service: str, kid_keys: dict[Union[UUID, str], str]) -> int:
         for kid, key in kid_keys.items():
             if not key or key.count("0") == len(key):
                 raise ValueError("You cannot add a NULL Content Key to a Vault.")
@@ -124,7 +130,7 @@ class MySQL(Vault):
 
         if not self.has_table(service):
             try:
-                self.create_table(service, commit)
+                self.create_table(service)
             except PermissionError:
                 return 0
 
@@ -139,40 +145,50 @@ class MySQL(Vault):
                 for kid, key_ in kid_keys.items()
             }
 
-        c = self.adb.safe_execute(
-            self.ticket,
-            lambda db, cursor: cursor.executemany(
+        conn = self.con_pool.get()
+        cursor = conn.cursor()
+
+        try:
+            cursor.executemany(
                 # TODO: SQL injection risk
                 f"INSERT IGNORE INTO `{service}` (kid, key_) VALUES (%s, %s)",
                 kid_keys.items()
             )
-        )
-
-        if commit:
-            self.commit()
-
-        return c.rowcount
+            return cursor.rowcount
+        finally:
+            conn.commit()
+            cursor.close()
+            self.con_pool.put(conn)
 
     def get_services(self) -> Iterator[str]:
-        c = self.adb.safe_execute(
-            self.ticket,
-            lambda db, cursor: cursor.execute("SHOW TABLES")
-        )
-        for table in c.fetchall():
-            # each entry has a key named `Tables_in_<db name>`
-            yield Services.get_tag(list(table.values())[0])
+        conn = self.con_pool.get()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("SHOW TABLES")
+            for table in cursor.fetchall():
+                # each entry has a key named `Tables_in_<db name>`
+                yield Services.get_tag(list(table.values())[0])
+        finally:
+            cursor.close()
+            self.con_pool.put(conn)
 
     def has_table(self, name: str) -> bool:
         """Check if the Vault has a Table with the specified name."""
-        return list(self.adb.safe_execute(
-            self.ticket,
-            lambda db, cursor: cursor.execute(
-                "SELECT count(TABLE_NAME) FROM information_schema.TABLES WHERE TABLE_SCHEMA=%s AND TABLE_NAME=%s",
-                [self.con.db, name]
-            )
-        ).fetchone().values())[0] == 1
+        conn = self.con_pool.get()
+        cursor = conn.cursor()
 
-    def create_table(self, name: str, commit: bool = False):
+        try:
+            cursor.execute(
+                "SELECT count(TABLE_NAME) FROM information_schema.TABLES WHERE TABLE_SCHEMA=%s AND TABLE_NAME=%s",
+                (conn.db, name)
+            )
+            return list(cursor.fetchone().values())[0] == 1
+        finally:
+            cursor.close()
+            self.con_pool.put(conn)
+
+    def create_table(self, name: str):
         """Create a Table with the specified name if not yet created."""
         if self.has_table(name):
             return
@@ -180,9 +196,11 @@ class MySQL(Vault):
         if not self.has_permission("CREATE"):
             raise PermissionError(f"MySQL vault {self.slug} has no CREATE permission.")
 
-        self.adb.safe_execute(
-            self.ticket,
-            lambda db, cursor: cursor.execute(
+        conn = self.con_pool.get()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute(
                 # TODO: SQL injection risk
                 f"""
                 CREATE TABLE IF NOT EXISTS {name} (
@@ -193,23 +211,30 @@ class MySQL(Vault):
                 );
                 """
             )
-        )
-
-        if commit:
-            self.commit()
+        finally:
+            conn.commit()
+            cursor.close()
+            self.con_pool.put(conn)
 
     def get_permissions(self) -> list:
         """Get and parse Grants to a more easily usable list tuple array."""
-        with self.con.cursor() as c:
-            c.execute("SHOW GRANTS")
-            grants = c.fetchall()
+        conn = self.con_pool.get()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("SHOW GRANTS")
+            grants = cursor.fetchall()
             grants = [next(iter(x.values())) for x in grants]
-        grants = [tuple(x[6:].split(" TO ")[0].split(" ON ")) for x in list(grants)]
-        grants = [(
-            list(map(str.strip, perms.replace("ALL PRIVILEGES", "*").split(","))),
-            location.replace("`", "").split(".")
-        ) for perms, location in grants]
-        return grants
+            grants = [tuple(x[6:].split(" TO ")[0].split(" ON ")) for x in list(grants)]
+            grants = [(
+                list(map(str.strip, perms.replace("ALL PRIVILEGES", "*").split(","))),
+                location.replace("`", "").split(".")
+            ) for perms, location in grants]
+            return grants
+        finally:
+            conn.commit()
+            cursor.close()
+            self.con_pool.put(conn)
 
     def has_permission(self, operation: str, database: Optional[str] = None, table: Optional[str] = None) -> bool:
         """Check if the current connection has a specific permission."""
@@ -220,6 +245,28 @@ class MySQL(Vault):
             grants = [x for x in grants if x[1][1] in (table, "*")]
         return bool(grants)
 
-    def commit(self):
-        """Commit any changes made that has not been written to db."""
-        self.adb.commit(self.ticket)
+
+class ConnectionPool:
+    def __init__(self, con: dict, size: int):
+        self._con = con
+        self._size = size
+        self._pool = Queue(self._size)
+        self._lock = Lock()
+
+    def _create_connection(self):
+        return pymysql.connect(**self._con)
+
+    def get(self) -> pymysql.Connection:
+        while True:
+            try:
+                return self._pool.get(block=False)
+            except Empty:
+                with self._lock:
+                    if self._pool.qsize() < self._size:
+                        return self._create_connection()
+                    else:
+                        # pool full, wait before retrying
+                        time.sleep(0.1)
+
+    def put(self, conn: pymysql.Connection):
+        self._pool.put(conn)

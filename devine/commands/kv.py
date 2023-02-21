@@ -89,7 +89,7 @@ def copy(to_vault: str, from_vaults: list[str], service: Optional[str] = None) -
             log.info(f"Adding {total_count} Content Keys to {to_vault} for {service_}")
 
             try:
-                added = to_vault.add_keys(service_, content_keys, commit=True)
+                added = to_vault.add_keys(service_, content_keys)
             except PermissionError:
                 log.warning(f" - No permission to create table ({service_}) in {to_vault}, skipping...")
                 continue
@@ -171,7 +171,7 @@ def add(file: Path, service: str, vaults: list[str]) -> None:
 
     for vault in vaults_:
         log.info(f"Adding {total_count} Content Keys to {vault}")
-        added_count = vault.add_keys(service, kid_keys, commit=True)
+        added_count = vault.add_keys(service, kid_keys)
         existed_count = total_count - added_count
         log.info(f"{vault}: {added_count} newly added, {existed_count} already existed (skipped)")
 

@@ -31,11 +31,11 @@ class Vault(metaclass=ABCMeta):
         """Get All Keys from Vault by Service."""
 
     @abstractmethod
-    def add_key(self, service: str, kid: Union[UUID, str], key: str, commit: bool = False) -> bool:
+    def add_key(self, service: str, kid: Union[UUID, str], key: str) -> bool:
         """Add KID:KEY to the Vault."""
 
     @abstractmethod
-    def add_keys(self, service: str, kid_keys: dict[Union[UUID, str], str], commit: bool = False) -> int:
+    def add_keys(self, service: str, kid_keys: dict[Union[UUID, str], str]) -> int:
         """
         Add Multiple Content Keys with Key IDs for Service to the Vault.
         Pre-existing Content Keys are ignored/skipped.

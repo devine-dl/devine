@@ -57,7 +57,7 @@ class Vaults:
         for vault in self.vaults:
             if vault != excluding:
                 try:
-                    success += vault.add_key(self.service, kid, key, commit=True)
+                    success += vault.add_key(self.service, kid, key)
                 except (PermissionError, NotImplementedError):
                     pass
         return success
@@ -70,7 +70,7 @@ class Vaults:
         success = 0
         for vault in self.vaults:
             try:
-                success += bool(vault.add_keys(self.service, kid_keys, commit=True))
+                success += bool(vault.add_keys(self.service, kid_keys))
             except (PermissionError, NotImplementedError):
                 pass
         return success
