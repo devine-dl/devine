@@ -206,6 +206,8 @@ class HLS:
             if not key:
                 continue
             # TODO: Add checks for Merlin, FairPlay, PlayReady, maybe more.
+            if key.method == "NONE":
+                return []
             if key.method == "AES-128":
                 drm.append(ClearKey.from_m3u_key(key))
             elif key.method == "ISO-23001-7":
