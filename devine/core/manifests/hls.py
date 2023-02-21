@@ -199,7 +199,10 @@ class HLS:
         return tracks
 
     @staticmethod
-    def get_drm(keys: list[Union[m3u8.model.SessionKey, m3u8.model.Key]]) -> list[DRM_T]:
+    def get_drm(
+        keys: list[Union[m3u8.model.SessionKey, m3u8.model.Key]],
+        proxy: Optional[str] = None
+    ) -> list[DRM_T]:
         """
         Convert HLS EXT-X-KEY data to initialized DRM objects.
 
@@ -222,7 +225,7 @@ class HLS:
             if key.method == "NONE":
                 return []
             elif key.method == "AES-128":
-                drm.append(ClearKey.from_m3u_key(key))
+                drm.append(ClearKey.from_m3u_key(key, proxy))
             elif key.method == "ISO-23001-7":
                 drm.append(Widevine(
                     pssh=PSSH.new(
