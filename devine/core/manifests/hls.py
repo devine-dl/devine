@@ -200,19 +200,36 @@ class HLS:
 
     @staticmethod
     def get_drm(keys: list[Union[m3u8.model.SessionKey, m3u8.model.Key]]) -> list[DRM_T]:
+        """
+        Convert HLS EXT-X-KEY data to initialized DRM objects.
+
+        You can supply key data for a single segment or for the entire manifest.
+        This lets you narrow the results down to each specific segment's DRM status.
+
+        Returns an empty list if there were no supplied EXT-X-KEY data, or if all the
+        EXT-X-KEY's were of blank data. An empty list signals a DRM-free stream or segment.
+
+        Will raise a NotImplementedError if EXT-X-KEY data was supplied and none of them
+        were supported. A DRM-free track will never raise NotImplementedError.
+        """
         drm = []
         unsupported_systems = []
 
         for key in keys:
             if not key:
                 continue
-            # TODO: Add checks for Merlin, FairPlay, PlayReady, maybe more.
+            # TODO: Add support for 'SAMPLE-AES', 'AES-CTR', 'AES-CBC', 'ClearKey'
             if key.method == "NONE":
                 return []
-            if key.method == "AES-128":
+            elif key.method == "AES-128":
                 drm.append(ClearKey.from_m3u_key(key))
             elif key.method == "ISO-23001-7":
-                drm.append(Widevine(PSSH.new(key_ids=[key.uri.split(",")[-1]], system_id=PSSH.SystemId.Widevine)))
+                drm.append(Widevine(
+                    pssh=PSSH.new(
+                        key_ids=[key.uri.split(",")[-1]],
+                        system_id=PSSH.SystemId.Widevine
+                    )
+                ))
             elif key.keyformat and key.keyformat.lower() == WidevineCdm.urn:
                 drm.append(Widevine(
                     pssh=PSSH(key.uri.split(",")[-1]),
