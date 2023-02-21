@@ -46,7 +46,7 @@ class Cacher:
 
     @property
     def expired(self) -> bool:
-        return self.expiration and self.expiration < datetime.utcnow()
+        return self.expiration and self.expiration < datetime.now()
 
     def get(self, key: str, version: int = 1) -> Cacher:
         """
