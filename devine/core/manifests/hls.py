@@ -201,6 +201,7 @@ class HLS:
     @staticmethod
     def get_drm(keys: list[Union[m3u8.model.SessionKey, m3u8.model.Key]]) -> list[DRM_T]:
         drm = []
+        unsupported_systems = []
 
         for key in keys:
             if not key:
@@ -217,6 +218,11 @@ class HLS:
                     pssh=PSSH(key.uri.split(",")[-1]),
                     **key._extra_params  # noqa
                 ))
+            else:
+                unsupported_systems.append(key.method + (f" ({key.keyformat})" if key.keyformat else ""))
+
+        if not drm and unsupported_systems:
+            raise NotImplementedError(f"No support for any of the key systems: {', '.join(unsupported_systems)}")
 
         return drm
 
