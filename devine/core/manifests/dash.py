@@ -18,6 +18,7 @@ from langcodes import Language, tag_is_valid
 from pywidevine.cdm import Cdm as WidevineCdm
 from pywidevine.pssh import PSSH
 from requests import Session
+from tqdm import tqdm
 
 from devine.core.constants import AnyTrack
 from devine.core.downloaders import aria2c
@@ -392,7 +393,7 @@ class DASH:
                 res.raise_for_status()
                 init_data = res.content
 
-            for i, segment_url in enumerate(segment_urls):
+            for i, segment_url in enumerate(tqdm(segment_urls, unit="segments")):
                 segment_filename = str(i).zfill(len(str(len(segment_urls))))
                 segment_save_path = (save_dir / segment_filename).with_suffix(".mp4")
 
@@ -447,7 +448,7 @@ class DASH:
                     res.raise_for_status()
                     init_data = res.content
 
-                for i, segment_url in enumerate(segment_list.findall("SegmentURL")):
+                for i, segment_url in enumerate(tqdm(segment_list.findall("SegmentURL"), unit="segments")):
                     segment_filename = str(i).zfill(len(str(len(segment_urls))))
                     segment_save_path = (save_dir / segment_filename).with_suffix(".mp4")
 
