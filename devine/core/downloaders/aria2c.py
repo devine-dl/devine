@@ -14,7 +14,8 @@ async def aria2c(
     out: Path,
     headers: Optional[dict] = None,
     proxy: Optional[str] = None,
-    byte_range: Optional[str] = None
+    byte_range: Optional[str] = None,
+    *args: str
 ) -> int:
     """
     Download files using Aria2(c).
@@ -61,30 +62,36 @@ async def aria2c(
         "--file-allocation", config.aria2c.get("file_allocation", "falloc"),
         "--console-log-level", "warn",
         "--download-result", "hide",
+        *args,
         "-i", "-"
     ]
 
-    for header, value in (headers or {}).items():
+    headers = headers or {}
+    if byte_range:
+        headers["Range"] = f"bytes={byte_range}"
+
+    for header, value in headers.items():
         if header.lower() == "accept-encoding":
             # we cannot set an allowed encoding, or it will return compressed
             # and the code is not set up to uncompress the data
             continue
         arguments.extend(["--header", f"{header}: {value}"])
 
-    if byte_range:
-        arguments.extend(["--header", f"Range: bytes={byte_range}"])
-
-    if proxy and proxy.lower().split(":")[0] != "http":
-        # HTTPS proxies not supported by Aria2c.
-        # Proxy the proxy via pproxy to access it as a HTTP proxy.
-        async with start_pproxy(proxy) as pproxy_:
-            return await aria2c(uri, out, headers, pproxy_)
-
     if proxy:
+        if proxy.lower().split(":")[0] != "http":
+            # HTTPS proxies are not supported by aria2(c).
+            # Proxy the proxy via pproxy to access it as an HTTP proxy.
+            async with start_pproxy(proxy) as pproxy_:
+                return await aria2c(uri, out, headers, pproxy_)
         arguments += ["--all-proxy", proxy]
 
-    p = await asyncio.create_subprocess_exec(executable, *arguments, stdin=subprocess.PIPE)
+    p = await asyncio.create_subprocess_exec(
+        executable,
+        *arguments,
+        stdin=subprocess.PIPE
+    )
     await p.communicate(uri.encode())
+
     if p.returncode != 0:
         raise subprocess.CalledProcessError(p.returncode, arguments)
 
