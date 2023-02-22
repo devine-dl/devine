@@ -272,7 +272,8 @@ class HLS:
                 segment.uri,
                 segment_save_path,
                 session.headers,
-                proxy
+                proxy,
+                silent=True
             ))
 
             if isinstance(track, Audio) or newest_init_data:

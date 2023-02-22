@@ -460,7 +460,8 @@ class DASH:
                     segment_save_path,
                     session.headers,
                     proxy,
-                    byte_range=segment_range
+                    byte_range=segment_range,
+                    silent=True
                 ))
 
                 if isinstance(track, Audio) or init_data:
