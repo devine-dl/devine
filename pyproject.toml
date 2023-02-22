@@ -23,7 +23,7 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8.6,<3.12"
+python = ">=3.9.0,<3.12"
 appdirs = "^1.4.4"
 Brotli = "^1.0.9"
 click = "^8.1.3"

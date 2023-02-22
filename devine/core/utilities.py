@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import ast
 import contextlib
 import importlib.util
@@ -22,12 +20,6 @@ from devine.core.config import config
 from devine.core.constants import LANGUAGE_MAX_DISTANCE
 
 
-def is_relative_to_backport(base: Path, path_: Union[Path, str]) -> bool:
-    """Same as Path.is_relative_to, but back-ported to 3.8.x."""
-    path_ = Path(path_)
-    return path_ == base or path_ in base.parents
-
-
 def import_module_by_path(path: Path) -> ModuleType:
     """Import a Python file by Path as a Module."""
     if not path:
@@ -38,7 +30,7 @@ def import_module_by_path(path: Path) -> ModuleType:
         raise ValueError("Path does not exist")
 
     # compute package hierarchy for relative import support
-    if is_relative_to_backport(path, config.directories.core_dir):
+    if path.is_relative_to(config.directories.core_dir):
         name = []
         _path = path.parent
         while _path.stem != config.directories.core_dir.stem:

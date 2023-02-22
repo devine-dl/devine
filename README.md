@@ -10,7 +10,7 @@
         <img src="https://github.com/devine-dl/devine/actions/workflows/ci.yml/badge.svg" alt="Build status">
     </a>
     <a href="https://python.org">
-        <img src="https://img.shields.io/badge/python-3.8.6%2B-informational" alt="Python version">
+        <img src="https://img.shields.io/badge/python-3.9.0%2B-informational" alt="Python version">
     </a>
     <a href="https://deepsource.io/gh/devine-dl/devine/?ref=repository-badge">
         <img src="https://deepsource.io/gh/devine-dl/devine.svg/?label=active+issues&token=1ADCbjJ3FPiGT_s0Y0rlugGU" alt="DeepSource">
