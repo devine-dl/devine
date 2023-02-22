@@ -15,6 +15,7 @@ async def aria2c(
     headers: Optional[dict] = None,
     proxy: Optional[str] = None,
     byte_range: Optional[str] = None,
+    silent: bool = False,
     *args: str
 ) -> int:
     """
@@ -88,7 +89,9 @@ async def aria2c(
     p = await asyncio.create_subprocess_exec(
         executable,
         *arguments,
-        stdin=subprocess.PIPE
+        stdin=subprocess.PIPE,
+        stderr=[None, subprocess.DEVNULL][silent],
+        stdout=[None, subprocess.DEVNULL][silent]
     )
     await p.communicate(uri.encode())
 
