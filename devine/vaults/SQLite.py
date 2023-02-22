@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import sqlite3
-import time
+import threading
 from pathlib import Path
-from queue import Empty, Queue
 from sqlite3 import Connection
-from threading import Lock
 from typing import Iterator, Optional, Union
 from uuid import UUID
 
@@ -20,7 +18,7 @@ class SQLite(Vault):
         super().__init__(name)
         self.path = Path(path).expanduser()
         # TODO: Use a DictCursor or such to get fetches as dict?
-        self.con_pool = ConnectionPool(self.path, 5)
+        self.conn_factory = ConnectionFactory(self.path)
 
     def get_key(self, kid: Union[UUID, str], service: str) -> Optional[str]:
         if not self.has_table(service):
@@ -30,7 +28,7 @@ class SQLite(Vault):
         if isinstance(kid, UUID):
             kid = kid.hex
 
-        conn = self.con_pool.get()
+        conn = self.conn_factory.get()
         cursor = conn.cursor()
 
         try:
@@ -44,14 +42,13 @@ class SQLite(Vault):
             return cek[1]
         finally:
             cursor.close()
-            self.con_pool.put(conn)
 
     def get_keys(self, service: str) -> Iterator[tuple[str, str]]:
         if not self.has_table(service):
             # no table, no keys, simple
             return None
 
-        conn = self.con_pool.get()
+        conn = self.conn_factory.get()
         cursor = conn.cursor()
 
         try:
@@ -63,7 +60,6 @@ class SQLite(Vault):
                 yield kid, key_
         finally:
             cursor.close()
-            self.con_pool.put(conn)
 
     def add_key(self, service: str, kid: Union[UUID, str], key: str) -> bool:
         if not key or key.count("0") == len(key):
@@ -75,7 +71,7 @@ class SQLite(Vault):
         if isinstance(kid, UUID):
             kid = kid.hex
 
-        conn = self.con_pool.get()
+        conn = self.conn_factory.get()
         cursor = conn.cursor()
 
         try:
@@ -95,7 +91,6 @@ class SQLite(Vault):
         finally:
             conn.commit()
             cursor.close()
-            self.con_pool.put(conn)
 
         return True
 
@@ -118,7 +113,7 @@ class SQLite(Vault):
                 for kid, key_ in kid_keys.items()
             }
 
-        conn = self.con_pool.get()
+        conn = self.conn_factory.get()
         cursor = conn.cursor()
 
         try:
@@ -131,10 +126,9 @@ class SQLite(Vault):
         finally:
             conn.commit()
             cursor.close()
-            self.con_pool.put(conn)
 
     def get_services(self) -> Iterator[str]:
-        conn = self.con_pool.get()
+        conn = self.conn_factory.get()
         cursor = conn.cursor()
 
         try:
@@ -144,11 +138,10 @@ class SQLite(Vault):
                     yield Services.get_tag(name)
         finally:
             cursor.close()
-            self.con_pool.put(conn)
 
     def has_table(self, name: str) -> bool:
         """Check if the Vault has a Table with the specified name."""
-        conn = self.con_pool.get()
+        conn = self.conn_factory.get()
         cursor = conn.cursor()
 
         try:
@@ -159,14 +152,13 @@ class SQLite(Vault):
             return cursor.fetchone()[0] == 1
         finally:
             cursor.close()
-            self.con_pool.put(conn)
 
     def create_table(self, name: str):
         """Create a Table with the specified name if not yet created."""
         if self.has_table(name):
             return
 
-        conn = self.con_pool.get()
+        conn = self.conn_factory.get()
         cursor = conn.cursor()
 
         try:
@@ -185,30 +177,17 @@ class SQLite(Vault):
         finally:
             conn.commit()
             cursor.close()
-            self.con_pool.put(conn)
 
 
-class ConnectionPool:
-    def __init__(self, path: Union[str, Path], size: int):
+class ConnectionFactory:
+    def __init__(self, path: Union[str, Path]):
         self._path = path
-        self._size = size
-        self._pool = Queue(self._size)
-        self._lock = Lock()
+        self._store = threading.local()
 
-    def _create_connection(self):
+    def _create_connection(self) -> Connection:
         return sqlite3.connect(self._path)
 
     def get(self) -> Connection:
-        while True:
-            try:
-                return self._pool.get(block=False)
-            except Empty:
-                with self._lock:
-                    if self._pool.qsize() < self._size:
-                        return self._create_connection()
-                    else:
-                        # pool full, wait before retrying
-                        time.sleep(0.1)
-
-    def put(self, conn: Connection):
-        self._pool.put(conn)
+        if not hasattr(self._store, "conn"):
+            self._store.conn = self._create_connection()
+        return self._store.conn
