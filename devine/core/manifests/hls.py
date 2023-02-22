@@ -299,11 +299,22 @@ class HLS:
                 if callable(track.OnDecrypted):
                     track.OnDecrypted(track)
 
-        init_data = Queue(maxsize=1)
         segment_key = Queue(maxsize=1)
-        # otherwise will be stuck waiting on the first pool, forever
+        init_data = Queue(maxsize=1)
+
+        if track.drm:
+            session_drm = track.drm[0]  # just use the first supported DRM system for now
+            if isinstance(session_drm, Widevine):
+                # license and grab content keys
+                if not license_widevine:
+                    raise ValueError("license_widevine func must be supplied to use Widevine DRM")
+                license_widevine(session_drm)
+        else:
+            session_drm = None
+
+        # have data to begin with, or it will be stuck waiting on the first pool forever
+        segment_key.put((session_drm, None))
         init_data.put(None)
-        segment_key.put((None, None))
 
         with tqdm(total=len(master.segments), unit="segments") as pbar:
             with ThreadPoolExecutor(max_workers=16) as pool:
