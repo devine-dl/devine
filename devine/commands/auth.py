@@ -255,6 +255,8 @@ def add(ctx: click.Context, profile: str, service: str, cookie: Optional[str] = 
         yaml, data = YAML(), None
         yaml.default_flow_style = False
         data = yaml.load(config_path)
+        if not data:
+            data = {}
         if "credentials" not in data:
             data["credentials"] = {}
         if service not in data["credentials"]:
