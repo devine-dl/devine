@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2023-02-23
+
+### Fixed
+
+- Fixed a regression where the `track.path` was only updated for `Descriptor.URL` downloads if it had DRM. This caused
+  downloads of subtitles or DRM-free tracks using the `URL` descriptor to be broken (#33).
+- Fixed a regression where `title` and `track` were not passed to the Service's functions for getting Widevine Service
+  Certificates and Widevine Licenses.
+- Corrected the Cookie Path that was logged when adding cookies with `devine auth add`.
+- The Config data is now defaulted to an empty dictionary when completely empty or non-existent. This fixes a crash if
+  you try to use `devine auth add` without a config file.
+
 ## [1.3.0] - 2023-02-22
 
 ## Deprecated
@@ -124,6 +136,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial public release under the name Devine.
 
+[1.3.1]: https://github.com/devine-dl/devine/releases/tag/v1.3.1
 [1.3.0]: https://github.com/devine-dl/devine/releases/tag/v1.3.0
 [1.2.0]: https://github.com/devine-dl/devine/releases/tag/v1.2.0
 [1.1.0]: https://github.com/devine-dl/devine/releases/tag/v1.1.0
