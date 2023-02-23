@@ -437,8 +437,16 @@ class dl:
                                         self.prepare_drm,
                                         track=track,
                                         title=title,
-                                        certificate=service.get_widevine_service_certificate,
-                                        licence=service.get_widevine_license,
+                                        certificate=partial(
+                                            service.get_widevine_service_certificate,
+                                            title=title,
+                                            track=track
+                                        ),
+                                        licence=partial(
+                                            service.get_widevine_license,
+                                            title=title,
+                                            track=track
+                                        ),
                                         cdm_only=cdm_only,
                                         vaults_only=vaults_only,
                                         export=export
