@@ -8,6 +8,7 @@ from urllib.parse import urljoin
 
 import requests
 from Cryptodome.Cipher import AES
+from Cryptodome.Util.Padding import pad, unpad
 from m3u8.model import Key
 
 
@@ -42,7 +43,13 @@ class ClearKey:
 
         decrypted = AES. \
             new(self.key, AES.MODE_CBC, self.iv). \
-            decrypt(path.read_bytes())
+            decrypt(pad(path.read_bytes(), AES.block_size))
+
+        try:
+            decrypted = unpad(decrypted, AES.block_size)
+        except ValueError:
+            # the decrypted data is likely already in the block size boundary
+            pass
 
         decrypted_path = path.with_suffix(f".decrypted{path.suffix}")
         decrypted_path.write_bytes(decrypted)
