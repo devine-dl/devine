@@ -148,7 +148,7 @@ class HLS:
             if media.type == "AUDIO":
                 track_type = Audio
                 codec = audio_codecs_by_group_id.get(media.group_id)
-                if media.channels.endswith("/JOC"):
+                if media.channels and media.channels.endswith("/JOC"):
                     joc = int(media.channels.split("/JOC")[0])
                     media.channels = "5.1"
             else:
