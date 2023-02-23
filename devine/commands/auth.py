@@ -1,6 +1,6 @@
 import logging
-import sys
 import shutil
+import sys
 import tkinter.filedialog
 from collections import defaultdict
 from pathlib import Path
@@ -248,7 +248,7 @@ def add(ctx: click.Context, profile: str, service: str, cookie: Optional[str] = 
             log.error(f"A Cookie file for the Profile {profile} on {service} already exists.")
             sys.exit(1)
         shutil.move(cookie, final_path)
-        log.info(f"Moved Cookie file to: {cookie}")
+        log.info(f"Moved Cookie file to: {final_path}")
 
     if credential:
         config_path = Config._Directories.user_configs / Config._Filenames.root_config
