@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import shutil
 from pathlib import Path
 from typing import Optional, Union
@@ -58,23 +59,32 @@ class ClearKey:
         if not m3u_key.uri:
             raise ValueError("No URI in M3U Key, unable to get Key.")
 
-        res = requests.get(
-            url=urljoin(m3u_key.base_uri, m3u_key.uri),
-            headers={
-                "User-Agent": "smartexoplayer/1.1.0 (Linux;Android 8.0.0) ExoPlayerLib/2.13.3"
-            },
-            proxies={"all": proxy} if proxy else None
-        )
-        res.raise_for_status()
-        if not res.content:
-            raise EOFError("Unexpected Empty Response by M3U Key URI.")
-        if len(res.content) < 16:
-            raise EOFError(f"Unexpected Length of Key ({len(res.content)} bytes) in M3U Key.")
+        if m3u_key.uri.startswith("data:"):
+            media_types, data = m3u_key.uri[5:].split(",")
+            media_types = media_types.split(";")
+            if "base64" in media_types:
+                data = base64.b64decode(data)
+            key = data
+        else:
+            url = urljoin(m3u_key.base_uri, m3u_key.uri)
+            res = requests.get(
+                url=url,
+                headers={
+                    "User-Agent": "smartexoplayer/1.1.0 (Linux;Android 8.0.0) ExoPlayerLib/2.13.3"
+                },
+                proxies={"all": proxy} if proxy else None
+            )
+            res.raise_for_status()
+            if not res.content:
+                raise EOFError("Unexpected Empty Response by M3U Key URI.")
+            if len(res.content) < 16:
+                raise EOFError(f"Unexpected Length of Key ({len(res.content)} bytes) in M3U Key.")
+            key = res.content
 
-        key = res.content
-        iv = None
         if m3u_key.iv:
             iv = bytes.fromhex(m3u_key.iv.replace("0x", ""))
+        else:
+            iv = None
 
         return cls(key=key, iv=iv)
 
