@@ -455,13 +455,25 @@ class DASH:
 
                 segment_uri, segment_range = segment
 
-                asyncio.run(aria2c(
-                    segment_uri,
-                    segment_save_path,
-                    session.headers,
-                    proxy,
-                    silent=True
-                ))
+                if segment_range:
+                    # aria2(c) doesn't support byte ranges, let's use python-requests (likely slower)
+                    r = session.get(
+                        url=segment_uri,
+                        headers={
+                            "Range": f"bytes={segment_range}"
+                        }
+                    )
+                    r.raise_for_status()
+                    segment_save_path.parent.mkdir(parents=True, exist_ok=True)
+                    segment_save_path.write_bytes(res.content)
+                else:
+                    asyncio.run(aria2c(
+                        segment_uri,
+                        segment_save_path,
+                        session.headers,
+                        proxy,
+                        silent=True
+                    ))
 
                 if isinstance(track, Audio) or init_data:
                     with open(segment_save_path, "rb+") as f:
