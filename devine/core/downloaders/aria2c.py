@@ -12,7 +12,6 @@ async def aria2c(
     out: Path,
     headers: Optional[dict] = None,
     proxy: Optional[str] = None,
-    byte_range: Optional[str] = None,
     silent: bool = False,
     *args: str
 ) -> int:
@@ -65,11 +64,7 @@ async def aria2c(
         "-i", "-"
     ]
 
-    headers = headers or {}
-    if byte_range:
-        headers["Range"] = f"bytes={byte_range}"
-
-    for header, value in headers.items():
+    for header, value in (headers or {}).items():
         if header.lower() == "accept-encoding":
             # we cannot set an allowed encoding, or it will return compressed
             # and the code is not set up to uncompress the data

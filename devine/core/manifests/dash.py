@@ -460,7 +460,6 @@ class DASH:
                     segment_save_path,
                     session.headers,
                     proxy,
-                    byte_range=segment_range,
                     silent=True
                 ))
 
