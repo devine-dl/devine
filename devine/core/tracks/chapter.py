@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 from typing import Optional, Union
+from datetime import datetime
 
 
 class Chapter:
@@ -47,6 +48,13 @@ class Chapter:
     def named(self) -> bool:
         """Check if Chapter is named."""
         return bool(self.title)
+
+    @staticmethod
+    def time_to(sconds: str) -> str:
+        """Get time format from millisecond."""
+        time = datetime.utcfromtimestamp(sconds)
+        mils = ".000" if str(time.microsecond)[:3] == "0" else f".{str(time.microsecond)[:3]}"
+        return time.strftime(f"%H:%M:%S") + mils
 
     @classmethod
     def loads(cls, data: str) -> Chapter:
