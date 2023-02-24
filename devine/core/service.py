@@ -79,7 +79,11 @@ class Service(metaclass=ABCMeta):
                 total=15,
                 backoff_factor=0.2,
                 status_forcelist=[429, 500, 502, 503, 504]
-            )
+            ),
+            # 16 connections is used for byte-ranged downloads
+            # double it to allow for 16 non-related connections
+            pool_maxsize=16 * 2,
+            pool_block=True
         ))
         session.mount("http://", session.adapters["https://"])
         return session
