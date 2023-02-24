@@ -10,11 +10,9 @@ import shutil
 import sys
 import time
 import traceback
-from collections import defaultdict
 from concurrent import futures
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
-from datetime import datetime
 from functools import partial
 from http.cookiejar import MozillaCookieJar
 from pathlib import Path
@@ -32,7 +30,7 @@ from pywidevine.remotecdm import RemoteCdm
 from tqdm import tqdm
 
 from devine.core.config import config
-from devine.core.constants import LOG_FORMATTER, AnyTrack, context_settings
+from devine.core.constants import AnyTrack, context_settings
 from devine.core.credential import Credential
 from devine.core.downloaders import aria2c
 from devine.core.drm import DRM_T, Widevine
@@ -120,8 +118,6 @@ class dl:
                   help="Disable the source tag from the output file name and path.")
     @click.option("--workers", type=int, default=1,
                   help="Max concurrent workers to use throughout the code, particularly downloads.")
-    @click.option("--log", "log_path", type=Path, default=config.directories.logs / config.filenames.log,
-                  help="Log path (or filename). Path can contain the following f-string args: {name} {time}.")
     @click.pass_context
     def cli(ctx: click.Context, **kwargs: Any) -> dl:
         return dl(ctx, **kwargs)
@@ -131,7 +127,6 @@ class dl:
     def __init__(
         self,
         ctx: click.Context,
-        log_path: Path,
         profile: Optional[str] = None,
         proxy: Optional[str] = None,
         group: Optional[str] = None,
@@ -142,11 +137,6 @@ class dl:
             raise ValueError("A subcommand to invoke was not specified, the main code cannot continue.")
 
         self.log = logging.getLogger("download")
-        if log_path:
-            new_log_path = self.rotate_log_file(log_path)
-            fh = logging.FileHandler(new_log_path, encoding="utf8")
-            fh.setFormatter(LOG_FORMATTER)
-            self.log.addHandler(fh)
 
         self.service = Services.get_tag(ctx.invoked_subcommand)
 
@@ -758,37 +748,6 @@ class dl:
 
         shutil.move(muxed_path, final_path)
         self.log.info(f" + Moved to {final_path}")
-
-    @staticmethod
-    def rotate_log_file(log_path: Path, keep: int = 20) -> Path:
-        """
-        Update Log Filename and delete old log files.
-        It keeps only the 20 newest logs by default.
-        """
-        if not log_path:
-            raise ValueError("A log path must be provided")
-
-        try:
-            log_path.relative_to(Path(""))  # file name only
-        except ValueError:
-            pass
-        else:
-            log_path = config.directories.logs / log_path
-
-        log_path = log_path.parent / log_path.name.format_map(defaultdict(
-            str,
-            name="root",
-            time=datetime.now().strftime("%Y%m%d-%H%M%S")
-        ))
-
-        if log_path.parent.exists():
-            log_files = [x for x in log_path.parent.iterdir() if x.suffix == log_path.suffix]
-            for log_file in log_files[::-1][keep-1:]:
-                # keep n newest files and delete the rest
-                log_file.unlink()
-
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        return log_path
 
     @staticmethod
     def get_profile(service: str) -> Optional[str]:

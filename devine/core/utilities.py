@@ -5,6 +5,8 @@ import re
 import shutil
 import sys
 import unicodedata
+from collections import defaultdict
+from datetime import datetime
 from pathlib import Path
 from types import ModuleType
 from typing import AsyncIterator, Optional, Sequence, Union
@@ -18,6 +20,37 @@ from unidecode import unidecode
 
 from devine.core.config import config
 from devine.core.constants import LANGUAGE_MAX_DISTANCE
+
+
+def rotate_log_file(log_path: Path, keep: int = 20) -> Path:
+    """
+    Update Log Filename and delete old log files.
+    It keeps only the 20 newest logs by default.
+    """
+    if not log_path:
+        raise ValueError("A log path must be provided")
+
+    try:
+        log_path.relative_to(Path(""))  # file name only
+    except ValueError:
+        pass
+    else:
+        log_path = config.directories.logs / log_path
+
+    log_path = log_path.parent / log_path.name.format_map(defaultdict(
+        str,
+        name="root",
+        time=datetime.now().strftime("%Y%m%d-%H%M%S")
+    ))
+
+    if log_path.parent.exists():
+        log_files = [x for x in log_path.parent.iterdir() if x.suffix == log_path.suffix]
+        for log_file in log_files[::-1][keep-1:]:
+            # keep n newest files and delete the rest
+            log_file.unlink()
+
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    return log_path
 
 
 def import_module_by_path(path: Path) -> ModuleType:
