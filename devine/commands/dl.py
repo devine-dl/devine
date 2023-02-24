@@ -648,7 +648,7 @@ class dl:
                     track.OnDecrypted(track)
         else:
             with open(save_path, "wb") as f:
-                for file in save_dir.iterdir():
+                for file in sorted(save_dir.iterdir()):
                     f.write(file.read_bytes())
                     file.unlink()
             save_dir.rmdir()
