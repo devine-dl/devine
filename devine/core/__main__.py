@@ -1,11 +1,13 @@
 import atexit
 import logging
+import textwrap
 from datetime import datetime
 from pathlib import Path
 
 import click
 import urllib3
 from urllib3.exceptions import InsecureRequestWarning
+from rich.padding import Padding
 
 from devine.core import __version__
 from devine.core.commands import Commands
@@ -36,7 +38,6 @@ def main(version: bool, debug: bool, log_path: Path) -> None:
             log_renderer=console._log_render  # noqa
         )]
     )
-    log = logging.getLogger()
 
     if log_path:
         global LOGGING_PATH
@@ -46,9 +47,25 @@ def main(version: bool, debug: bool, log_path: Path) -> None:
 
     urllib3.disable_warnings(InsecureRequestWarning)
 
-    log.info(f"Devine version {__version__} Copyright (c) 2019-{datetime.now().year} rlaphoenix")
-    log.info("Convenient Widevine-DRM Downloader and Decrypter.")
-    log.info("https://github.com/devine-dl/devine")
+    console.print(
+        Padding(
+            textwrap.dedent(
+                f"""
+                [ascii.art]
+                ⠀⠀⠀/ __ \/ ____/ |  / /  _/ | / / ____/
+                ⠀⠀/ / / / __/  | | / // //  |/ / __/⠀⠀⠀
+                ⠀/ /_/ / /___  | |/ // // /|  / /___⠀⠀⠀
+                /_____/_____/  |___/___/_/ |_/_____/⠀⠀⠀
+                [/]
+                v[repr.number]{__version__}[/] Copyright © 2019-{datetime.now().year} rlaphoenix
+                [bright_blue]https://github.com/devine-dl/devine[/]
+                """
+            ).strip(),
+            (0, 21, 1, 20)
+        ),
+        justify="center"
+    )
+
     if version:
         return
 
