@@ -141,52 +141,50 @@ class dl:
 
         self.service = Services.get_tag(ctx.invoked_subcommand)
 
-        console.log(f"Loading Profile Data for {self.service}")
-        if profile:
-            self.profile = profile
-            console.log(f" + Profile: {self.profile} (explicit)")
-        else:
-            self.profile = self.get_profile(self.service)
-            console.log(f" + Profile: {self.profile} (from config)")
+        with console.status("Preparing Service and Profile Authentication...", spinner="dots"):
+            if profile:
+                self.profile = profile
+                console.log(f"Profile: '{self.profile}' from the --profile argument")
+            else:
+                self.profile = self.get_profile(self.service)
+                console.log(f"Profile: '{self.profile}' from the config")
 
-        console.log("Initializing Widevine CDM")
-        try:
-            self.cdm = self.get_cdm(self.service, self.profile)
-        except ValueError as e:
-            self.log.error(f" - {e}")
-            sys.exit(1)
-        console.log(
-            f" + {self.cdm.__class__.__name__}: {self.cdm.system_id} (L{self.cdm.security_level})"
-        )
+            service_config_path = Services.get_path(self.service) / config.filenames.config
+            if service_config_path.is_file():
+                self.service_config = yaml.safe_load(service_config_path.read_text(encoding="utf8"))
+                console.log("Service Config loaded")
+            else:
+                self.service_config = {}
+            merge_dict(config.services.get(self.service), self.service_config)
 
-        console.log("Loading Vaults")
-        self.vaults = Vaults(self.service)
-        for vault in config.key_vaults:
-            vault_type = vault["type"]
-            del vault["type"]
-            self.vaults.load(vault_type, **vault)
-        console.log(f" + {len(self.vaults)} Vaults")
+        with console.status("Loading Widevine CDM...", spinner="dots"):
+            try:
+                self.cdm = self.get_cdm(self.service, self.profile)
+            except ValueError as e:
+                self.log.error(f"Failed to load Widevine CDM, {e}")
+                sys.exit(1)
+            console.log(
+                f"Loaded {self.cdm.__class__.__name__} Widevine CDM: {self.cdm.system_id} (L{self.cdm.security_level})"
+            )
 
-        console.log("Getting Service Config")
-        service_config_path = Services.get_path(self.service) / config.filenames.config
-        if service_config_path.is_file():
-            self.service_config = yaml.safe_load(service_config_path.read_text(encoding="utf8"))
-            console.log(" + Got Service Config")
-        else:
-            self.service_config = {}
-            console.log(" - No Service Config")
-        merge_dict(config.services.get(self.service), self.service_config)
+        with console.status("Loading Key Vaults...", spinner="dots"):
+            self.vaults = Vaults(self.service)
+            for vault in config.key_vaults:
+                vault_type = vault["type"]
+                del vault["type"]
+                self.vaults.load(vault_type, **vault)
+            console.log(f"Loaded {len(self.vaults)} Vaults")
 
-        console.log("Loading Proxy Providers")
-        self.proxy_providers = []
-        if config.proxy_providers.get("basic"):
-            self.proxy_providers.append(Basic(**config.proxy_providers["basic"]))
-        if config.proxy_providers.get("nordvpn"):
-            self.proxy_providers.append(NordVPN(**config.proxy_providers["nordvpn"]))
-        if get_binary_path("hola-proxy"):
-            self.proxy_providers.append(Hola())
-        for proxy_provider in self.proxy_providers:
-            console.log(f" + {proxy_provider.__class__.__name__}: {repr(proxy_provider)}")
+        with console.status("Loading Proxy Providers...", spinner="dots"):
+            self.proxy_providers = []
+            if config.proxy_providers.get("basic"):
+                self.proxy_providers.append(Basic(**config.proxy_providers["basic"]))
+            if config.proxy_providers.get("nordvpn"):
+                self.proxy_providers.append(NordVPN(**config.proxy_providers["nordvpn"]))
+            if get_binary_path("hola-proxy"):
+                self.proxy_providers.append(Hola())
+            for proxy_provider in self.proxy_providers:
+                console.log(f"Loaded {proxy_provider.__class__.__name__}: {proxy_provider}")
 
         if proxy:
             requested_provider = None
@@ -195,31 +193,31 @@ class dl:
                 requested_provider, proxy = proxy.split(":", maxsplit=1)
             if re.match(r"^[a-z]{2}(?:\d+)?$", proxy, re.IGNORECASE):
                 proxy = proxy.lower()
-                console.log(f"Getting a Proxy to '{proxy}'")
-                if requested_provider:
-                    proxy_provider = next((
-                        x
-                        for x in self.proxy_providers
-                        if x.__class__.__name__.lower() == requested_provider
-                    ), None)
-                    if not proxy_provider:
-                        self.log.error(f"The proxy provider '{requested_provider}' was not recognised.")
-                        sys.exit(1)
-                    proxy_uri = proxy_provider.get_proxy(proxy)
-                    if not proxy_uri:
-                        self.log.error(f"The proxy provider {requested_provider} had no proxy for {proxy}")
-                        sys.exit(1)
-                    proxy = ctx.params["proxy"] = proxy_uri
-                    console.log(f" + {proxy} (from {proxy_provider.__class__.__name__})")
-                else:
-                    for proxy_provider in self.proxy_providers:
+                with console.status(f"Getting a Proxy to {proxy}...", spinner="dots"):
+                    if requested_provider:
+                        proxy_provider = next((
+                            x
+                            for x in self.proxy_providers
+                            if x.__class__.__name__.lower() == requested_provider
+                        ), None)
+                        if not proxy_provider:
+                            self.log.error(f"The proxy provider '{requested_provider}' was not recognised.")
+                            sys.exit(1)
                         proxy_uri = proxy_provider.get_proxy(proxy)
-                        if proxy_uri:
-                            proxy = ctx.params["proxy"] = proxy_uri
-                            console.log(f" + {proxy} (from {proxy_provider.__class__.__name__})")
-                            break
+                        if not proxy_uri:
+                            self.log.error(f"The proxy provider {requested_provider} had no proxy for {proxy}")
+                            sys.exit(1)
+                        proxy = ctx.params["proxy"] = proxy_uri
+                        console.log(f"Using {proxy_provider.__class__.__name__} Proxy: {proxy}")
+                    else:
+                        for proxy_provider in self.proxy_providers:
+                            proxy_uri = proxy_provider.get_proxy(proxy)
+                            if proxy_uri:
+                                proxy = ctx.params["proxy"] = proxy_uri
+                                console.log(f"Using {proxy_provider.__class__.__name__} Proxy: {proxy}")
+                                break
             else:
-                console.log(f"Proxy: {proxy} (from args)")
+                console.log(f"Using explicit Proxy: {proxy}")
 
         ctx.obj = ContextData(
             config=self.service_config,
@@ -269,21 +267,20 @@ class dl:
             vaults_only = not cdm_only
 
         if self.profile:
-            cookies = self.get_cookie_jar(self.service, self.profile)
-            credential = self.get_credentials(self.service, self.profile)
-            if not cookies and not credential:
-                self.log.error(f"The Profile '{self.profile}' has no Cookies or Credentials. Check for typos.")
+            with console.status("Authenticating with Service...", spinner="dots"):
+                cookies = self.get_cookie_jar(self.service, self.profile)
+                credential = self.get_credentials(self.service, self.profile)
+                if not cookies and not credential:
+                    self.log.error(f"The Profile '{self.profile}' has no Cookies or Credentials, Check for typos")
+                    sys.exit(1)
+                service.authenticate(cookies, credential)
+                console.log("Authenticated with Service")
+
+        with console.status("Fetching Title Metadata...", spinner="dots"):
+            titles = service.get_titles()
+            if not titles:
+                self.log.error("No titles returned, nothing to download...")
                 sys.exit(1)
-
-            console.log(f"Authenticating with Profile '{self.profile}'")
-            service.authenticate(cookies, credential)
-            console.log(" + Authenticated")
-
-        console.log("Retrieving Titles")
-        titles = service.get_titles()
-        if not titles:
-            self.log.error(" - No titles returned!")
-            sys.exit(1)
 
         for line in str(titles).splitlines(keepends=False):
             console.log(line)
@@ -300,11 +297,12 @@ class dl:
             console.log(f"Getting tracks for {title}")
             if slow and i != 0:
                 delay = random.randint(60, 120)
-                console.log(f" - Delaying by {delay} seconds due to --slow ...")
-                time.sleep(delay)
+                with console.status(f"Delaying by {delay} seconds..."):
+                    time.sleep(delay)
 
-            title.tracks.add(service.get_tracks(title), warn_only=True)
-            title.tracks.add(service.get_chapters(title))
+            with console.status("Getting tracks...", spinner="dots"):
+                title.tracks.add(service.get_tracks(title), warn_only=True)
+                title.tracks.add(service.get_chapters(title))
 
             # strip SDH subs to non-SDH if no equivalent same-lang non-SDH is available
             # uses a loose check, e.g, wont strip en-US SDH sub if a non-SDH en-GB is available
@@ -320,92 +318,93 @@ class dl:
                     non_sdh_sub.OnDownloaded = lambda x: x.strip_hearing_impaired()
                     title.tracks.add(non_sdh_sub)
 
-            title.tracks.sort_videos(by_language=v_lang or lang)
-            title.tracks.sort_audio(by_language=lang)
-            title.tracks.sort_subtitles(by_language=s_lang)
-            title.tracks.sort_chapters()
+            with console.status("Sorting tracks by language and bitrate...", spinner="dots"):
+                title.tracks.sort_videos(by_language=v_lang or lang)
+                title.tracks.sort_audio(by_language=lang)
+                title.tracks.sort_subtitles(by_language=s_lang)
+                title.tracks.sort_chapters()
 
             console.log("> All Tracks:")
             title.tracks.print()
 
             console.log("> Selected Tracks:")  # log early so errors logs make sense
 
-            if isinstance(title, (Movie, Episode)):
-                # filter video tracks
-                title.tracks.select_video(lambda x: x.codec == vcodec)
-                title.tracks.select_video(lambda x: x.range == range_)
-                if vbitrate:
-                    title.tracks.select_video(lambda x: x.bitrate and x.bitrate // 1000 == vbitrate)
+            with console.status("Selecting tracks...", spinner="dots"):
+                if isinstance(title, (Movie, Episode)):
+                    # filter video tracks
+                    title.tracks.select_video(lambda x: x.codec == vcodec)
+                    title.tracks.select_video(lambda x: x.range == range_)
+                    if vbitrate:
+                        title.tracks.select_video(lambda x: x.bitrate and x.bitrate // 1000 == vbitrate)
+                        if not title.tracks.videos:
+                            self.log.error(f"There's no {vbitrate}kbps Video Track...")
+                            sys.exit(1)
+                    if quality:
+                        title.tracks.with_resolution(quality)
                     if not title.tracks.videos:
-                        self.log.error(f"There's no {vbitrate}kbps Video Track...")
-                        sys.exit(1)
-                if quality:
-                    title.tracks.with_resolution(quality)
-                if not title.tracks.videos:
-                    self.log.error(f"There's no {quality}p {vcodec.name} ({range_.name}) Video Track...")
-                    sys.exit(1)
-
-                video_language = v_lang or lang
-                if video_language and "all" not in video_language:
-                    title.tracks.videos = title.tracks.select_per_language(title.tracks.videos, video_language)
-                    if not title.tracks.videos:
-                        self.log.error(f"There's no {video_language} Video Track...")
+                        self.log.error(f"There's no {quality}p {vcodec.name} ({range_.name}) Video Track...")
                         sys.exit(1)
 
-                # filter subtitle tracks
-                if s_lang and "all" not in s_lang:
-                    title.tracks.select_subtitles(lambda x: is_close_match(x.language, s_lang))
-                    if not title.tracks.subtitles:
-                        self.log.error(f"There's no {s_lang} Subtitle Track...")
+                    video_language = v_lang or lang
+                    if video_language and "all" not in video_language:
+                        title.tracks.videos = title.tracks.select_per_language(title.tracks.videos, video_language)
+                        if not title.tracks.videos:
+                            self.log.error(f"There's no {video_language} Video Track...")
+                            sys.exit(1)
+
+                    # filter subtitle tracks
+                    if s_lang and "all" not in s_lang:
+                        title.tracks.select_subtitles(lambda x: is_close_match(x.language, s_lang))
+                        if not title.tracks.subtitles:
+                            self.log.error(f"There's no {s_lang} Subtitle Track...")
+                            sys.exit(1)
+
+                    title.tracks.select_subtitles(lambda x: not x.forced or is_close_match(x.language, lang))
+
+                # filter audio tracks
+                title.tracks.select_audio(lambda x: not x.descriptive)  # exclude descriptive audio
+                if acodec:
+                    title.tracks.select_audio(lambda x: x.codec == acodec)
+                    if not title.tracks.audio:
+                        self.log.error(f"There's no {acodec.name} Audio Tracks...")
                         sys.exit(1)
-
-                title.tracks.select_subtitles(lambda x: not x.forced or is_close_match(x.language, lang))
-
-            # filter audio tracks
-            title.tracks.select_audio(lambda x: not x.descriptive)  # exclude descriptive audio
-            if acodec:
-                title.tracks.select_audio(lambda x: x.codec == acodec)
-                if not title.tracks.audio:
-                    self.log.error(f"There's no {acodec.name} Audio Tracks...")
-                    sys.exit(1)
-            if abitrate:
-                title.tracks.select_audio(lambda x: x.bitrate and x.bitrate // 1000 == abitrate)
-                if not title.tracks.audio:
-                    self.log.error(f"There's no {abitrate}kbps Audio Track...")
-                    sys.exit(1)
-            if channels:
-                title.tracks.select_audio(lambda x: math.ceil(x.channels) == math.ceil(channels))
-                if not title.tracks.audio:
-                    self.log.error(f"There's no {channels} Audio Track...")
-                    sys.exit(1)
-
-            if lang and "all" not in lang:
-                title.tracks.audio = title.tracks.select_per_language(title.tracks.audio, lang)
-                if not title.tracks.audio:
-                    if all(x.descriptor == Video.Descriptor.M3U for x in title.tracks.videos):
-                        self.log.warning(f"There's no {lang} Audio Tracks, "
-                                         f"likely part of an invariant playlist, continuing...")
-                    else:
-                        self.log.error(f"There's no {lang} Audio Track, cannot continue...")
+                if abitrate:
+                    title.tracks.select_audio(lambda x: x.bitrate and x.bitrate // 1000 == abitrate)
+                    if not title.tracks.audio:
+                        self.log.error(f"There's no {abitrate}kbps Audio Track...")
                         sys.exit(1)
+                if channels:
+                    title.tracks.select_audio(lambda x: math.ceil(x.channels) == math.ceil(channels))
+                    if not title.tracks.audio:
+                        self.log.error(f"There's no {channels} Audio Track...")
+                        sys.exit(1)
+                if lang and "all" not in lang:
+                    title.tracks.audio = title.tracks.select_per_language(title.tracks.audio, lang)
+                    if not title.tracks.audio:
+                        if all(x.descriptor == Video.Descriptor.M3U for x in title.tracks.videos):
+                            self.log.warning(f"There's no {lang} Audio Tracks, "
+                                             f"likely part of an invariant playlist, continuing...")
+                        else:
+                            self.log.error(f"There's no {lang} Audio Track, cannot continue...")
+                            sys.exit(1)
 
-            if audio_only or subs_only or chapters_only:
-                title.tracks.videos.clear()
-                if audio_only:
-                    if not subs_only:
-                        title.tracks.subtitles.clear()
-                    if not chapters_only:
-                        title.tracks.chapters.clear()
-                elif subs_only:
-                    if not audio_only:
-                        title.tracks.audio.clear()
-                    if not chapters_only:
-                        title.tracks.chapters.clear()
-                elif chapters_only:
-                    if not audio_only:
-                        title.tracks.audio.clear()
-                    if not subs_only:
-                        title.tracks.subtitles.clear()
+                if audio_only or subs_only or chapters_only:
+                    title.tracks.videos.clear()
+                    if audio_only:
+                        if not subs_only:
+                            title.tracks.subtitles.clear()
+                        if not chapters_only:
+                            title.tracks.chapters.clear()
+                    elif subs_only:
+                        if not audio_only:
+                            title.tracks.audio.clear()
+                        if not chapters_only:
+                            title.tracks.chapters.clear()
+                    elif chapters_only:
+                        if not audio_only:
+                            title.tracks.audio.clear()
+                        if not subs_only:
+                            title.tracks.subtitles.clear()
 
             title.tracks.print()
 
