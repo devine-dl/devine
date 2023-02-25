@@ -27,7 +27,7 @@ from pymediainfo import MediaInfo
 from pywidevine.cdm import Cdm as WidevineCdm
 from pywidevine.device import Device
 from pywidevine.remotecdm import RemoteCdm
-from tqdm import tqdm
+from rich.live import Live
 from rich.padding import Padding
 from rich.rule import Rule
 
@@ -332,7 +332,7 @@ class dl:
                 title.tracks.sort_chapters()
 
             if list_:
-                available_tracks = title.tracks.tree()
+                available_tracks, _ = title.tracks.tree()
                 console.log(available_tracks)
                 continue
 
@@ -413,13 +413,19 @@ class dl:
                         if not subs_only:
                             title.tracks.subtitles.clear()
 
-            selected_tracks = title.tracks.tree()
-            console.log(selected_tracks)
+            selected_tracks, tracks_progress_callables = title.tracks.tree(add_progress=True)
 
             if skip_dl:
                 console.log("Skipping Download...")
             else:
-                with tqdm(total=len(title.tracks)) as pbar:
+                with Live(
+                    Padding(
+                        selected_tracks,
+                        (0, 5, 1, 5)
+                    ),
+                    console=console,
+                    refresh_per_second=5
+                ):
                     with ThreadPoolExecutor(workers) as pool:
                         try:
                             for download in futures.as_completed((
@@ -445,9 +451,10 @@ class dl:
                                         cdm_only=cdm_only,
                                         vaults_only=vaults_only,
                                         export=export
-                                    )
+                                    ),
+                                    progress=tracks_progress_callables[i]
                                 )
-                                for track in title.tracks
+                                for i, track in enumerate(title.tracks)
                             )):
                                 if download.cancelled():
                                     continue
@@ -458,8 +465,6 @@ class dl:
                                     traceback.print_exception(type(e), e, e.__traceback__)
                                     self.log.error(f"Download worker threw an unhandled exception: {e!r}")
                                     return
-                                else:
-                                    pbar.update(1)
                         except KeyboardInterrupt:
                             self.DL_POOL_STOP.set()
                             pool.shutdown(wait=False, cancel_futures=True)
@@ -570,7 +575,8 @@ class dl:
         service: Service,
         track: AnyTrack,
         title: Title_T,
-        prepare_drm: Callable
+        prepare_drm: Callable,
+        progress: partial
     ):
         time.sleep(1)
         if self.DL_POOL_STOP.is_set():
@@ -580,8 +586,6 @@ class dl:
             proxy = next(iter(service.session.proxies.values()), None)
         else:
             proxy = None
-
-        console.log(f"Downloading: {track}")
 
         if config.directories.temp.is_file():
             self.log.error(f"Temp Directory '{config.directories.temp}' must be a Directory, not a file")
@@ -612,6 +616,7 @@ class dl:
             HLS.download_track(
                 track=track,
                 save_dir=save_dir,
+                progress=progress,
                 session=service.session,
                 proxy=proxy,
                 license_widevine=prepare_drm
@@ -620,6 +625,7 @@ class dl:
             DASH.download_track(
                 track=track,
                 save_dir=save_dir,
+                progress=progress,
                 session=service.session,
                 proxy=proxy,
                 license_widevine=prepare_drm
@@ -631,7 +637,8 @@ class dl:
                 track.url,
                 save_path,
                 service.session.headers,
-                proxy if track.needs_proxy else None
+                proxy if track.needs_proxy else None,
+                progress=progress
             ))
             track.path = save_path
 

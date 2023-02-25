@@ -1,5 +1,8 @@
 import asyncio
 import subprocess
+import sys
+from asyncio import IncompleteReadError
+from functools import partial
 from pathlib import Path
 from typing import Optional, Union
 
@@ -13,6 +16,7 @@ async def aria2c(
     headers: Optional[dict] = None,
     proxy: Optional[str] = None,
     silent: bool = False,
+    progress: Optional[partial] = None,
     *args: str
 ) -> int:
     """
@@ -59,7 +63,7 @@ async def aria2c(
         "--summary-interval", "0",
         "--file-allocation", config.aria2c.get("file_allocation", "falloc"),
         "--console-log-level", "warn",
-        "--download-result", "hide",
+        "--download-result", ["hide", "default"][bool(progress)],
         *args,
         "-i", "-"
     ]
@@ -84,9 +88,55 @@ async def aria2c(
         *arguments,
         stdin=subprocess.PIPE,
         stderr=[None, subprocess.DEVNULL][silent],
-        stdout=[None, subprocess.DEVNULL][silent]
+        stdout=(
+            subprocess.PIPE if progress else
+            subprocess.DEVNULL if silent else
+            None
+        )
     )
-    await p.communicate(uri.encode())
+
+    p.stdin.write(uri.encode())
+    await p.stdin.drain()
+    p.stdin.close()
+
+    if progress:
+        # I'm sorry for this shameful code, aria2(c) is annoying as f!!!
+        buffer = b""
+        recording = False
+        while not p.stdout.at_eof():
+            try:
+                byte = await p.stdout.readexactly(1)
+            except IncompleteReadError:
+                pass  # ignore, the first read will do this
+            else:
+                if byte == b"=":  # download result log
+                    progress(total=100, completed=100)
+                    break
+                if byte == b"[":
+                    recording = True
+                if recording:
+                    buffer += byte
+                if byte == b"]":
+                    recording = False
+                    if b"FileAlloc" not in buffer:
+                        try:
+                            # id, dledMiB/totalMiB(x%), CN:xx, DL:xxMiB, ETA:Xs
+                            # eta may not always be available
+                            parts = buffer.decode()[1:-1].split()
+                            dl_parts = parts[1].split("(")
+                            if len(dl_parts) == 2:
+                                # might otherwise be e.g., 0B/0B, with no % symbol provided
+                                progress(
+                                    total=100,
+                                    completed=int(dl_parts[1][:-2]),
+                                    downloaded=f"{parts[3].split(':')[1]}/s"
+                                )
+                        except Exception as e:
+                            print(f"Aria2c progress failed on {buffer}, {e!r}")
+                            sys.exit(1)
+                    buffer = b""
+
+    await p.wait()
 
     if p.returncode != 0:
         raise subprocess.CalledProcessError(p.returncode, arguments)

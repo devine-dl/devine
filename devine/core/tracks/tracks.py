@@ -2,14 +2,18 @@ from __future__ import annotations
 
 import logging
 import subprocess
+from functools import partial
 from pathlib import Path
 from typing import Callable, Iterator, Optional, Sequence, Union
 
 from Cryptodome.Random import get_random_bytes
 from langcodes import Language, closest_supported_match
+from rich.progress import Progress, TextColumn, SpinnerColumn, BarColumn, TimeRemainingColumn
+from rich.table import Table
 from rich.tree import Tree
 
 from devine.core.config import config
+from devine.core.console import console
 from devine.core.constants import LANGUAGE_MAX_DISTANCE, LANGUAGE_MUX_MAP, AnyTrack, TrackT
 from devine.core.tracks.audio import Audio
 from devine.core.tracks.chapter import Chapter
@@ -87,8 +91,10 @@ class Tracks:
 
         return rep
 
-    def tree(self) -> Tree:
+    def tree(self, add_progress: bool = False) -> tuple[Tree, list[partial]]:
         all_tracks = [*list(self), *self.chapters]
+
+        progress_callables = []
 
         tree = Tree("", hide_root=True)
         for track_type in self.TRACK_ORDER_MAP:
@@ -99,9 +105,28 @@ class Tracks:
             track_type_plural = track_type.__name__ + ("s" if track_type != Audio and num_tracks != 1 else "")
             tracks_tree = tree.add(f"[repr.number]{num_tracks}[/] {track_type_plural}")
             for track in tracks:
-                tracks_tree.add(str(track)[6:], style="text2")
+                if add_progress and track_type != Chapter:
+                    progress = Progress(
+                        TextColumn("[progress.description]{task.description}"),
+                        SpinnerColumn(),
+                        BarColumn(),
+                        "•",
+                        TimeRemainingColumn(compact=True, elapsed_when_finished=True),
+                        "•",
+                        TextColumn("[progress.data.speed]{task.fields[downloaded]}"),
+                        console=console,
+                        speed_estimate_period=10
+                    )
+                    task = progress.add_task("", downloaded="-")
+                    progress_callables.append(partial(progress.update, task_id=task))
+                    track_table = Table.grid()
+                    track_table.add_row(str(track)[6:], style="text2")
+                    track_table.add_row(progress)
+                    tracks_tree.add(track_table)
+                else:
+                    tracks_tree.add(str(track)[6:], style="text2")
 
-        return tree
+        return tree, progress_callables
 
     def exists(self, by_id: Optional[str] = None, by_url: Optional[Union[str, list[str]]] = None) -> bool:
         """Check if a track already exists by various methods."""
