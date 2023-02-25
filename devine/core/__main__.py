@@ -10,7 +10,7 @@ from urllib3.exceptions import InsecureRequestWarning
 from devine.core import __version__
 from devine.core.commands import Commands
 from devine.core.config import config
-from devine.core.console import console
+from devine.core.console import ComfyRichHandler, console
 from devine.core.constants import context_settings
 from devine.core.utilities import rotate_log_file
 
@@ -24,7 +24,18 @@ LOGGING_PATH = None
               help="Log path (or filename). Path can contain the following f-string args: {name} {time}.")
 def main(version: bool, debug: bool, log_path: Path) -> None:
     """Devine—Open-Source Movie, TV, and Music Downloading Solution."""
-    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
+    logging.basicConfig(
+        level=logging.DEBUG if debug else logging.INFO,
+        format="%(message)s",
+        handlers=[ComfyRichHandler(
+            show_time=False,
+            show_path=debug,
+            console=console,
+            rich_tracebacks=True,
+            tracebacks_suppress=[click],
+            log_renderer=console._log_render  # noqa
+        )]
+    )
     log = logging.getLogger()
 
     if log_path:
