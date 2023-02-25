@@ -28,6 +28,8 @@ from pywidevine.cdm import Cdm as WidevineCdm
 from pywidevine.device import Device
 from pywidevine.remotecdm import RemoteCdm
 from tqdm import tqdm
+from rich.padding import Padding
+from rich.rule import Rule
 
 from devine.core.config import config
 from devine.core.console import console
@@ -282,8 +284,10 @@ class dl:
                 self.log.error("No titles returned, nothing to download...")
                 sys.exit(1)
 
-        for line in str(titles).splitlines(keepends=False):
-            console.log(line)
+        console.print(Padding(
+            Rule(f"[rule.text]{titles.__class__.__name__}: {titles}"),
+            (1, 2)
+        ))
 
         if list_titles:
             for title in titles:
@@ -294,7 +298,11 @@ class dl:
             if isinstance(title, Episode) and wanted and f"{title.season}x{title.number}" not in wanted:
                 continue
 
-            console.log(f"Getting tracks for {title}")
+            console.print(Padding(
+                Rule(f"[rule.text]{title}"),
+                (1, 2)
+            ))
+
             if slow and i != 0:
                 delay = random.randint(60, 120)
                 with console.status(f"Delaying by {delay} seconds..."):
