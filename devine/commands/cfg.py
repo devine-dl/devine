@@ -6,6 +6,7 @@ import click
 from ruamel.yaml import YAML
 
 from devine.core.config import config
+from devine.core.console import console
 from devine.core.constants import context_settings
 
 
@@ -80,10 +81,10 @@ def cfg(ctx: click.Context, key: str, value: str, unset: bool, list_: bool) -> N
                         parent_data = parent_data[key]
             if is_write:
                 parent_data[trailing_key] = value
-                log.info(f"Set {key} to {repr(value)}")
+                console.log(f"Set {key} to {repr(value)}")
             elif is_delete:
                 del parent_data[trailing_key]
-                log.info(f"Unset {key}")
+                console.log(f"Unset {key}")
         except KeyError:
             raise click.ClickException(f"Key '{key}' does not exist in the config.")
         config_path.parent.mkdir(parents=True, exist_ok=True)

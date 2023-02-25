@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import math
 import re
 import subprocess
@@ -11,6 +10,7 @@ from typing import Any, Optional, Union
 from langcodes import Language
 
 from devine.core.config import config
+from devine.core.console import console
 from devine.core.tracks.subtitle import Subtitle
 from devine.core.tracks.track import Track
 from devine.core.utilities import FPS, get_binary_path, get_boxes
@@ -296,15 +296,14 @@ class Video(Track):
         if not executable:
             raise EnvironmentError("FFmpeg executable \"ffmpeg\" was not found but is required for this call.")
 
-        log = logging.getLogger("x264-clean")
-        log.info("Removing EIA-CC from Video Track with FFMPEG")
+        console.log("Removing EIA-CC from Video Track with FFMPEG")
 
         with open(self.path, "rb") as f:
             file = f.read(60000)
 
         x264 = re.search(br"(.{16})(x264)", file)
         if not x264:
-            log.info(" - No x264 encode settings were found, unsupported...")
+            console.log(" - No x264 encode settings were found, unsupported...")
             return False
 
         uuid = x264.group(1).hex()
@@ -323,7 +322,7 @@ class Video(Track):
             str(cleaned_path)
         ], check=True)
 
-        log.info(" + Removed")
+        console.log(" + Removed")
 
         self.swap(cleaned_path)
 

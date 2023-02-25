@@ -30,6 +30,7 @@ from pywidevine.remotecdm import RemoteCdm
 from tqdm import tqdm
 
 from devine.core.config import config
+from devine.core.console import console
 from devine.core.constants import AnyTrack, context_settings
 from devine.core.credential import Credential
 from devine.core.downloaders import aria2c
@@ -140,43 +141,43 @@ class dl:
 
         self.service = Services.get_tag(ctx.invoked_subcommand)
 
-        self.log.info(f"Loading Profile Data for {self.service}")
+        console.log(f"Loading Profile Data for {self.service}")
         if profile:
             self.profile = profile
-            self.log.info(f" + Profile: {self.profile} (explicit)")
+            console.log(f" + Profile: {self.profile} (explicit)")
         else:
             self.profile = self.get_profile(self.service)
-            self.log.info(f" + Profile: {self.profile} (from config)")
+            console.log(f" + Profile: {self.profile} (from config)")
 
-        self.log.info("Initializing Widevine CDM")
+        console.log("Initializing Widevine CDM")
         try:
             self.cdm = self.get_cdm(self.service, self.profile)
         except ValueError as e:
             self.log.error(f" - {e}")
             sys.exit(1)
-        self.log.info(
+        console.log(
             f" + {self.cdm.__class__.__name__}: {self.cdm.system_id} (L{self.cdm.security_level})"
         )
 
-        self.log.info("Loading Vaults")
+        console.log("Loading Vaults")
         self.vaults = Vaults(self.service)
         for vault in config.key_vaults:
             vault_type = vault["type"]
             del vault["type"]
             self.vaults.load(vault_type, **vault)
-        self.log.info(f" + {len(self.vaults)} Vaults")
+        console.log(f" + {len(self.vaults)} Vaults")
 
-        self.log.info("Getting Service Config")
+        console.log("Getting Service Config")
         service_config_path = Services.get_path(self.service) / config.filenames.config
         if service_config_path.is_file():
             self.service_config = yaml.safe_load(service_config_path.read_text(encoding="utf8"))
-            self.log.info(" + Got Service Config")
+            console.log(" + Got Service Config")
         else:
             self.service_config = {}
-            self.log.info(" - No Service Config")
+            console.log(" - No Service Config")
         merge_dict(config.services.get(self.service), self.service_config)
 
-        self.log.info("Loading Proxy Providers")
+        console.log("Loading Proxy Providers")
         self.proxy_providers = []
         if config.proxy_providers.get("basic"):
             self.proxy_providers.append(Basic(**config.proxy_providers["basic"]))
@@ -185,7 +186,7 @@ class dl:
         if get_binary_path("hola-proxy"):
             self.proxy_providers.append(Hola())
         for proxy_provider in self.proxy_providers:
-            self.log.info(f" + {proxy_provider.__class__.__name__}: {repr(proxy_provider)}")
+            console.log(f" + {proxy_provider.__class__.__name__}: {repr(proxy_provider)}")
 
         if proxy:
             requested_provider = None
@@ -194,7 +195,7 @@ class dl:
                 requested_provider, proxy = proxy.split(":", maxsplit=1)
             if re.match(r"^[a-z]{2}(?:\d+)?$", proxy, re.IGNORECASE):
                 proxy = proxy.lower()
-                self.log.info(f"Getting a Proxy to '{proxy}'")
+                console.log(f"Getting a Proxy to '{proxy}'")
                 if requested_provider:
                     proxy_provider = next((
                         x
@@ -209,16 +210,16 @@ class dl:
                         self.log.error(f"The proxy provider {requested_provider} had no proxy for {proxy}")
                         sys.exit(1)
                     proxy = ctx.params["proxy"] = proxy_uri
-                    self.log.info(f" + {proxy} (from {proxy_provider.__class__.__name__})")
+                    console.log(f" + {proxy} (from {proxy_provider.__class__.__name__})")
                 else:
                     for proxy_provider in self.proxy_providers:
                         proxy_uri = proxy_provider.get_proxy(proxy)
                         if proxy_uri:
                             proxy = ctx.params["proxy"] = proxy_uri
-                            self.log.info(f" + {proxy} (from {proxy_provider.__class__.__name__})")
+                            console.log(f" + {proxy} (from {proxy_provider.__class__.__name__})")
                             break
             else:
-                self.log.info(f"Proxy: {proxy} (from args)")
+                console.log(f"Proxy: {proxy} (from args)")
 
         ctx.obj = ContextData(
             config=self.service_config,
@@ -274,32 +275,32 @@ class dl:
                 self.log.error(f"The Profile '{self.profile}' has no Cookies or Credentials. Check for typos.")
                 sys.exit(1)
 
-            self.log.info(f"Authenticating with Profile '{self.profile}'")
+            console.log(f"Authenticating with Profile '{self.profile}'")
             service.authenticate(cookies, credential)
-            self.log.info(" + Authenticated")
+            console.log(" + Authenticated")
 
-        self.log.info("Retrieving Titles")
+        console.log("Retrieving Titles")
         titles = service.get_titles()
         if not titles:
             self.log.error(" - No titles returned!")
             sys.exit(1)
 
         for line in str(titles).splitlines(keepends=False):
-            self.log.info(line)
+            console.log(line)
 
         if list_titles:
             for title in titles:
-                self.log.info(title)
+                console.log(title)
             return
 
         for i, title in enumerate(titles):
             if isinstance(title, Episode) and wanted and f"{title.season}x{title.number}" not in wanted:
                 continue
 
-            self.log.info(f"Getting tracks for {title}")
+            console.log(f"Getting tracks for {title}")
             if slow and i != 0:
                 delay = random.randint(60, 120)
-                self.log.info(f" - Delaying by {delay} seconds due to --slow ...")
+                console.log(f" - Delaying by {delay} seconds due to --slow ...")
                 time.sleep(delay)
 
             title.tracks.add(service.get_tracks(title), warn_only=True)
@@ -324,10 +325,10 @@ class dl:
             title.tracks.sort_subtitles(by_language=s_lang)
             title.tracks.sort_chapters()
 
-            self.log.info("> All Tracks:")
+            console.log("> All Tracks:")
             title.tracks.print()
 
-            self.log.info("> Selected Tracks:")  # log early so errors logs make sense
+            console.log("> Selected Tracks:")  # log early so errors logs make sense
 
             if isinstance(title, (Movie, Episode)):
                 # filter video tracks
@@ -412,7 +413,7 @@ class dl:
                 continue  # only wanted to see what tracks were available and chosen
 
             if skip_dl:
-                self.log.info("Skipping Download...")
+                console.log("Skipping Download...")
             else:
                 with tqdm(total=len(title.tracks)) as pbar:
                     with ThreadPoolExecutor(workers) as pool:
@@ -458,7 +459,7 @@ class dl:
                         except KeyboardInterrupt:
                             self.DL_POOL_STOP.set()
                             pool.shutdown(wait=False, cancel_futures=True)
-                            self.log.info("Received Keyboard Interrupt, stopping...")
+                            console.log("Received Keyboard Interrupt, stopping...")
                             return
 
             if not skip_dl:
@@ -473,7 +474,7 @@ class dl:
                     cookie_jar.set_cookie(cookie)
                 cookie_jar.save(ignore_discard=True)
 
-        self.log.info("Processed all titles!")
+        console.log("Processed all titles!")
 
     def prepare_drm(
         self,
@@ -494,7 +495,7 @@ class dl:
             return
 
         if isinstance(drm, Widevine):
-            self.log.info(f"Licensing Content Keys using Widevine for {drm.pssh.dumps()}")
+            console.log(f"Licensing Content Keys using Widevine for {drm.pssh.dumps()}")
 
             for kid in drm.kids:
                 if kid in drm.content_keys:
@@ -504,9 +505,9 @@ class dl:
                     content_key, vault_used = self.vaults.get_key(kid)
                     if content_key:
                         drm.content_keys[kid] = content_key
-                        self.log.info(f" + {kid.hex}:{content_key} ({vault_used})")
+                        console.log(f" + {kid.hex}:{content_key} ({vault_used})")
                         add_count = self.vaults.add_key(kid, content_key, excluding=vault_used)
-                        self.log.info(f" + Cached to {add_count}/{len(self.vaults) - 1} Vaults")
+                        console.log(f" + Cached to {add_count}/{len(self.vaults) - 1} Vaults")
                     elif vaults_only:
                         self.log.error(f" - No Content Key found in any Vault for {kid.hex}")
                         sys.exit(1)
@@ -530,7 +531,7 @@ class dl:
                             msg += " *"
                         if key == "0" * 32:
                             msg += " (Unusable!)"
-                        self.log.info(msg)
+                        console.log(msg)
 
                     drm.content_keys = {
                         kid_: key
@@ -543,7 +544,7 @@ class dl:
                     drm.content_keys.update(from_vaults)
 
                     cached_keys = self.vaults.add_keys(drm.content_keys)
-                    self.log.info(f" + Newly added to {cached_keys}/{len(drm.content_keys)} Vaults")
+                    console.log(f" + Newly added to {cached_keys}/{len(drm.content_keys)} Vaults")
 
                     if kid not in drm.content_keys:
                         self.log.error(f" - No usable key was returned for {kid.hex}, cannot continue")
@@ -576,7 +577,7 @@ class dl:
         else:
             proxy = None
 
-        self.log.info(f"Downloading: {track}")
+        console.log(f"Downloading: {track}")
 
         if config.directories.temp.is_file():
             self.log.error(f"Temp Directory '{config.directories.temp}' must be a Directory, not a file")
@@ -681,9 +682,9 @@ class dl:
             track.OnDownloaded(track)
 
         if track.needs_repack:
-            self.log.info("Repackaging stream with FFMPEG (fix malformed streams)")
+            console.log("Repackaging stream with FFMPEG (fix malformed streams)")
             track.repackage()
-            self.log.info(" + Repackaged")
+            console.log(" + Repackaged")
             if callable(track.OnRepacked):
                 track.OnRepacked(track)
 
@@ -695,7 +696,7 @@ class dl:
                 for x in ffprobe(track.path).get("streams", [])
             )
         ):
-            self.log.info("Checking for EIA-CC Captions")
+            console.log("Checking for EIA-CC Captions")
             try:
                 # TODO: Figure out the real language, it might be different
                 #       EIA-CC tracks sadly don't carry language information :(
@@ -714,15 +715,15 @@ class dl:
                 )
                 if cc:
                     title.tracks.add(cc)
-                    self.log.info(" + Found & Extracted an EIA-CC Caption")
+                    console.log(" + Found & Extracted an EIA-CC Caption")
             except EnvironmentError:
                 self.log.error(" - Track needs to have CC extracted, but ccextractor wasn't found")
                 sys.exit(1)
-            self.log.info(" + No EIA-CC Captions...")
+            console.log(" + No EIA-CC Captions...")
 
     def mux_tracks(self, title: Title_T, season_folder: bool = True, add_source: bool = True) -> None:
         """Mux Tracks, Delete Pre-Mux files, and move to the final location."""
-        self.log.info("Muxing Tracks into a Matroska Container")
+        console.log("Muxing Tracks into a Matroska Container")
 
         if isinstance(title, (Movie, Episode)):
             muxed_path, return_code = title.tracks.mux(str(title))
@@ -731,7 +732,7 @@ class dl:
             elif return_code >= 2:
                 self.log.error(" - Failed to Mux video to Matroska file")
                 sys.exit(1)
-            self.log.info(f" + Muxed to {muxed_path}")
+            console.log(f" + Muxed to {muxed_path}")
         else:
             # dont mux
             muxed_path = title.tracks.audio[0].path
@@ -747,7 +748,7 @@ class dl:
         final_path = final_dir / f"{final_filename}{muxed_path.suffix}"
 
         shutil.move(muxed_path, final_path)
-        self.log.info(f" + Moved to {final_path}")
+        console.log(f" + Moved to {final_path}")
 
     @staticmethod
     def get_profile(service: str) -> Optional[str]:

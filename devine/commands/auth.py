@@ -10,6 +10,7 @@ import click
 from ruamel.yaml import YAML
 
 from devine.core.config import Config, config
+from devine.core.console import console
 from devine.core.constants import context_settings
 from devine.core.credential import Credential
 
@@ -28,15 +29,13 @@ def auth(ctx: click.Context) -> None:
     short_help="List profiles and their state for a service or all services.",
     context_settings=context_settings)
 @click.argument("service", type=str, required=False)
-@click.pass_context
-def list_(ctx: click.Context, service: Optional[str] = None) -> None:
+def list_(service: Optional[str] = None) -> None:
     """
     List profiles and their state for a service or all services.
 
     \b
     Profile and Service names are case-insensitive.
     """
-    log = ctx.obj
     service_f = service
 
     auth_data: dict[str, dict[str, list]] = defaultdict(lambda: defaultdict(list))
@@ -55,9 +54,9 @@ def list_(ctx: click.Context, service: Optional[str] = None) -> None:
     for service, profiles in dict(sorted(auth_data.items())).items():  # type:ignore
         if service_f and service != service_f.upper():
             continue
-        log.info(service)
+        console.log(service)
         for profile, authorizations in dict(sorted(profiles.items())).items():
-            log.info(f'  "{profile}": {", ".join(authorizations)}')
+            console.log(f'  "{profile}": {", ".join(authorizations)}')
 
 
 @auth.command(
@@ -82,7 +81,7 @@ def view(ctx: click.Context, profile: str, service: str) -> None:
         if cookie_dir.name == service_f:
             for cookie in cookie_dir.glob("*.txt"):
                 if cookie.stem == profile_f:
-                    log.info(f"Cookie: {cookie}")
+                    console.log(f"Cookie: {cookie}")
                     log.debug(cookie.read_text(encoding="utf8").strip())
                     found = True
                     break
@@ -91,7 +90,7 @@ def view(ctx: click.Context, profile: str, service: str) -> None:
         if service == service_f:
             for profile, credential in credentials.items():
                 if profile == profile_f:
-                    log.info(f"Credential: {':'.join(list(credential))}")
+                    console.log(f"Credential: {':'.join(list(credential))}")
                     found = True
                     break
 
@@ -106,26 +105,24 @@ def view(ctx: click.Context, profile: str, service: str) -> None:
     short_help="Check what profile is used by services.",
     context_settings=context_settings)
 @click.argument("service", type=str, required=False)
-@click.pass_context
-def status(ctx: click.Context, service: Optional[str] = None) -> None:
+def status(service: Optional[str] = None) -> None:
     """
     Check what profile is used by services.
 
     \b
     Service names are case-sensitive.
     """
-    log = ctx.obj
     found_profile = False
     for service_, profile in config.profiles.items():
         if not service or service_.upper() == service.upper():
-            log.info(f"{service_}: {profile or '--'}")
+            console.log(f"{service_}: {profile or '--'}")
             found_profile = True
 
     if not found_profile:
-        log.info(f"No profile has been explicitly set for {service}")
+        console.log(f"No profile has been explicitly set for {service}")
 
     default = config.profiles.get("default", "not set")
-    log.info(f"The default profile is {default}")
+    console.log(f"The default profile is {default}")
 
 
 @auth.command(
@@ -135,8 +132,7 @@ def status(ctx: click.Context, service: Optional[str] = None) -> None:
 @click.argument("service", type=str)
 @click.option("--cookie", is_flag=True, default=False, help="Only delete the cookie.")
 @click.option("--credential", is_flag=True, default=False, help="Only delete the credential.")
-@click.pass_context
-def delete(ctx: click.Context, profile: str, service: str, cookie: bool, credential: bool):
+def delete(profile: str, service: str, cookie: bool, credential: bool):
     """
     Delete a profile and all of its authorization from a service.
 
@@ -148,7 +144,6 @@ def delete(ctx: click.Context, profile: str, service: str, cookie: bool, credent
     Profile and Service names are case-sensitive.
     Comments may be removed from config!
     """
-    log = ctx.obj
     service_f = service
     profile_f = profile
     found = False
@@ -159,7 +154,7 @@ def delete(ctx: click.Context, profile: str, service: str, cookie: bool, credent
                 for cookie_ in cookie_dir.glob("*.txt"):
                     if cookie_.stem == profile_f:
                         cookie_.unlink()
-                        log.info(f"Deleted Cookie: {cookie_}")
+                        console.log(f"Deleted Cookie: {cookie_}")
                         found = True
                         break
 
@@ -174,7 +169,7 @@ def delete(ctx: click.Context, profile: str, service: str, cookie: bool, credent
                         data = yaml.load(config_path)
                         del data["credentials"][key][profile_f]
                         yaml.dump(data, config_path)
-                        log.info(f"Deleted Credential: {credential_}")
+                        console.log(f"Deleted Credential: {credential_}")
                         found = True
                         break
 
@@ -224,7 +219,7 @@ def add(ctx: click.Context, profile: str, service: str, cookie: Optional[str] = 
         if cookie:
             cookie = Path(cookie)
         else:
-            log.info("Skipped adding a Cookie...")
+            console.log("Skipped adding a Cookie...")
 
     if credential:
         try:
@@ -239,7 +234,7 @@ def add(ctx: click.Context, profile: str, service: str, cookie: Optional[str] = 
             except ValueError as e:
                 raise click.ClickException(str(e))
         else:
-            log.info("Skipped adding a Credential...")
+            console.log("Skipped adding a Credential...")
 
     if cookie:
         final_path = (config.directories.cookies / service / profile).with_suffix(".txt")
@@ -248,7 +243,7 @@ def add(ctx: click.Context, profile: str, service: str, cookie: Optional[str] = 
             log.error(f"A Cookie file for the Profile {profile} on {service} already exists.")
             sys.exit(1)
         shutil.move(cookie, final_path)
-        log.info(f"Moved Cookie file to: {final_path}")
+        console.log(f"Moved Cookie file to: {final_path}")
 
     if credential:
         config_path = Config._Directories.user_configs / Config._Filenames.root_config
@@ -263,4 +258,4 @@ def add(ctx: click.Context, profile: str, service: str, cookie: Optional[str] = 
             data["credentials"][service] = {}
         data["credentials"][service][profile] = credential.dumps()
         yaml.dump(data, config_path)
-        log.info(f"Added Credential: {credential}")
+        console.log(f"Added Credential: {credential}")

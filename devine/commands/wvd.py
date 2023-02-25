@@ -10,6 +10,7 @@ from pywidevine.license_protocol_pb2 import FileHashes
 from unidecode import UnidecodeError, unidecode
 
 from devine.core.config import config
+from devine.core.console import console
 from devine.core.constants import context_settings
 
 
@@ -34,28 +35,26 @@ def parse(path: Path) -> None:
     if named:
         path = config.directories.wvds / f"{path.name}.wvd"
 
-    log = logging.getLogger("wvd")
-
     device = Device.load(path)
 
-    log.info(f"System ID: {device.system_id}")
-    log.info(f"Security Level: {device.security_level}")
-    log.info(f"Type: {device.type}")
-    log.info(f"Flags: {device.flags}")
-    log.info(f"Private Key: {bool(device.private_key)}")
-    log.info(f"Client ID: {bool(device.client_id)}")
-    log.info(f"VMP: {bool(device.client_id.vmp_data)}")
+    console.log(f"System ID: {device.system_id}")
+    console.log(f"Security Level: {device.security_level}")
+    console.log(f"Type: {device.type}")
+    console.log(f"Flags: {device.flags}")
+    console.log(f"Private Key: {bool(device.private_key)}")
+    console.log(f"Client ID: {bool(device.client_id)}")
+    console.log(f"VMP: {bool(device.client_id.vmp_data)}")
 
-    log.info("Client ID:")
-    log.info(device.client_id)
+    console.log("Client ID:")
+    console.log(device.client_id)
 
-    log.info("VMP:")
+    console.log("VMP:")
     if device.client_id.vmp_data:
         file_hashes = FileHashes()
         file_hashes.ParseFromString(device.client_id.vmp_data)
-        log.info(str(file_hashes))
+        console.log(str(file_hashes))
     else:
-        log.info("None")
+        console.log("None")
 
 
 @wvd.command()
@@ -82,9 +81,9 @@ def dump(wvd_paths: list[Path], out_dir: Path) -> None:
         device = Device.load(wvd_path)
 
         log = logging.getLogger("wvd")
-        log.info(f"Dumping: {wvd_path}")
-        log.info(f"L{device.security_level} {device.system_id} {device.type.name}")
-        log.info(f"Saving to: {out_path}")
+        console.log(f"Dumping: {wvd_path}")
+        console.log(f"L{device.security_level} {device.system_id} {device.type.name}")
+        console.log(f"Saving to: {out_path}")
 
         device_meta = {
             "wvd": {
@@ -100,7 +99,7 @@ def dump(wvd_paths: list[Path], out_dir: Path) -> None:
 
         device_meta_path = out_path / "metadata.yml"
         device_meta_path.write_text(yaml.dump(device_meta), encoding="utf8")
-        log.info(" + Device Metadata")
+        console.log(" + Device Metadata")
 
         if device.private_key:
             private_key_path = out_path / "private_key.pem"
@@ -111,23 +110,23 @@ def dump(wvd_paths: list[Path], out_dir: Path) -> None:
             private_key_path.with_suffix(".der").write_bytes(
                 device.private_key.export_key(format="DER")
             )
-            log.info(" + Private Key")
+            console.log(" + Private Key")
         else:
             log.warning(" - No Private Key available")
 
         if device.client_id:
             client_id_path = out_path / "client_id.bin"
             client_id_path.write_bytes(device.client_id.SerializeToString())
-            log.info(" + Client ID")
+            console.log(" + Client ID")
         else:
             log.warning(" - No Client ID available")
 
         if device.client_id.vmp_data:
             vmp_path = out_path / "vmp.bin"
             vmp_path.write_bytes(device.client_id.vmp_data)
-            log.info(" + VMP (File Hashes)")
+            console.log(" + VMP (File Hashes)")
         else:
-            log.info(" - No VMP (File Hashes) available")
+            console.log(" - No VMP (File Hashes) available")
 
 
 @wvd.command()
@@ -191,15 +190,15 @@ def new(
 
     log = logging.getLogger("wvd")
 
-    log.info(f"Created binary WVD file, {out_path.name}")
-    log.info(f" + Saved to: {out_path.absolute()}")
-    log.info(f" + System ID: {device.system_id}")
-    log.info(f" + Security Level: {device.security_level}")
-    log.info(f" + Type: {device.type}")
-    log.info(f" + Flags: {device.flags}")
-    log.info(f" + Private Key: {bool(device.private_key)}")
-    log.info(f" + Client ID: {bool(device.client_id)}")
-    log.info(f" + VMP: {bool(device.client_id.vmp_data)}")
+    console.log(f"Created binary WVD file, {out_path.name}")
+    console.log(f" + Saved to: {out_path.absolute()}")
+    console.log(f" + System ID: {device.system_id}")
+    console.log(f" + Security Level: {device.security_level}")
+    console.log(f" + Type: {device.type}")
+    console.log(f" + Flags: {device.flags}")
+    console.log(f" + Private Key: {bool(device.private_key)}")
+    console.log(f" + Client ID: {bool(device.client_id)}")
+    console.log(f" + VMP: {bool(device.client_id.vmp_data)}")
 
     log.debug("Client ID:")
     log.debug(device.client_id)
@@ -208,6 +207,6 @@ def new(
     if device.client_id.vmp_data:
         file_hashes = FileHashes()
         file_hashes.ParseFromString(device.client_id.vmp_data)
-        log.info(str(file_hashes))
+        console.log(str(file_hashes))
     else:
-        log.info("None")
+        console.log("None")

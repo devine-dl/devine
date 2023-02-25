@@ -23,6 +23,7 @@ from pywidevine.pssh import PSSH
 from requests import Session
 from tqdm import tqdm
 
+from devine.core.console import console
 from devine.core.constants import AnyTrack
 from devine.core.downloaders import aria2c
 from devine.core.drm import DRM_T, ClearKey, Widevine
@@ -371,7 +372,7 @@ class HLS:
                 except KeyboardInterrupt:
                     state_event.set()
                     pool.shutdown(wait=False, cancel_futures=True)
-                    log.info("Received Keyboard Interrupt, stopping...")
+                    console.log("Received Keyboard Interrupt, stopping...")
                     return
 
     @staticmethod
