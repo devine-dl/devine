@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 import urllib3
 from urllib3.exceptions import InsecureRequestWarning
+from rich import traceback
 from rich.padding import Padding
 
 from devine.core import __version__
@@ -46,6 +47,12 @@ def main(version: bool, debug: bool, log_path: Path) -> None:
         LOGGING_PATH = new_log_path
 
     urllib3.disable_warnings(InsecureRequestWarning)
+
+    traceback.install(
+        console=console,
+        width=80,
+        suppress=[click]
+    )
 
     console.print(
         Padding(
