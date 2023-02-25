@@ -525,6 +525,19 @@ class dl:
                             break
                     video_track_n += 1
 
+                with console.status(f"Converting subtitles to {Subtitle.Codec.SubRip}..."):
+                    for subtitle in title.tracks.subtitles:
+                        # convert subs to SRT unless it's already SRT, or SSA
+                        if subtitle.codec not in (Subtitle.Codec.SubRip, Subtitle.Codec.SubStationAlphav4):
+                            caption_set = subtitle.parse(subtitle.path.read_bytes(), subtitle.codec)
+                            subtitle.merge_same_cues(caption_set)
+                            srt = pycaption.SRTWriter().write(caption_set)
+                            # NOW sometimes has this, when it isn't, causing mux problems
+                            srt = srt.replace("MULTI-LANGUAGE SRT\n", "")
+                            subtitle.path.write_text(srt, encoding="utf8")
+                            subtitle.codec = Subtitle.Codec.SubRip
+                            subtitle.move(subtitle.path.with_suffix(".srt"))
+
                 final_path = self.mux_tracks(title, not no_folder, not no_source)
 
                 downloaded_table = Table.grid(expand=True)
@@ -764,19 +777,6 @@ class dl:
                     if not track.needs_proxy else ""
                 )
             )
-
-        if (
-            isinstance(track, Subtitle) and
-            track.codec not in (Subtitle.Codec.SubRip, Subtitle.Codec.SubStationAlphav4)
-        ):
-            caption_set = track.parse(track.path.read_bytes(), track.codec)
-            track.merge_same_cues(caption_set)
-            srt = pycaption.SRTWriter().write(caption_set)
-            # NOW sometimes has this, when it isn't, causing mux problems
-            srt = srt.replace("MULTI-LANGUAGE SRT\n", "")
-            track.path.write_text(srt, encoding="utf8")
-            track.codec = Subtitle.Codec.SubRip
-            track.move(track.path.with_suffix(".srt"))
 
         if callable(track.OnDownloaded):
             track.OnDownloaded(track)
