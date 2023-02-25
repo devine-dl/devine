@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2023-02-25
+
+### Added
+
+- Add support for byte-ranged HLS and DASH segments, i.e., HLS EXT-X-BYTERANGE and DASH SegmentBase. Byte-ranged
+  segments will be downloaded using python-requests as aria2(c) does not support byte ranges.
+- Added support for data URI scheme in ClearKey DRM, including support for the base64 extension.
+
+### Changed
+
+- Increase the urllib3 connection pool max size from the default 10 to 16 * 2. This is to accommodate up to 16
+  byte-ranged segment downloads while still giving enough room for a few other connections.
+- The urllib3 connection pool now blocks and waits if it's full. This removes the Connection Pool Limit warnings when
+  downloading more than one byte-ranged segmented track at a time.
+- Moved `--log` from the `dl` command to the entry command to allow logging of more than just the download command.
+  With this change, the logs now include the initial root logs, including the version number.
+- Disable the urllib3 InsecureRequestWarnings as these seem to occur when using HTTP+S proxies when connecting to an
+  HTTPS URL. While not ideal, we can't solve this problem, and the warning logs are quite annoying.
+
+### Removed
+
+- Remove the `byte_range` parameter from the aria2(c) downloader that was added in v1.3.0 as it turns out it doesn't
+  actually work. Theoretically it should, but it seems aria2(c) doesn't honor the Range header correctly and fails.
+
+### Fixed
+
+- Fix the JOC check on HLS playlists to check if audio channels are defined first.
+- Fix decryption of AES-encrypted segments that are not pre-padded to AES-CBC boundary size (16 bytes).
+- Fix the order of segment merging on Linux machines. On Windows, the `pathlib.iterdir()` function is always in order.
+  However, on Linux, or at least some machines, this was not the case.
+- Fix printing of the traceback when a download worker raises an unexpected exception.
+- Fix initial creation of the config file if none was created yet.
+
 ## [1.3.1] - 2023-02-23
 
 ### Fixed
@@ -136,6 +169,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial public release under the name Devine.
 
+[1.4.0]: https://github.com/devine-dl/devine/releases/tag/v1.4.0
 [1.3.1]: https://github.com/devine-dl/devine/releases/tag/v1.3.1
 [1.3.0]: https://github.com/devine-dl/devine/releases/tag/v1.3.0
 [1.2.0]: https://github.com/devine-dl/devine/releases/tag/v1.2.0
