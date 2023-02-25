@@ -56,6 +56,7 @@ class Track:
         self.OnDownloaded: Optional[Callable] = None
         self.OnDecrypted: Optional[Callable] = None
         self.OnRepacked: Optional[Callable] = None
+        self.OnMultiplex: Optional[Callable] = None
 
         # should only be set internally
         self.path: Optional[Path] = None
