@@ -1,6 +1,5 @@
 import re
 from abc import ABC
-from collections import Counter
 from typing import Any, Iterable, Optional, Union
 
 from langcodes import Language
@@ -177,19 +176,7 @@ class Series(SortedKeyList, ABC):
     def __str__(self) -> str:
         if not self:
             return super().__str__()
-
-        lines = [
-            f"Series: {self[0].title} ({self[0].year or '?'})",
-            f"Episodes: ({len(self)})",
-            *[
-                f"├─ S{season:02}: {episodes} episodes"
-                for season, episodes in Counter(x.season for x in self).items()
-            ]
-        ]
-        last_line = lines.pop(-1)
-        lines.append(last_line.replace("├", "└"))
-
-        return "\n".join(lines)
+        return self[0].title + (f" ({self[0].year})" if self[0].year else "")
 
 
 __ALL__ = (Episode, Series)

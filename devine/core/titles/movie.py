@@ -133,23 +133,8 @@ class Movies(SortedKeyList, ABC):
     def __str__(self) -> str:
         if not self:
             return super().__str__()
-
-        if len(self) > 1:
-            lines = [
-                f"Movies: ({len(self)})",
-                *[
-                    f"├─ {movie.name} ({movie.year or '?'})"
-                    for movie in self
-                ]
-            ]
-            last_line = lines.pop(-1)
-            lines.append(last_line.replace("├", "└"))
-        else:
-            lines = [
-                f"Movie: {self[0].name} ({self[0].year or '?'})"
-            ]
-
-        return "\n".join(lines)
+        # TODO: Assumes there's only one movie
+        return self[0].name + (f" ({self[0].year})" if self[0].year else "")
 
 
 __ALL__ = (Movie, Movies)

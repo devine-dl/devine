@@ -129,20 +129,7 @@ class Album(SortedKeyList, ABC):
     def __str__(self) -> str:
         if not self:
             return super().__str__()
-
-        lines = [
-            f"Album: {self[0].album} ({self[0].year or '?'})",
-            f"Artist: {self[0].artist}",
-            f"Tracks: ({len(self)})",
-            *[
-                f"├─ {song.track:02}. {song.name}"
-                for song in self
-            ]
-        ]
-        last_line = lines.pop(-1)
-        lines.append(last_line.replace("├", "└"))
-
-        return "\n".join(lines)
+        return f"{self[0].artist} - {self[0].album} ({self[0].year or '?'})"
 
 
 __ALL__ = (Song, Album)
