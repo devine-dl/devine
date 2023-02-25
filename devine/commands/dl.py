@@ -332,7 +332,8 @@ class dl:
                 title.tracks.sort_chapters()
 
             console.log("> All Tracks:")
-            title.tracks.print()
+            available_tracks = title.tracks.tree()
+            console.log(available_tracks)
 
             console.log("> Selected Tracks:")  # log early so errors logs make sense
 
@@ -413,8 +414,8 @@ class dl:
                         if not subs_only:
                             title.tracks.subtitles.clear()
 
-            title.tracks.print()
-
+            selected_tracks = title.tracks.tree()
+            console.log(selected_tracks)
             if list_:
                 continue  # only wanted to see what tracks were available and chosen
 

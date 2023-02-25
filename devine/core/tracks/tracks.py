@@ -151,12 +151,6 @@ class Tracks:
         if duplicates:
             log.warning(f" - Found and skipped {duplicates} duplicate tracks...")
 
-    def print(self, level: int = logging.INFO) -> None:
-        """Print the __str__ to log at a specified level."""
-        log = logging.getLogger("Tracks")
-        for line in str(self).splitlines(keepends=False):
-            log.log(level, line)
-
     def sort_videos(self, by_language: Optional[Sequence[Union[str, Language]]] = None) -> None:
         """Sort video tracks by bitrate, and optionally language."""
         if not self.videos:
