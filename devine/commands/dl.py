@@ -29,6 +29,7 @@ from pywidevine.device import Device
 from pywidevine.remotecdm import RemoteCdm
 from rich.live import Live
 from rich.padding import Padding
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeRemainingColumn
 from rich.rule import Rule
 
 from devine.core.config import config
@@ -733,16 +734,32 @@ class dl:
 
     def mux_tracks(self, title: Title_T, season_folder: bool = True, add_source: bool = True) -> None:
         """Mux Tracks, Delete Pre-Mux files, and move to the final location."""
-        console.log("Muxing Tracks into a Matroska Container")
-
         if isinstance(title, (Movie, Episode)):
-            muxed_path, return_code = title.tracks.mux(str(title))
-            if return_code == 1:
-                self.log.warning("mkvmerge had at least one warning, will continue anyway...")
-            elif return_code >= 2:
-                self.log.error(" - Failed to Mux video to Matroska file")
-                sys.exit(1)
-            console.log(f" + Muxed to {muxed_path}")
+            multiplexing_progress = Progress(
+                TextColumn("[progress.description]{task.description}"),
+                SpinnerColumn(),
+                BarColumn(),
+                "•",
+                TimeRemainingColumn(compact=True, elapsed_when_finished=True),
+                console=console
+            )
+            with Live(
+                Padding(multiplexing_progress, (0, 5, 1, 5)),
+                console=console
+            ):
+                task = multiplexing_progress.add_task("Multiplexing...", total=100)
+                muxed_path, return_code = title.tracks.mux(
+                    str(title),
+                    progress=partial(
+                        multiplexing_progress.update,
+                        task_id=task
+                    )
+                )
+                if return_code == 1:
+                    self.log.warning("mkvmerge had at least one warning, will continue anyway...")
+                elif return_code >= 2:
+                    self.log.error(" - Failed to Mux video to Matroska file")
+                    sys.exit(1)
         else:
             # dont mux
             muxed_path = title.tracks.audio[0].path
@@ -758,7 +775,6 @@ class dl:
         final_path = final_dir / f"{final_filename}{muxed_path.suffix}"
 
         shutil.move(muxed_path, final_path)
-        console.log(f" + Moved to {final_path}")
 
     @staticmethod
     def get_profile(service: str) -> Optional[str]:

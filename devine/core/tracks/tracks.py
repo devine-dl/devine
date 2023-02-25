@@ -292,10 +292,16 @@ class Tracks:
                 tracks_.append(next(x for x in tracks if str(x.language) == match))
         return tracks_
 
-    def mux(self, title: str, delete: bool = True) -> tuple[Path, int]:
+    def mux(self, title: str, delete: bool = True, progress: Optional[partial] = None) -> tuple[Path, int]:
         """
-        Takes the Video, Audio and Subtitle Tracks, and muxes them into an MKV file.
-        It will attempt to detect Forced/Default tracks, and will try to parse the language codes of the Tracks
+        Multiplex all the Tracks into a Matroska Container file.
+
+        Parameters:
+            title: Set the Matroska Container file title. Usually displayed in players
+                instead of the filename if set.
+            delete: Delete all track files after multiplexing.
+            progress: Update a rich progress bar via `completed=...`. This must be the
+                progress object's update() func, pre-set with task id via functools.partial.
         """
         cl = [
             "mkvmerge",
@@ -373,11 +379,15 @@ class Tracks:
 
         # let potential failures go to caller, caller should handle
         try:
-            p = subprocess.run([
+            p = subprocess.Popen([
                 *cl,
-                "--output", str(output_path)
-            ])
-            return output_path, p.returncode
+                "--output", str(output_path),
+                "--gui-mode"
+            ], text=True, stdout=subprocess.PIPE)
+            for line in iter(p.stdout.readline, ""):
+                if "progress" in line:
+                    progress(total=100, completed=int(line.strip()[14:-1]))
+            return output_path, p.wait()
         finally:
             if chapters_path:
                 # regardless of delete param, we delete as it's a file we made during muxing
