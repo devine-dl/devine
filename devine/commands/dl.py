@@ -471,7 +471,6 @@ class dl:
                             console.log("Received Keyboard Interrupt, stopping...")
                             return
 
-            if not skip_dl:
                 self.mux_tracks(title, not no_folder, not no_source)
 
             # update cookies
