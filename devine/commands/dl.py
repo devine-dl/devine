@@ -31,6 +31,8 @@ from rich.live import Live
 from rich.padding import Padding
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeRemainingColumn
 from rich.rule import Rule
+from rich.table import Table
+from rich.text import Text
 
 from devine.core.config import config
 from devine.core.console import console
@@ -472,7 +474,12 @@ class dl:
                             console.log("Received Keyboard Interrupt, stopping...")
                             return
 
-                self.mux_tracks(title, not no_folder, not no_source)
+                final_path = self.mux_tracks(title, not no_folder, not no_source)
+
+                downloaded_table = Table.grid(expand=True)
+                downloaded_table.add_row("Download Finished! :tada:")
+                downloaded_table.add_row(Text(str(final_path), overflow="fold"))
+                console.log(Padding(downloaded_table, (0, 0, 1, 0)))
 
             # update cookies
             cookie_file = config.directories.cookies / service.__class__.__name__ / f"{self.profile}.txt"
@@ -732,7 +739,7 @@ class dl:
                 sys.exit(1)
             console.log(" + No EIA-CC Captions...")
 
-    def mux_tracks(self, title: Title_T, season_folder: bool = True, add_source: bool = True) -> None:
+    def mux_tracks(self, title: Title_T, season_folder: bool = True, add_source: bool = True) -> Path:
         """Mux Tracks, Delete Pre-Mux files, and move to the final location."""
         if isinstance(title, (Movie, Episode)):
             multiplexing_progress = Progress(
@@ -775,6 +782,8 @@ class dl:
         final_path = final_dir / f"{final_filename}{muxed_path.suffix}"
 
         shutil.move(muxed_path, final_path)
+
+        return final_path
 
     @staticmethod
     def get_profile(service: str) -> Optional[str]:
