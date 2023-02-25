@@ -212,7 +212,7 @@ class Video(Track):
                 executable,
                 "-trim", "-noru", "-ru1",
                 self.path, "-o", out_path
-            ], check=True)
+            ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except subprocess.CalledProcessError as e:
             out_path.unlink(missing_ok=True)
             if not e.returncode == 10:  # No captions found

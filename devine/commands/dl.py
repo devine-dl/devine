@@ -443,7 +443,6 @@ class dl:
                                     self.download_track,
                                     service=service,
                                     track=track,
-                                    title=title,
                                     prepare_drm=partial(
                                         partial(
                                             self.prepare_drm,
@@ -484,6 +483,47 @@ class dl:
                             pool.shutdown(wait=False, cancel_futures=True)
                             console.log("Received Keyboard Interrupt, stopping...")
                             return
+
+                video_track_n = 0
+
+                while (
+                    not title.tracks.subtitles and
+                    len(title.tracks.videos) > video_track_n and
+                    any(
+                        x.get("codec_name", "").startswith("eia_")
+                        for x in ffprobe(title.tracks.videos[video_track_n].path).get("streams", [])
+                    )
+                ):
+                    with console.status(f"Checking Video track {video_track_n + 1} for Closed Captions..."):
+                        try:
+                            # TODO: Figure out the real language, it might be different
+                            #       EIA-CC tracks sadly don't carry language information :(
+                            # TODO: Figure out if the CC language is original lang or not.
+                            #       Will need to figure out above first to do so.
+                            video_track = title.tracks.videos[video_track_n]
+                            track_id = f"ccextractor-{video_track.id}"
+                            cc_lang = title.language or video_track.language
+                            cc = video_track.ccextractor(
+                                track_id=track_id,
+                                out_path=config.directories.temp / config.filenames.subtitle.format(
+                                    id=track_id,
+                                    language=cc_lang
+                                ),
+                                language=cc_lang,
+                                original=False
+                            )
+                            if cc:
+                                # will not appear in track listings as it's added after all times it lists
+                                title.tracks.add(cc)
+                                console.log(f"Extracted a Closed Caption from Video track {video_track_n + 1}")
+                            else:
+                                console.log(f"No Closed Captions were found in Video track {video_track_n + 1}")
+                        except EnvironmentError:
+                            self.log.error(
+                                "Cannot extract Closed Captions as the ccextractor executable was not found..."
+                            )
+                            sys.exit(1)
+                    video_track_n += 1
 
                 final_path = self.mux_tracks(title, not no_folder, not no_source)
 
@@ -624,7 +664,6 @@ class dl:
         self,
         service: Service,
         track: AnyTrack,
-        title: Title_T,
         prepare_drm: Callable,
         progress: partial
     ):
@@ -748,39 +787,6 @@ class dl:
             console.log(" + Repackaged")
             if callable(track.OnRepacked):
                 track.OnRepacked(track)
-
-        if (
-            isinstance(track, Video) and
-            not title.tracks.subtitles and
-            any(
-                x.get("codec_name", "").startswith("eia_")
-                for x in ffprobe(track.path).get("streams", [])
-            )
-        ):
-            console.log("Checking for EIA-CC Captions")
-            try:
-                # TODO: Figure out the real language, it might be different
-                #       EIA-CC tracks sadly don't carry language information :(
-                # TODO: Figure out if the CC language is original lang or not.
-                #       Will need to figure out above first to do so.
-                track_id = f"ccextractor-{track.id}"
-                cc_lang = track.language
-                cc = track.ccextractor(
-                    track_id=track_id,
-                    out_path=config.directories.temp / config.filenames.subtitle.format(
-                        id=track_id,
-                        language=cc_lang
-                    ),
-                    language=cc_lang,
-                    original=False
-                )
-                if cc:
-                    title.tracks.add(cc)
-                    console.log(" + Found & Extracted an EIA-CC Caption")
-            except EnvironmentError:
-                self.log.error(" - Track needs to have CC extracted, but ccextractor wasn't found")
-                sys.exit(1)
-            console.log(" + No EIA-CC Captions...")
 
     def mux_tracks(self, title: Title_T, season_folder: bool = True, add_source: bool = True) -> Path:
         """Mux Tracks, Delete Pre-Mux files, and move to the final location."""
