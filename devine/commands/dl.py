@@ -332,7 +332,6 @@ class dl:
                 title.tracks.sort_chapters()
 
             if list_:
-                console.log("> All Tracks:")
                 available_tracks = title.tracks.tree()
                 console.log(available_tracks)
                 continue
@@ -415,7 +414,6 @@ class dl:
                             title.tracks.subtitles.clear()
 
             selected_tracks = title.tracks.tree()
-            console.log("> Selected Tracks:")
             console.log(selected_tracks)
 
             if skip_dl:
