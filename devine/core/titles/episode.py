@@ -1,9 +1,11 @@
 import re
 from abc import ABC
+from collections import Counter
 from typing import Any, Iterable, Optional, Union
 
 from langcodes import Language
 from pymediainfo import MediaInfo
+from rich.tree import Tree
 from sortedcontainers import SortedKeyList
 
 from devine.core.config import config
@@ -177,6 +179,30 @@ class Series(SortedKeyList, ABC):
         if not self:
             return super().__str__()
         return self[0].title + (f" ({self[0].year})" if self[0].year else "")
+
+    def tree(self, verbose: bool = False) -> Tree:
+        seasons = Counter(x.season for x in self)
+        num_seasons = len(seasons)
+        num_episodes = sum(seasons.values())
+        tree = Tree(
+            f"{num_seasons} Season{['s', ''][num_seasons == 1]}, {num_episodes} Episode{['s', ''][num_episodes == 1]}",
+            guide_style="bright_black"
+        )
+        if verbose:
+            for season, episodes in seasons.items():
+                season_tree = tree.add(
+                    f"[bold]Season {str(season).zfill(len(str(num_seasons)))}[/]: [bright_black]{episodes} episodes",
+                    guide_style="bright_black"
+                )
+                for episode in self:
+                    if episode.season == season:
+                        season_tree.add(
+                            f"[bold]{str(episode.number).zfill(len(str(episodes)))}" + (
+                                f".[/] [bright_black]{episode.name}"
+                            ) if episode.name else ""
+                        )
+
+        return tree
 
 
 __ALL__ = (Episode, Series)

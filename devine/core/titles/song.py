@@ -3,6 +3,7 @@ from typing import Any, Iterable, Optional, Union
 
 from langcodes import Language
 from pymediainfo import MediaInfo
+from rich.tree import Tree
 from sortedcontainers import SortedKeyList
 
 from devine.core.config import config
@@ -130,6 +131,20 @@ class Album(SortedKeyList, ABC):
         if not self:
             return super().__str__()
         return f"{self[0].artist} - {self[0].album} ({self[0].year or '?'})"
+
+    def tree(self, *_) -> Tree:
+        num_songs = len(self)
+        tree = Tree(
+            f"{num_songs} Song{['s', ''][num_songs == 1]}",
+            guide_style="bright_black"
+        )
+        for song in self:
+            tree.add(
+                f"[bold]Track {song.track:02}.[/] [bright_black]({song.name})",
+                guide_style="bright_black"
+            )
+
+        return tree
 
 
 __ALL__ = (Song, Album)
