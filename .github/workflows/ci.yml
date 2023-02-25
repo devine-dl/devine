@@ -2,9 +2,9 @@ name: ci
 
 on:
   push:
-    branches: [ master ]
+    branches: [ rich-rewrite ]
   pull_request:
-    branches: [ master ]
+    branches: [ rich-rewrite ]
 
 jobs:
   build:
