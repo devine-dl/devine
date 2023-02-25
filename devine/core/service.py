@@ -11,6 +11,7 @@ from requests.adapters import HTTPAdapter, Retry
 
 from devine.core.cacher import Cacher
 from devine.core.config import config
+from devine.core.console import console
 from devine.core.constants import AnyTrack
 from devine.core.credential import Credential
 from devine.core.titles import Title_T, Titles_T
@@ -29,6 +30,7 @@ class Service(metaclass=ABCMeta):
         self.config = ctx.obj.config
 
         self.log = logging.getLogger(self.__class__.__name__)
+
         self.session = self.get_session()
         self.cache = Cacher(self.__class__.__name__)
 
@@ -37,18 +39,24 @@ class Service(metaclass=ABCMeta):
         else:
             self.proxy = None
 
-        if not self.proxy and self.GEOFENCE:
-            # no explicit proxy, let's get one to GEOFENCE if needed
-            current_region = get_ip_info(self.session)["country"].lower()
-            if not any(x.lower() == current_region for x in self.GEOFENCE):
-                requested_proxy = self.GEOFENCE[0]  # first is likely main region
-                self.log.info(f"Current IP region is blocked by the service, getting Proxy to {requested_proxy}")
-                # current region is not in any of the service's supported regions
-                for proxy_provider in ctx.obj.proxy_providers:
-                    self.proxy = proxy_provider.get_proxy(requested_proxy)
-                    if self.proxy:
-                        self.log.info(f" + {self.proxy} (from {proxy_provider.__class__.__name__})")
-                        break
+        if not self.proxy:
+            # don't override the explicit proxy set by the user, even if they may be geoblocked
+            with console.status("Checking if current region is Geoblocked...", spinner="dots"):
+                if self.GEOFENCE:
+                    # no explicit proxy, let's get one to GEOFENCE if needed
+                    current_region = get_ip_info(self.session)["country"].lower()
+                    if any(x.lower() == current_region for x in self.GEOFENCE):
+                        console.log("Service is not Geoblocked in your region")
+                    else:
+                        requested_proxy = self.GEOFENCE[0]  # first is likely main region
+                        console.log(f"Service is Geoblocked in your region, getting a Proxy to {requested_proxy}")
+                        for proxy_provider in ctx.obj.proxy_providers:
+                            self.proxy = proxy_provider.get_proxy(requested_proxy)
+                            if self.proxy:
+                                console.log(f"Got Proxy from {proxy_provider.__class__.__name__}")
+                                break
+                else:
+                    console.log("Service has no Geofence")
 
         if self.proxy:
             self.session.proxies.update({"all": self.proxy})
