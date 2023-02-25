@@ -46,6 +46,7 @@ pymysql = "^1.0.2"
 pywidevine = { extras = ["serve"], version = "^1.6.0" }
 PyYAML = "^6.0"
 requests = { extras = ["socks"], version = "^2.28.2" }
+rich = "^13.3.1"
 "ruamel.yaml" = "^0.17.21"
 sortedcontainers = "^2.4.0"
 subtitle-filter = "^1.4.4"
