@@ -7,6 +7,7 @@ from typing import Callable, Iterator, Optional, Sequence, Union
 
 from Cryptodome.Random import get_random_bytes
 from langcodes import Language, closest_supported_match
+from rich.tree import Tree
 
 from devine.core.config import config
 from devine.core.constants import LANGUAGE_MAX_DISTANCE, LANGUAGE_MUX_MAP, AnyTrack, TrackT
@@ -85,6 +86,22 @@ class Tracks:
         rep = "\n".join(list(rep.values()))
 
         return rep
+
+    def tree(self) -> Tree:
+        all_tracks = [*list(self), *self.chapters]
+
+        tree = Tree("", hide_root=True)
+        for track_type in self.TRACK_ORDER_MAP:
+            tracks = list(x for x in all_tracks if isinstance(x, track_type))
+            if not tracks:
+                continue
+            num_tracks = len(tracks)
+            track_type_plural = track_type.__name__ + ("s" if track_type != Audio and num_tracks != 1 else "")
+            tracks_tree = tree.add(f"[repr.number]{num_tracks}[/] {track_type_plural}")
+            for track in tracks:
+                tracks_tree.add(str(track)[6:], style="text2")
+
+        return tree
 
     def exists(self, by_id: Optional[str] = None, by_url: Optional[Union[str, list[str]]] = None) -> bool:
         """Check if a track already exists by various methods."""
