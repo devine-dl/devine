@@ -538,6 +538,18 @@ class dl:
                             subtitle.codec = Subtitle.Codec.SubRip
                             subtitle.move(subtitle.path.with_suffix(".srt"))
 
+                with console.status("Repackaging tracks with FFMPEG..."):
+                    has_repacked = False
+                    for track in title.tracks:
+                        if track.needs_repack:
+                            track.repackage()
+                            has_repacked = True
+                            if callable(track.OnRepacked):
+                                track.OnRepacked(track)
+                    if has_repacked:
+                        # we don't want to fill up the log with "Repacked x track"
+                        console.log("Repacked one or more tracks with FFMPEG")
+
                 final_path = self.mux_tracks(title, not no_folder, not no_source)
 
                 downloaded_table = Table.grid(expand=True)
@@ -780,13 +792,6 @@ class dl:
 
         if callable(track.OnDownloaded):
             track.OnDownloaded(track)
-
-        if track.needs_repack:
-            console.log("Repackaging stream with FFMPEG (fix malformed streams)")
-            track.repackage()
-            console.log(" + Repackaged")
-            if callable(track.OnRepacked):
-                track.OnRepacked(track)
 
     def mux_tracks(self, title: Title_T, season_folder: bool = True, add_source: bool = True) -> Path:
         """Mux Tracks, Delete Pre-Mux files, and move to the final location."""
