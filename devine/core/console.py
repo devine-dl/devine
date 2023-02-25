@@ -1,6 +1,8 @@
 from rich.console import Console
 from rich.theme import Theme
 
+from devine.core.config import config
+
 
 catppuccin_mocha = {
     # Colors based on "CatppuccinMocha" from Gogh themes
@@ -30,10 +32,14 @@ primary_scheme["bright_yellow"] = primary_scheme["yellow"]
 primary_scheme["bright_blue"] = primary_scheme["blue"]
 primary_scheme["bright_magenta"] = primary_scheme["pink"]
 primary_scheme["bright_cyan"] = primary_scheme["cyan"]
+if config.set_terminal_bg:
+    primary_scheme["none"] += f" on {primary_scheme['bg']}"
 
 custom_colors = {
     "ascii.art": primary_scheme["pink"]
 }
+if config.set_terminal_bg:
+    custom_colors["ascii.art"] += f" on {primary_scheme['bg']}"
 
 
 console = Console(
