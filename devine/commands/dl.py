@@ -522,7 +522,7 @@ class dl:
                             self.log.error(
                                 "Cannot extract Closed Captions as the ccextractor executable was not found..."
                             )
-                            sys.exit(1)
+                            break
                     video_track_n += 1
 
                 final_path = self.mux_tracks(title, not no_folder, not no_source)
