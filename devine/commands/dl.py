@@ -331,11 +331,11 @@ class dl:
                 title.tracks.sort_subtitles(by_language=s_lang)
                 title.tracks.sort_chapters()
 
-            console.log("> All Tracks:")
-            available_tracks = title.tracks.tree()
-            console.log(available_tracks)
-
-            console.log("> Selected Tracks:")  # log early so errors logs make sense
+            if list_:
+                console.log("> All Tracks:")
+                available_tracks = title.tracks.tree()
+                console.log(available_tracks)
+                continue
 
             with console.status("Selecting tracks...", spinner="dots"):
                 if isinstance(title, (Movie, Episode)):
@@ -415,9 +415,8 @@ class dl:
                             title.tracks.subtitles.clear()
 
             selected_tracks = title.tracks.tree()
+            console.log("> Selected Tracks:")
             console.log(selected_tracks)
-            if list_:
-                continue  # only wanted to see what tracks were available and chosen
 
             if skip_dl:
                 console.log("Skipping Download...")
