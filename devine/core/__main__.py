@@ -1,3 +1,4 @@
+import atexit
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -11,7 +12,10 @@ from devine.core import __version__
 from devine.core.commands import Commands
 from devine.core.config import config
 from devine.core.constants import LOG_FORMAT, LOG_FORMATTER, context_settings
+from devine.core.console import console
 from devine.core.utilities import rotate_log_file
+
+LOGGING_PATH = None
 
 
 @click.command(cls=Commands, invoke_without_command=True, context_settings=context_settings)
@@ -26,10 +30,10 @@ def main(version: bool, debug: bool, log_path: Path) -> None:
     coloredlogs.install(level=log.level, fmt=LOG_FORMAT, style="{")
 
     if log_path:
+        global LOGGING_PATH
+        console.record = True
         new_log_path = rotate_log_file(log_path)
-        fh = logging.FileHandler(new_log_path, encoding="utf8")
-        fh.setFormatter(LOG_FORMATTER)
-        log.addHandler(fh)
+        LOGGING_PATH = new_log_path
 
     urllib3.disable_warnings(InsecureRequestWarning)
 
@@ -38,6 +42,13 @@ def main(version: bool, debug: bool, log_path: Path) -> None:
     log.info("https://github.com/devine-dl/devine")
     if version:
         return
+
+
+@atexit.register
+def save_log():
+    if console.record and LOGGING_PATH:
+        # TODO: Currently semi-bust. Everything that refreshes gets duplicated.
+        console.save_text(LOGGING_PATH)
 
 
 if __name__ == "__main__":
