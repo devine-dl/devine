@@ -4,6 +4,8 @@ from pathlib import Path
 
 import click
 import coloredlogs
+import urllib3
+from urllib3.exceptions import InsecureRequestWarning
 
 from devine.core import __version__
 from devine.core.commands import Commands
@@ -28,6 +30,8 @@ def main(version: bool, debug: bool, log_path: Path) -> None:
         fh = logging.FileHandler(new_log_path, encoding="utf8")
         fh.setFormatter(LOG_FORMATTER)
         log.addHandler(fh)
+
+    urllib3.disable_warnings(InsecureRequestWarning)
 
     log.info(f"Devine version {__version__} Copyright (c) 2019-{datetime.now().year} rlaphoenix")
     log.info("Convenient Widevine-DRM Downloader and Decrypter.")
