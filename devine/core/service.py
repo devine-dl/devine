@@ -8,6 +8,8 @@ from urllib.parse import urlparse
 import click
 import requests
 from requests.adapters import HTTPAdapter, Retry
+from rich.padding import Padding
+from rich.rule import Rule
 
 from devine.core.cacher import Cacher
 from devine.core.config import config
@@ -27,6 +29,11 @@ class Service(metaclass=ABCMeta):
     GEOFENCE: tuple[str, ...] = ()  # list of ip regions required to use the service. empty list == no specific region.
 
     def __init__(self, ctx: click.Context):
+        console.print(Padding(
+            Rule(f"[rule.text]Service: {self.__class__.__name__}"),
+            (1, 2)
+        ))
+
         self.config = ctx.obj.config
 
         self.log = logging.getLogger(self.__class__.__name__)
