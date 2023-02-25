@@ -345,24 +345,6 @@ files = [
 ]
 
 [[package]]
-name = "coloredlogs"
-version = "15.0.1"
-description = "Colored terminal output for Python's logging module"
-category = "main"
-optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
-files = [
-    {file = "coloredlogs-15.0.1-py2.py3-none-any.whl", hash = "sha256:612ee75c546f53e92e70049c9dbfcc18c935a2b9a53b66085ce9ef6a6e5c0934"},
-    {file = "coloredlogs-15.0.1.tar.gz", hash = "sha256:7c991aa71a4577af2f82600d8f8f3a89f936baeaf9b50a9c197da014e5bf16b0"},
-]
-
-[package.dependencies]
-humanfriendly = ">=9.1"
-
-[package.extras]
-cron = ["capturer (>=2.4)"]
-
-[[package]]
 name = "construct"
 version = "2.8.8"
 description = "A powerful declarative parser/builder for binary data"
@@ -512,21 +494,6 @@ files = [
     {file = "frozenlist-1.3.3-cp39-cp39-win_amd64.whl", hash = "sha256:cfe33efc9cb900a4c46f91a5ceba26d6df370ffddd9ca386eb1d4f0ad97b9ea9"},
     {file = "frozenlist-1.3.3.tar.gz", hash = "sha256:58bcc55721e8a90b88332d6cd441261ebb22342e238296bb330968952fbb3a6a"},
 ]
-
-[[package]]
-name = "humanfriendly"
-version = "10.0"
-description = "Human friendly output for text interfaces using Python"
-category = "main"
-optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
-files = [
-    {file = "humanfriendly-10.0-py2.py3-none-any.whl", hash = "sha256:1697e1a8a8f550fd43c2865cd84542fc175a61dcb779b6fee18cf6b6ccba1477"},
-    {file = "humanfriendly-10.0.tar.gz", hash = "sha256:6b0b831ce8f15f7300721aa49829fc4e83921a9a301cc7f606be6686a2288ddc"},
-]
-
-[package.dependencies]
-pyreadline3 = {version = "*", markers = "sys_platform == \"win32\" and python_version >= \"3.8\""}
 
 [[package]]
 name = "identify"
@@ -1299,18 +1266,6 @@ ed25519 = ["PyNaCl (>=1.4.0)"]
 rsa = ["cryptography"]
 
 [[package]]
-name = "pyreadline3"
-version = "3.4.1"
-description = "A python implementation of GNU readline."
-category = "main"
-optional = false
-python-versions = "*"
-files = [
-    {file = "pyreadline3-3.4.1-py3-none-any.whl", hash = "sha256:b0efb6516fd4fb07b45949053826a62fa4cb353db5be2bbb4a7aa1fdd1e345fb"},
-    {file = "pyreadline3-3.4.1.tar.gz", hash = "sha256:6f3d1f7b8a31ba32b73917cefc1f28cc660562f39aea8646d30bd6eff21f7bae"},
-]
-
-[[package]]
 name = "pysocks"
 version = "1.7.1"
 description = "A Python SOCKS client module. See https://github.com/Anorov/PySocks for more information."
@@ -1794,4 +1749,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9.0,<3.12"
-content-hash = "f05f1fea944de6ea58af155b4b4fbeb271c2152e2118a59bf14e5b20059c29ad"
+content-hash = "1d8f1bde762ed7674faeb003d2c812ccb370231fab4cecc3122c66a0d013d72c"

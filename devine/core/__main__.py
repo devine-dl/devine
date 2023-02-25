@@ -4,15 +4,14 @@ from datetime import datetime
 from pathlib import Path
 
 import click
-import coloredlogs
 import urllib3
 from urllib3.exceptions import InsecureRequestWarning
 
 from devine.core import __version__
 from devine.core.commands import Commands
 from devine.core.config import config
-from devine.core.constants import LOG_FORMAT, LOG_FORMATTER, context_settings
 from devine.core.console import console
+from devine.core.constants import context_settings
 from devine.core.utilities import rotate_log_file
 
 LOGGING_PATH = None
@@ -27,7 +26,6 @@ def main(version: bool, debug: bool, log_path: Path) -> None:
     """Devine—Open-Source Movie, TV, and Music Downloading Solution."""
     logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
     log = logging.getLogger()
-    coloredlogs.install(level=log.level, fmt=LOG_FORMAT, style="{")
 
     if log_path:
         global LOGGING_PATH

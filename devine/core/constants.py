@@ -1,9 +1,5 @@
-import logging
 from typing import TypeVar, Union
 
-LOG_FORMAT = "{asctime} [{levelname[0]}] {name} : {message}"  # must be '{}' style
-LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
-LOG_FORMATTER = logging.Formatter(LOG_FORMAT, LOG_DATE_FORMAT, "{")
 DRM_SORT_MAP = ["ClearKey", "Widevine"]
 LANGUAGE_MUX_MAP = {
     # List of language tags that cannot be used by mkvmerge and need replacements.
