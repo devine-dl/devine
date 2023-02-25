@@ -266,6 +266,8 @@ class dl:
         *_: Any,
         **__: Any
     ) -> None:
+        start_time = time.time()
+
         if cdm_only is None:
             vaults_only = None
         else:
@@ -490,7 +492,14 @@ class dl:
                     cookie_jar.set_cookie(cookie)
                 cookie_jar.save(ignore_discard=True)
 
-        console.log("Processed all titles!")
+        minutes, seconds = divmod(int(time.time() - start_time), 60)
+        hours, minutes = divmod(minutes, 60)
+        time_string = (f"{hours:d}h" if hours else "") + f"{minutes:d}m{seconds:d}s"
+
+        console.log(Padding(
+            f"Processed all titles in [progress.elapsed]{time_string}",
+            (0, 0, 1, 0)
+        ))
 
     def prepare_drm(
         self,
