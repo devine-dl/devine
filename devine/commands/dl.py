@@ -16,7 +16,7 @@ from copy import deepcopy
 from functools import partial
 from http.cookiejar import MozillaCookieJar
 from pathlib import Path
-from threading import Event
+from threading import Event, Lock
 from typing import Any, Callable, Optional
 
 import click
@@ -34,6 +34,7 @@ from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeRe
 from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
+from rich.tree import Tree
 
 from devine.core.config import config
 from devine.core.console import console
@@ -130,6 +131,7 @@ class dl:
         return dl(ctx, **kwargs)
 
     DL_POOL_STOP = Event()
+    DRM_TABLE_LOCK = Lock()
 
     def __init__(
         self,
@@ -421,13 +423,16 @@ class dl:
 
             selected_tracks, tracks_progress_callables = title.tracks.tree(add_progress=True)
 
+            download_table = Table.grid()
+            download_table.add_row(selected_tracks)
+
             if skip_dl:
                 console.log("Skipping Download...")
             else:
                 with Live(
                     Padding(
-                        selected_tracks,
-                        (0, 5, 1, 5)
+                        download_table,
+                        (1, 5)
                     ),
                     console=console,
                     refresh_per_second=5
@@ -441,7 +446,10 @@ class dl:
                                     track=track,
                                     title=title,
                                     prepare_drm=partial(
-                                        self.prepare_drm,
+                                        partial(
+                                            self.prepare_drm,
+                                            table=download_table
+                                        ),
                                         track=track,
                                         title=title,
                                         certificate=partial(
@@ -509,6 +517,7 @@ class dl:
         title: Title_T,
         certificate: Callable,
         licence: Callable,
+        table: Table = None,
         cdm_only: bool = False,
         vaults_only: bool = False,
         export: Optional[Path] = None
@@ -521,71 +530,95 @@ class dl:
             return
 
         if isinstance(drm, Widevine):
-            console.log(f"Licensing Content Keys using Widevine for {drm.pssh.dumps()}")
+            with self.DRM_TABLE_LOCK:
+                cek_tree = Tree(Text.assemble(
+                    ("Widevine", "cyan"),
+                    (f"({drm.pssh.dumps()})", "text"),
+                    overflow="fold"
+                ))
+                pre_existing_tree = next((
+                    x
+                    for x in table.columns[0].cells
+                    if isinstance(x, Tree) and x.label == cek_tree.label
+                ), None)
+                if pre_existing_tree:
+                    cek_tree = pre_existing_tree
 
-            for kid in drm.kids:
-                if kid in drm.content_keys:
-                    continue
+                for kid in drm.kids:
+                    if kid in drm.content_keys:
+                        continue
 
-                if not cdm_only:
-                    content_key, vault_used = self.vaults.get_key(kid)
-                    if content_key:
-                        drm.content_keys[kid] = content_key
-                        console.log(f" + {kid.hex}:{content_key} ({vault_used})")
-                        add_count = self.vaults.add_key(kid, content_key, excluding=vault_used)
-                        console.log(f" + Cached to {add_count}/{len(self.vaults) - 1} Vaults")
-                    elif vaults_only:
-                        self.log.error(f" - No Content Key found in any Vault for {kid.hex}")
-                        sys.exit(1)
+                    if not cdm_only:
+                        content_key, vault_used = self.vaults.get_key(kid)
+                        if content_key:
+                            drm.content_keys[kid] = content_key
+                            label = f"[text2]{kid.hex}:{content_key} from {vault_used}"
+                            if not any(x.label == label for x in cek_tree.children):
+                                cek_tree.add(label)
+                            self.vaults.add_key(kid, content_key, excluding=vault_used)
+                        elif vaults_only:
+                            cek_tree.add(f"[logging.level.error]No Vault has a Key for {kid.hex}, cannot decrypt...")
+                            if not pre_existing_tree:
+                                table.add_row(cek_tree)
+                            sys.exit(1)
 
-                if kid not in drm.content_keys and not vaults_only:
-                    from_vaults = drm.content_keys.copy()
+                    if kid not in drm.content_keys and not vaults_only:
+                        from_vaults = drm.content_keys.copy()
 
-                    try:
-                        drm.get_content_keys(
-                            cdm=self.cdm,
-                            licence=licence,
-                            certificate=certificate
-                        )
-                    except ValueError as e:
-                        self.log.error(str(e))
-                        sys.exit(1)
+                        try:
+                            drm.get_content_keys(
+                                cdm=self.cdm,
+                                licence=licence,
+                                certificate=certificate
+                            )
+                        except ValueError as e:
+                            cek_tree.add(f"[logging.level.error]{str(e)}")
+                            if not pre_existing_tree:
+                                table.add_row(cek_tree)
+                            sys.exit(1)
 
-                    for kid_, key in drm.content_keys.items():
-                        msg = f" + {kid_.hex}:{key}"
-                        if kid_ == kid:
-                            msg += " *"
-                        if key == "0" * 32:
-                            msg += " (Unusable!)"
-                        console.log(msg)
+                        for kid_, key in drm.content_keys.items():
+                            if key == "0" * 32:
+                                key = f"[red]{key}[/]"
+                            if kid_ == kid:
+                                key += " *"
+                            label = f"[text2]{kid_.hex}:{key}"
+                            if not any(x.label == label for x in cek_tree.children):
+                                cek_tree.add(label)
 
-                    drm.content_keys = {
-                        kid_: key
-                        for kid_, key in drm.content_keys.items()
-                        if key and key.count("0") != len(key)
-                    }
+                        drm.content_keys = {
+                            kid_: key
+                            for kid_, key in drm.content_keys.items()
+                            if key and key.count("0") != len(key)
+                        }
 
-                    # The CDM keys may have returned blank content keys for KIDs we got from vaults.
-                    # So we re-add the keys from vaults earlier overwriting blanks or removed KIDs data.
-                    drm.content_keys.update(from_vaults)
+                        # The CDM keys may have returned blank content keys for KIDs we got from vaults.
+                        # So we re-add the keys from vaults earlier overwriting blanks or removed KIDs data.
+                        drm.content_keys.update(from_vaults)
 
-                    cached_keys = self.vaults.add_keys(drm.content_keys)
-                    console.log(f" + Newly added to {cached_keys}/{len(drm.content_keys)} Vaults")
+                        cached_keys = self.vaults.add_keys(drm.content_keys)
+                        console.log(f" + Newly added to {cached_keys}/{len(drm.content_keys)} Vaults")
 
-                    if kid not in drm.content_keys:
-                        self.log.error(f" - No usable key was returned for {kid.hex}, cannot continue")
-                        sys.exit(1)
+                        if kid not in drm.content_keys:
+                            cek_tree.add(f"[logging.level.error]No key was returned for {kid.hex}, cannot decrypt...")
+                            if not pre_existing_tree:
+                                table.add_row(cek_tree)
+                            sys.exit(1)
 
-            if export:
-                keys = {}
-                if export.is_file():
-                    keys = jsonpickle.loads(export.read_text(encoding="utf8"))
-                if str(title) not in keys:
-                    keys[str(title)] = {}
-                if str(track) not in keys[str(title)]:
-                    keys[str(title)][str(track)] = {}
-                keys[str(title)][str(track)].update(drm.content_keys)
-                export.write_text(jsonpickle.dumps(keys, indent=4), encoding="utf8")
+                if cek_tree.children and not pre_existing_tree:
+                    table.add_row()
+                    table.add_row(cek_tree)
+
+                if export:
+                    keys = {}
+                    if export.is_file():
+                        keys = jsonpickle.loads(export.read_text(encoding="utf8"))
+                    if str(title) not in keys:
+                        keys[str(title)] = {}
+                    if str(track) not in keys[str(title)]:
+                        keys[str(title)][str(track)] = {}
+                    keys[str(title)][str(track)].update(drm.content_keys)
+                    export.write_text(jsonpickle.dumps(keys, indent=4), encoding="utf8")
 
     def download_track(
         self,
