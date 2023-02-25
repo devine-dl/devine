@@ -29,6 +29,7 @@ from pywidevine.device import Device
 from pywidevine.remotecdm import RemoteCdm
 from rich.live import Live
 from rich.padding import Padding
+from rich.panel import Panel
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeRemainingColumn
 from rich.rule import Rule
 from rich.table import Table
@@ -338,7 +339,7 @@ class dl:
 
             if list_:
                 available_tracks, _ = title.tracks.tree()
-                console.log(available_tracks)
+                console.log(Panel(available_tracks, title="Available Tracks"))
                 continue
 
             with console.status("Selecting tracks...", spinner="dots"):
