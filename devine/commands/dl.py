@@ -289,9 +289,8 @@ class dl:
             (1, 2)
         ))
 
+        console.log(titles.tree(verbose=list_titles))
         if list_titles:
-            for title in titles:
-                console.log(title)
             return
 
         for i, title in enumerate(titles):
