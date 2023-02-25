@@ -9,7 +9,6 @@ import re
 import shutil
 import sys
 import time
-import traceback
 from concurrent import futures
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
@@ -472,12 +471,13 @@ class dl:
                             )):
                                 if download.cancelled():
                                     continue
-                                e = download.exception()
-                                if e:
+                                try:
+                                    download.result()
+                                except Exception:  # noqa
                                     self.DL_POOL_STOP.set()
                                     pool.shutdown(wait=False, cancel_futures=True)
-                                    traceback.print_exception(type(e), e, e.__traceback__)
-                                    self.log.error(f"Download worker threw an unhandled exception: {e!r}")
+                                    self.log.error("Download worker threw an unhandled exception:")
+                                    console.print_exception()
                                     return
                         except KeyboardInterrupt:
                             self.DL_POOL_STOP.set()
