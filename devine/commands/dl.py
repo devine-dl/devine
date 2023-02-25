@@ -329,7 +329,7 @@ class dl:
                     non_sdh_sub = deepcopy(subtitle)
                     non_sdh_sub.id += "_stripped"
                     non_sdh_sub.sdh = False
-                    non_sdh_sub.OnDownloaded = lambda x: x.strip_hearing_impaired()
+                    non_sdh_sub.OnMultiplex = lambda x: x.strip_hearing_impaired()
                     title.tracks.add(non_sdh_sub)
 
             with console.status("Sorting tracks by language and bitrate...", spinner="dots"):
