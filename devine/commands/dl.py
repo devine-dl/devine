@@ -296,7 +296,10 @@ class dl:
             (1, 2)
         ))
 
-        console.log(titles.tree(verbose=list_titles))
+        console.print(Padding(
+            titles.tree(verbose=list_titles),
+            (0, 5)
+        ))
         if list_titles:
             return
 
@@ -340,7 +343,10 @@ class dl:
 
             if list_:
                 available_tracks, _ = title.tracks.tree()
-                console.log(Panel(available_tracks, title="Available Tracks"))
+                console.print(Padding(
+                    Panel(available_tracks, title="Available Tracks"),
+                    (0, 5)
+                ))
                 continue
 
             with console.status("Selecting tracks...", spinner="dots"):
@@ -555,7 +561,10 @@ class dl:
                 downloaded_table = Table.grid(expand=True)
                 downloaded_table.add_row("Download Finished! :tada:")
                 downloaded_table.add_row(Text(str(final_path), overflow="fold"))
-                console.log(Padding(downloaded_table, (0, 0, 1, 0)))
+                console.print(Padding(
+                    downloaded_table,
+                    (0, 5, 1, 5)
+                ))
 
             # update cookies
             cookie_file = config.directories.cookies / service.__class__.__name__ / f"{self.profile}.txt"
@@ -570,9 +579,9 @@ class dl:
         hours, minutes = divmod(minutes, 60)
         time_string = (f"{hours:d}h" if hours else "") + f"{minutes:d}m{seconds:d}s"
 
-        console.log(Padding(
+        console.print(Padding(
             f"Processed all titles in [progress.elapsed]{time_string}",
-            (0, 0, 1, 0)
+            (0, 5, 1, 5)
         ))
 
     def prepare_drm(
