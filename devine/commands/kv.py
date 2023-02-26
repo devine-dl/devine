@@ -6,7 +6,6 @@ from typing import Optional
 import click
 
 from devine.core.config import config
-from devine.core.console import console
 from devine.core.constants import context_settings
 from devine.core.services import Services
 from devine.core.vault import Vault
@@ -53,10 +52,10 @@ def copy(to_vault: str, from_vaults: list[str], service: Optional[str] = None) -
     to_vault: Vault = vaults.vaults[0]
     from_vaults: list[Vault] = vaults.vaults[1:]
 
-    console.log(f"Copying data from {', '.join([x.name for x in from_vaults])}, into {to_vault.name}")
+    log.info(f"Copying data from {', '.join([x.name for x in from_vaults])}, into {to_vault.name}")
     if service:
         service = Services.get_tag(service)
-        console.log(f"Only copying data for service {service}")
+        log.info(f"Only copying data for service {service}")
 
     total_added = 0
     for from_vault in from_vaults:
@@ -66,7 +65,7 @@ def copy(to_vault: str, from_vaults: list[str], service: Optional[str] = None) -
             services = from_vault.get_services()
 
         for service_ in services:
-            console.log(f"Getting data from {from_vault} for {service_}")
+            log.info(f"Getting data from {from_vault} for {service_}")
             content_keys = list(from_vault.get_keys(service_))  # important as it's a generator we iterate twice
 
             bad_keys = {
@@ -85,7 +84,7 @@ def copy(to_vault: str, from_vaults: list[str], service: Optional[str] = None) -
             }
 
             total_count = len(content_keys)
-            console.log(f"Adding {total_count} Content Keys to {to_vault} for {service_}")
+            log.info(f"Adding {total_count} Content Keys to {to_vault} for {service_}")
 
             try:
                 added = to_vault.add_keys(service_, content_keys)
@@ -96,9 +95,9 @@ def copy(to_vault: str, from_vaults: list[str], service: Optional[str] = None) -
             total_added += added
             existed = total_count - added
 
-            console.log(f"{to_vault} ({service_}): {added} newly added, {existed} already existed (skipped)")
+            log.info(f"{to_vault} ({service_}): {added} newly added, {existed} already existed (skipped)")
 
-    console.log(f"{to_vault}: {total_added} total newly added")
+    log.info(f"{to_vault}: {total_added} total newly added")
 
 
 @kv.command()
@@ -142,6 +141,7 @@ def add(file: Path, service: str, vaults: list[str]) -> None:
     if len(vaults) < 1:
         raise click.ClickException("You must provide at least one Vault.")
 
+    log = logging.getLogger("kv")
     service = Services.get_tag(service)
 
     vaults_ = Vaults()
@@ -168,12 +168,12 @@ def add(file: Path, service: str, vaults: list[str]) -> None:
     total_count = len(kid_keys)
 
     for vault in vaults_:
-        console.log(f"Adding {total_count} Content Keys to {vault}")
+        log.info(f"Adding {total_count} Content Keys to {vault}")
         added_count = vault.add_keys(service, kid_keys)
         existed_count = total_count - added_count
-        console.log(f"{vault}: {added_count} newly added, {existed_count} already existed (skipped)")
+        log.info(f"{vault}: {added_count} newly added, {existed_count} already existed (skipped)")
 
-    console.log("Done!")
+    log.info("Done!")
 
 
 @kv.command()
@@ -196,15 +196,15 @@ def prepare(vaults: list[str]) -> None:
         if hasattr(vault, "has_table") and hasattr(vault, "create_table"):
             for service_tag in Services.get_tags():
                 if vault.has_table(service_tag):
-                    console.log(f"{vault} already has a {service_tag} Table")
+                    log.info(f"{vault} already has a {service_tag} Table")
                 else:
                     try:
                         vault.create_table(service_tag, commit=True)
-                        console.log(f"{vault}: Created {service_tag} Table")
+                        log.info(f"{vault}: Created {service_tag} Table")
                     except PermissionError:
                         log.error(f"{vault} user has no create table permission, skipping...")
                         continue
         else:
-            console.log(f"{vault} does not use tables, skipping...")
+            log.info(f"{vault} does not use tables, skipping...")
 
-    console.log("Done!")
+    log.info("Done!")

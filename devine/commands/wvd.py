@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import Optional
 
@@ -27,28 +28,30 @@ def wvd() -> None:
 @click.argument("paths", type=Path, nargs=-1)
 def add(paths: list[Path]) -> None:
     """Add one or more WVD (Widevine Device) files to the WVDs Directory."""
+    log = logging.getLogger("wvd")
     for path in paths:
         dst_path = config.directories.wvds / path.name
 
         if not path.exists():
-            console.log(f"The WVD path '{path}' does not exist...")
+            log.error(f"The WVD path '{path}' does not exist...")
         elif dst_path.exists():
-            console.log(f"WVD named '{path.stem}' already exists...")
+            log.error(f"WVD named '{path.stem}' already exists...")
         else:
             # TODO: Check for and log errors
             _ = Device.load(path)  # test if WVD is valid
             shutil.move(path, config.directories.wvds)
-            console.log(f"Added {path.stem}")
+            log.info(f"Added {path.stem}")
 
 
 @wvd.command()
 @click.argument("names", type=str, nargs=-1)
 def delete(names: list[str]) -> None:
     """Delete one or more WVD (Widevine Device) files from the WVDs Directory."""
+    log = logging.getLogger("wvd")
     for name in names:
         path = (config.directories.wvds / name).with_suffix(".wvd")
         if not path.exists():
-            console.log(f"[logging.level.error]No WVD file exists by the name '{name}'...")
+            log.error(f"No WVD file exists by the name '{name}'...")
             continue
 
         answer = Prompt.ask(
@@ -58,11 +61,11 @@ def delete(names: list[str]) -> None:
             console=console
         )
         if answer == "n":
-            console.log("Aborting...")
+            log.info("Aborting...")
             continue
 
         Path.unlink(path)
-        console.log(f"Deleted {name}")
+        log.info(f"Deleted {name}")
 
 
 @wvd.command()
@@ -79,26 +82,28 @@ def parse(path: Path) -> None:
     if named:
         path = config.directories.wvds / f"{path.name}.wvd"
 
+    log = logging.getLogger("wvd")
+
     device = Device.load(path)
 
-    console.log(f"System ID: {device.system_id}")
-    console.log(f"Security Level: {device.security_level}")
-    console.log(f"Type: {device.type}")
-    console.log(f"Flags: {device.flags}")
-    console.log(f"Private Key: {bool(device.private_key)}")
-    console.log(f"Client ID: {bool(device.client_id)}")
-    console.log(f"VMP: {bool(device.client_id.vmp_data)}")
+    log.info(f"System ID: {device.system_id}")
+    log.info(f"Security Level: {device.security_level}")
+    log.info(f"Type: {device.type}")
+    log.info(f"Flags: {device.flags}")
+    log.info(f"Private Key: {bool(device.private_key)}")
+    log.info(f"Client ID: {bool(device.client_id)}")
+    log.info(f"VMP: {bool(device.client_id.vmp_data)}")
 
-    console.log("Client ID:")
-    console.log(device.client_id)
+    log.info("Client ID:")
+    log.info(device.client_id)
 
-    console.log("VMP:")
+    log.info("VMP:")
     if device.client_id.vmp_data:
         file_hashes = FileHashes()
         file_hashes.ParseFromString(device.client_id.vmp_data)
-        console.log(str(file_hashes))
+        log.info(str(file_hashes))
     else:
-        console.log("None")
+        log.info("None")
 
 
 @wvd.command()
@@ -124,9 +129,10 @@ def dump(wvd_paths: list[Path], out_dir: Path) -> None:
 
         device = Device.load(wvd_path)
 
-        console.log(f"Dumping: {wvd_path}")
-        console.log(f"L{device.security_level} {device.system_id} {device.type.name}")
-        console.log(f"Saving to: {out_path}")
+        log = logging.getLogger("wvd")
+        log.info(f"Dumping: {wvd_path}")
+        log.info(f"L{device.security_level} {device.system_id} {device.type.name}")
+        log.info(f"Saving to: {out_path}")
 
         device_meta = {
             "wvd": {
@@ -142,7 +148,7 @@ def dump(wvd_paths: list[Path], out_dir: Path) -> None:
 
         device_meta_path = out_path / "metadata.yml"
         device_meta_path.write_text(yaml.dump(device_meta), encoding="utf8")
-        console.log(" + Device Metadata")
+        log.info(" + Device Metadata")
 
         if device.private_key:
             private_key_path = out_path / "private_key.pem"
@@ -153,23 +159,23 @@ def dump(wvd_paths: list[Path], out_dir: Path) -> None:
             private_key_path.with_suffix(".der").write_bytes(
                 device.private_key.export_key(format="DER")
             )
-            console.log(" + Private Key")
+            log.info(" + Private Key")
         else:
-            console.log("[logging.level.warning] - No Private Key available")
+            log.warning(" - No Private Key available")
 
         if device.client_id:
             client_id_path = out_path / "client_id.bin"
             client_id_path.write_bytes(device.client_id.SerializeToString())
-            console.log(" + Client ID")
+            log.info(" + Client ID")
         else:
-            console.log("[logging.level.warning] - No Client ID available")
+            log.warning(" - No Client ID available")
 
         if device.client_id.vmp_data:
             vmp_path = out_path / "vmp.bin"
             vmp_path.write_bytes(device.client_id.vmp_data)
-            console.log(" + VMP (File Hashes)")
+            log.info(" + VMP (File Hashes)")
         else:
-            console.log(" - No VMP (File Hashes) available")
+            log.info(" - No VMP (File Hashes) available")
 
 
 @wvd.command()
@@ -231,24 +237,26 @@ def new(
     out_path = (output or config.directories.wvds) / f"{name}_{device.system_id}_l{device.security_level}.wvd"
     device.dump(out_path)
 
-    console.log(f"Created binary WVD file, {out_path.name}")
-    console.log(f" + Saved to: {out_path.absolute()}")
+    log = logging.getLogger("wvd")
 
-    console.log(f"System ID: {device.system_id}")
-    console.log(f"Security Level: {device.security_level}")
-    console.log(f"Type: {device.type}")
-    console.log(f"Flags: {device.flags}")
-    console.log(f"Private Key: {bool(device.private_key)}")
-    console.log(f"Client ID: {bool(device.client_id)}")
-    console.log(f"VMP: {bool(device.client_id.vmp_data)}")
+    log.info(f"Created binary WVD file, {out_path.name}")
+    log.info(f" + Saved to: {out_path.absolute()}")
 
-    console.log("Client ID:")
-    console.log(device.client_id)
+    log.info(f"System ID: {device.system_id}")
+    log.info(f"Security Level: {device.security_level}")
+    log.info(f"Type: {device.type}")
+    log.info(f"Flags: {device.flags}")
+    log.info(f"Private Key: {bool(device.private_key)}")
+    log.info(f"Client ID: {bool(device.client_id)}")
+    log.info(f"VMP: {bool(device.client_id.vmp_data)}")
 
-    console.log("VMP:")
+    log.info("Client ID:")
+    log.info(device.client_id)
+
+    log.info("VMP:")
     if device.client_id.vmp_data:
         file_hashes = FileHashes()
         file_hashes.ParseFromString(device.client_id.vmp_data)
-        console.log(str(file_hashes))
+        log.info(str(file_hashes))
     else:
-        console.log("None")
+        log.info("None")

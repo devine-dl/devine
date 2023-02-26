@@ -53,17 +53,17 @@ class Service(metaclass=ABCMeta):
                     # no explicit proxy, let's get one to GEOFENCE if needed
                     current_region = get_ip_info(self.session)["country"].lower()
                     if any(x.lower() == current_region for x in self.GEOFENCE):
-                        console.log("Service is not Geoblocked in your region")
+                        self.log.info("Service is not Geoblocked in your region")
                     else:
                         requested_proxy = self.GEOFENCE[0]  # first is likely main region
-                        console.log(f"Service is Geoblocked in your region, getting a Proxy to {requested_proxy}")
+                        self.log.info(f"Service is Geoblocked in your region, getting a Proxy to {requested_proxy}")
                         for proxy_provider in ctx.obj.proxy_providers:
                             self.proxy = proxy_provider.get_proxy(requested_proxy)
                             if self.proxy:
-                                console.log(f"Got Proxy from {proxy_provider.__class__.__name__}")
+                                self.log.info(f"Got Proxy from {proxy_provider.__class__.__name__}")
                                 break
                 else:
-                    console.log("Service has no Geofence")
+                    self.log.info("Service has no Geofence")
 
         if self.proxy:
             self.session.proxies.update({"all": self.proxy})

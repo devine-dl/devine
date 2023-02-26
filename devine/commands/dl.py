@@ -151,15 +151,15 @@ class dl:
         with console.status("Preparing Service and Profile Authentication...", spinner="dots"):
             if profile:
                 self.profile = profile
-                console.log(f"Profile: '{self.profile}' from the --profile argument")
+                self.log.info(f"Profile: '{self.profile}' from the --profile argument")
             else:
                 self.profile = self.get_profile(self.service)
-                console.log(f"Profile: '{self.profile}' from the config")
+                self.log.info(f"Profile: '{self.profile}' from the config")
 
             service_config_path = Services.get_path(self.service) / config.filenames.config
             if service_config_path.is_file():
                 self.service_config = yaml.safe_load(service_config_path.read_text(encoding="utf8"))
-                console.log("Service Config loaded")
+                self.log.info("Service Config loaded")
             else:
                 self.service_config = {}
             merge_dict(config.services.get(self.service), self.service_config)
@@ -170,7 +170,7 @@ class dl:
             except ValueError as e:
                 self.log.error(f"Failed to load Widevine CDM, {e}")
                 sys.exit(1)
-            console.log(
+            self.log.info(
                 f"Loaded {self.cdm.__class__.__name__} Widevine CDM: {self.cdm.system_id} (L{self.cdm.security_level})"
             )
 
@@ -180,7 +180,7 @@ class dl:
                 vault_type = vault["type"]
                 del vault["type"]
                 self.vaults.load(vault_type, **vault)
-            console.log(f"Loaded {len(self.vaults)} Vaults")
+            self.log.info(f"Loaded {len(self.vaults)} Vaults")
 
         with console.status("Loading Proxy Providers...", spinner="dots"):
             self.proxy_providers = []
@@ -191,7 +191,7 @@ class dl:
             if get_binary_path("hola-proxy"):
                 self.proxy_providers.append(Hola())
             for proxy_provider in self.proxy_providers:
-                console.log(f"Loaded {proxy_provider.__class__.__name__}: {proxy_provider}")
+                self.log.info(f"Loaded {proxy_provider.__class__.__name__}: {proxy_provider}")
 
         if proxy:
             requested_provider = None
@@ -215,16 +215,16 @@ class dl:
                             self.log.error(f"The proxy provider {requested_provider} had no proxy for {proxy}")
                             sys.exit(1)
                         proxy = ctx.params["proxy"] = proxy_uri
-                        console.log(f"Using {proxy_provider.__class__.__name__} Proxy: {proxy}")
+                        self.log.info(f"Using {proxy_provider.__class__.__name__} Proxy: {proxy}")
                     else:
                         for proxy_provider in self.proxy_providers:
                             proxy_uri = proxy_provider.get_proxy(proxy)
                             if proxy_uri:
                                 proxy = ctx.params["proxy"] = proxy_uri
-                                console.log(f"Using {proxy_provider.__class__.__name__} Proxy: {proxy}")
+                                self.log.info(f"Using {proxy_provider.__class__.__name__} Proxy: {proxy}")
                                 break
             else:
-                console.log(f"Using explicit Proxy: {proxy}")
+                self.log.info(f"Using explicit Proxy: {proxy}")
 
         ctx.obj = ContextData(
             config=self.service_config,
@@ -283,7 +283,7 @@ class dl:
                     self.log.error(f"The Profile '{self.profile}' has no Cookies or Credentials, Check for typos")
                     sys.exit(1)
                 service.authenticate(cookies, credential)
-                console.log("Authenticated with Service")
+                self.log.info("Authenticated with Service")
 
         with console.status("Fetching Title Metadata...", spinner="dots"):
             titles = service.get_titles()
@@ -426,7 +426,7 @@ class dl:
             download_table.add_row(selected_tracks)
 
             if skip_dl:
-                console.log("Skipping Download...")
+                self.log.info("Skipping Download...")
             else:
                 with Live(
                     Padding(
@@ -481,7 +481,7 @@ class dl:
                         except KeyboardInterrupt:
                             self.DL_POOL_STOP.set()
                             pool.shutdown(wait=False, cancel_futures=True)
-                            console.log("Received Keyboard Interrupt, stopping...")
+                            self.log.info("Received Keyboard Interrupt, stopping...")
                             return
 
                 video_track_n = 0
@@ -515,9 +515,9 @@ class dl:
                             if cc:
                                 # will not appear in track listings as it's added after all times it lists
                                 title.tracks.add(cc)
-                                console.log(f"Extracted a Closed Caption from Video track {video_track_n + 1}")
+                                self.log.info(f"Extracted a Closed Caption from Video track {video_track_n + 1}")
                             else:
-                                console.log(f"No Closed Captions were found in Video track {video_track_n + 1}")
+                                self.log.info(f"No Closed Captions were found in Video track {video_track_n + 1}")
                         except EnvironmentError:
                             self.log.error(
                                 "Cannot extract Closed Captions as the ccextractor executable was not found..."
@@ -548,7 +548,7 @@ class dl:
                                 track.OnRepacked(track)
                     if has_repacked:
                         # we don't want to fill up the log with "Repacked x track"
-                        console.log("Repacked one or more tracks with FFMPEG")
+                        self.log.info("Repacked one or more tracks with FFMPEG")
 
                 final_path = self.mux_tracks(title, not no_folder, not no_source)
 
@@ -662,7 +662,7 @@ class dl:
                         drm.content_keys.update(from_vaults)
 
                         cached_keys = self.vaults.add_keys(drm.content_keys)
-                        console.log(f" + Newly added to {cached_keys}/{len(drm.content_keys)} Vaults")
+                        self.log.info(f" + Newly added to {cached_keys}/{len(drm.content_keys)} Vaults")
 
                         if kid not in drm.content_keys:
                             cek_tree.add(f"[logging.level.error]No key was returned for {kid.hex}, cannot decrypt...")
