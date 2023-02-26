@@ -107,7 +107,7 @@ class Tracks:
             for track in tracks:
                 if add_progress and track_type != Chapter:
                     progress = Progress(
-                        SpinnerColumn(),
+                        SpinnerColumn(finished_text=""),
                         BarColumn(),
                         "•",
                         TimeRemainingColumn(compact=True, elapsed_when_finished=True),

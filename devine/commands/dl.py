@@ -798,7 +798,7 @@ class dl:
         if isinstance(title, (Movie, Episode)):
             multiplexing_progress = Progress(
                 TextColumn("[progress.description]{task.description}"),
-                SpinnerColumn(),
+                SpinnerColumn(finished_text=""),
                 BarColumn(),
                 "•",
                 TimeRemainingColumn(compact=True, elapsed_when_finished=True),
