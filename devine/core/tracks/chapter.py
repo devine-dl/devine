@@ -54,7 +54,7 @@ class Chapter:
         """Get time format from millisecond."""
         time = datetime.utcfromtimestamp(seconds)
         mils = ".000" if str(time.microsecond)[:3] == "0" else f".{str(time.microsecond)[:3]}"
-        return time.strftime(f"%H:%M:%S") + mils
+        return time.strftime("%H:%M:%S") + mils
 
     @classmethod
     def loads(cls, data: str) -> Chapter:
