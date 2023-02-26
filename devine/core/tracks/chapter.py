@@ -50,9 +50,9 @@ class Chapter:
         return bool(self.title)
 
     @staticmethod
-    def time_to(sconds: str) -> str:
+    def time_to(seconds: str) -> str:
         """Get time format from millisecond."""
-        time = datetime.utcfromtimestamp(sconds)
+        time = datetime.utcfromtimestamp(seconds)
         mils = ".000" if str(time.microsecond)[:3] == "0" else f".{str(time.microsecond)[:3]}"
         return time.strftime(f"%H:%M:%S") + mils
 
