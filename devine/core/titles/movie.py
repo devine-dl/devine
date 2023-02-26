@@ -137,17 +137,18 @@ class Movies(SortedKeyList, ABC):
         # TODO: Assumes there's only one movie
         return self[0].name + (f" ({self[0].year})" if self[0].year else "")
 
-    def tree(self, *_) -> Tree:
+    def tree(self, verbose: bool = False) -> Tree:
         num_movies = len(self)
         tree = Tree(
             f"{num_movies} Movie{['s', ''][num_movies == 1]}",
             guide_style="bright_black"
         )
-        for movie in self:
-            tree.add(
-                f"[bold]{movie.name}[/] [bright_black]({movie.year or '?'})",
-                guide_style="bright_black"
-            )
+        if verbose:
+            for movie in self:
+                tree.add(
+                    f"[bold]{movie.name}[/] [bright_black]({movie.year or '?'})",
+                    guide_style="bright_black"
+                )
 
         return tree
 

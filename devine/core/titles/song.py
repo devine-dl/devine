@@ -132,17 +132,18 @@ class Album(SortedKeyList, ABC):
             return super().__str__()
         return f"{self[0].artist} - {self[0].album} ({self[0].year or '?'})"
 
-    def tree(self, *_) -> Tree:
+    def tree(self, verbose: bool = False) -> Tree:
         num_songs = len(self)
         tree = Tree(
             f"{num_songs} Song{['s', ''][num_songs == 1]}",
             guide_style="bright_black"
         )
-        for song in self:
-            tree.add(
-                f"[bold]Track {song.track:02}.[/] [bright_black]({song.name})",
-                guide_style="bright_black"
-            )
+        if verbose:
+            for song in self:
+                tree.add(
+                    f"[bold]Track {song.track:02}.[/] [bright_black]({song.name})",
+                    guide_style="bright_black"
+                )
 
         return tree
 
