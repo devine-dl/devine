@@ -107,7 +107,6 @@ class Tracks:
             for track in tracks:
                 if add_progress and track_type != Chapter:
                     progress = Progress(
-                        TextColumn("[progress.description]{task.description}"),
                         SpinnerColumn(),
                         BarColumn(),
                         "•",
