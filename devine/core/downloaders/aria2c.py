@@ -1,12 +1,14 @@
 import asyncio
 import subprocess
-import sys
 from asyncio import IncompleteReadError
 from functools import partial
 from pathlib import Path
 from typing import Optional, Union
 
+from rich.text import Text
+
 from devine.core.config import config
+from devine.core.console import console
 from devine.core.utilities import get_binary_path, start_pproxy
 
 
@@ -100,41 +102,45 @@ async def aria2c(
     p.stdin.close()
 
     if progress:
+        def update_progress_bar(data: str):
+            if "%" in data:
+                # id, dledMiB/totalMiB(x%), CN:xx, DL:xxMiB, ETA:Xs
+                # eta may not always be available
+                data_parts = data[1:-1].split()
+                perc_parts = data_parts[1].split("(")
+                if len(perc_parts) == 2:
+                    # might otherwise be e.g., 0B/0B, with no % symbol provided
+                    progress(
+                        total=100,
+                        completed=int(perc_parts[1][:-2]),
+                        downloaded=f"{data_parts[3].split(':')[1]}/s"
+                    )
+
         # I'm sorry for this shameful code, aria2(c) is annoying as f!!!
-        buffer = b""
-        recording = False
         while not p.stdout.at_eof():
             try:
-                byte = await p.stdout.readexactly(1)
-            except IncompleteReadError:
-                pass  # ignore, the first read will do this
-            else:
-                if byte == b"=":  # download result log
-                    progress(total=100, completed=100)
-                    break
-                if byte == b"[":
-                    recording = True
-                if recording:
-                    buffer += byte
-                if byte == b"]":
-                    recording = False
-                    if b"FileAlloc" not in buffer and b"ERROR" not in buffer:
-                        try:
-                            # id, dledMiB/totalMiB(x%), CN:xx, DL:xxMiB, ETA:Xs
-                            # eta may not always be available
-                            parts = buffer.decode()[1:-1].split()
-                            dl_parts = parts[1].split("(")
-                            if len(dl_parts) == 2:
-                                # might otherwise be e.g., 0B/0B, with no % symbol provided
-                                progress(
-                                    total=100,
-                                    completed=int(dl_parts[1][:-2]),
-                                    downloaded=f"{parts[3].split(':')[1]}/s"
-                                )
-                        except Exception as e:
-                            print(f"Aria2c progress failed on {buffer}, {e!r}")
-                            sys.exit(1)
-                    buffer = b""
+                buffer = await p.stdout.readuntil(b"\r")
+            except IncompleteReadError as e:
+                buffer = e.partial
+
+            buffer = buffer.decode().strip()
+            if buffer:
+                buffer_lines = buffer.splitlines()
+                is_dl_summary = False
+                for line in buffer_lines:
+                    if line:
+                        if line.startswith("[") and line.endswith("]"):
+                            update_progress_bar(line)
+                        elif line.startswith("Download Results"):
+                            # we know it's 100% downloaded, but let's use the avg dl speed value
+                            is_dl_summary = True
+                        elif is_dl_summary and "OK" in line and "|" in line:
+                            gid, status, avg_speed, path_or_uri = line.split("|")
+                            progress(total=100, completed=100, downloaded=avg_speed.strip())
+                        elif not is_dl_summary:
+                            buffer_msg = line.split(" ", maxsplit=2)
+                            buffer_msg = f"[Aria2c]: {buffer_msg[-1].strip()}"
+                            console.log(Text.from_ansi(buffer_msg))
 
     await p.wait()
 
