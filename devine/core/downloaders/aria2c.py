@@ -118,7 +118,7 @@ async def aria2c(
                     buffer += byte
                 if byte == b"]":
                     recording = False
-                    if b"FileAlloc" not in buffer:
+                    if b"FileAlloc" not in buffer and b"ERROR" not in buffer:
                         try:
                             # id, dledMiB/totalMiB(x%), CN:xx, DL:xxMiB, ETA:Xs
                             # eta may not always be available
