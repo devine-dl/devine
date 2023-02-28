@@ -83,53 +83,62 @@ def aria2c(
                 return aria2c(uri, out, headers, pproxy_)
         arguments += ["--all-proxy", proxy]
 
-    p = subprocess.Popen(
-        [executable, *arguments],
-        stdin=subprocess.PIPE,
-        stderr=[None, subprocess.DEVNULL][silent],
-        stdout=(
-            subprocess.PIPE if progress else
-            subprocess.DEVNULL if silent else
-            None
-        ),
-        universal_newlines=True
-    )
+    try:
+        p = subprocess.Popen(
+            [executable, *arguments],
+            stdin=subprocess.PIPE,
+            stderr=[None, subprocess.DEVNULL][silent],
+            stdout=(
+                subprocess.PIPE if progress else
+                subprocess.DEVNULL if silent else
+                None
+            ),
+            universal_newlines=True
+        )
+        p._stdin_write(uri)  # noqa
 
-    p._stdin_write(uri)  # noqa
+        if progress:
+            is_dl_summary = False
+            for line in iter(p.stdout.readline, ""):
+                line = line.strip()
+                if line:
+                    if line.startswith("[") and line.endswith("]"):
+                        if "%" in line:
+                            # id, dledMiB/totalMiB(x%), CN:xx, DL:xxMiB, ETA:Xs
+                            # eta may not always be available
+                            data_parts = line[1:-1].split()
+                            perc_parts = data_parts[1].split("(")
+                            if len(perc_parts) == 2:
+                                # might otherwise be e.g., 0B/0B, with no % symbol provided
+                                progress(
+                                    total=100,
+                                    completed=int(perc_parts[1][:-2]),
+                                    downloaded=f"{data_parts[3].split(':')[1]}/s"
+                                )
+                    elif line.startswith("Download Results"):
+                        # we know it's 100% downloaded, but let's use the avg dl speed value
+                        is_dl_summary = True
+                    elif is_dl_summary and "OK" in line and "|" in line:
+                        gid, status, avg_speed, path_or_uri = line.split("|")
+                        progress(total=100, completed=100, downloaded=avg_speed.strip())
+                    elif not is_dl_summary:
+                        buffer_msg = line.split(" ", maxsplit=2)
+                        buffer_msg = f"[Aria2c]: {buffer_msg[-1].strip()}"
+                        console.log(Text.from_ansi(buffer_msg))
 
-    if progress:
-        is_dl_summary = False
-        for line in iter(p.stdout.readline, ""):
-            line = line.strip()
-            if line:
-                if line.startswith("[") and line.endswith("]"):
-                    if "%" in line:
-                        # id, dledMiB/totalMiB(x%), CN:xx, DL:xxMiB, ETA:Xs
-                        # eta may not always be available
-                        data_parts = line[1:-1].split()
-                        perc_parts = data_parts[1].split("(")
-                        if len(perc_parts) == 2:
-                            # might otherwise be e.g., 0B/0B, with no % symbol provided
-                            progress(
-                                total=100,
-                                completed=int(perc_parts[1][:-2]),
-                                downloaded=f"{data_parts[3].split(':')[1]}/s"
-                            )
-                elif line.startswith("Download Results"):
-                    # we know it's 100% downloaded, but let's use the avg dl speed value
-                    is_dl_summary = True
-                elif is_dl_summary and "OK" in line and "|" in line:
-                    gid, status, avg_speed, path_or_uri = line.split("|")
-                    progress(total=100, completed=100, downloaded=avg_speed.strip())
-                elif not is_dl_summary:
-                    buffer_msg = line.split(" ", maxsplit=2)
-                    buffer_msg = f"[Aria2c]: {buffer_msg[-1].strip()}"
-                    console.log(Text.from_ansi(buffer_msg))
+        p.wait()
 
-    p.wait()
-
-    if p.returncode != 0:
-        raise subprocess.CalledProcessError(p.returncode, arguments)
+        if p.returncode != 0:
+            raise subprocess.CalledProcessError(p.returncode, arguments)
+    except ConnectionResetError:
+        # interrupted while passing URI to download
+        raise KeyboardInterrupt()
+    except subprocess.CalledProcessError as e:
+        if e.returncode in (7, 0xC000013A):
+            # 7 is when Aria2(c) handled the CTRL+C
+            # 0xC000013A is when it never got the chance to
+            raise KeyboardInterrupt()
+        raise
 
     return p.returncode
 

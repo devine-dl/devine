@@ -234,6 +234,7 @@ class Widevine:
 
         decrypted_path = path.with_suffix(f".decrypted{path.suffix}")
         config.directories.temp.mkdir(parents=True, exist_ok=True)
+
         try:
             subprocess.check_call([
                 executable,
@@ -253,6 +254,8 @@ class Widevine:
                 "--temp_dir", config.directories.temp
             ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except subprocess.CalledProcessError as e:
+            if e.returncode == 0xC000013A:  # STATUS_CONTROL_C_EXIT
+                raise KeyboardInterrupt()
             raise subprocess.SubprocessError(f"Failed to Decrypt! Shaka Packager Error: {e}")
 
         path.unlink()
