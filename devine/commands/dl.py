@@ -481,7 +481,6 @@ class dl:
                                     console.print_exception()
                                     return
                         except KeyboardInterrupt:
-                            self.DL_POOL_STOP.set()
                             self.log.info("Received Keyboard Interrupt, stopping...")
                             return
 
