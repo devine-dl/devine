@@ -214,8 +214,7 @@ class HLS:
 
         state_event = Event()
 
-        def download_segment(filename: str, segment, init_data: Queue, segment_key: Queue) -> int:
-            time.sleep(0.1)
+        def download_segment(filename: str, segment: m3u8.Segment, init_data: Queue, segment_key: Queue) -> int:
             if state_event.is_set():
                 return 0
 

@@ -700,7 +700,6 @@ class dl:
         prepare_drm: Callable,
         progress: partial
     ):
-        time.sleep(1)
         if self.DL_POOL_STOP.is_set():
             return
 

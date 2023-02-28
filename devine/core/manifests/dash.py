@@ -448,7 +448,6 @@ class DASH:
             state_event = Event()
 
             def download_segment(filename: str, segment: tuple[str, Optional[str]]) -> int:
-                time.sleep(0.1)
                 if state_event.is_set():
                     return 0
 
