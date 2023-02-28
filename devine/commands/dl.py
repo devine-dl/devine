@@ -736,6 +736,7 @@ class dl:
             HLS.download_track(
                 track=track,
                 save_dir=save_dir,
+                stop_event=self.DL_POOL_STOP,
                 progress=progress,
                 session=service.session,
                 proxy=proxy,
@@ -745,6 +746,7 @@ class dl:
             DASH.download_track(
                 track=track,
                 save_dir=save_dir,
+                stop_event=self.DL_POOL_STOP,
                 progress=progress,
                 session=service.session,
                 proxy=proxy,
