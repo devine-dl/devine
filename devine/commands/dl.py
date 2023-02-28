@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import html
 import logging
 import math
@@ -756,13 +755,13 @@ class dl:
 
         # no else-if as DASH may convert the track to URL descriptor
         if track.descriptor == track.Descriptor.URL:
-            asyncio.run(aria2c(
-                track.url,
-                save_path,
-                service.session.headers,
-                proxy if track.needs_proxy else None,
+            aria2c(
+                uri=track.url,
+                out=save_path,
+                headers=service.session.headers,
+                proxy=proxy if track.needs_proxy else None,
                 progress=progress
-            ))
+            )
             track.path = save_path
 
             if not track.drm and isinstance(track, (Video, Audio)):

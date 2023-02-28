@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 import re
 import sys
@@ -289,13 +288,13 @@ class HLS:
                 segment_save_path.parent.mkdir(parents=True, exist_ok=True)
                 segment_save_path.write_bytes(res.content)
             else:
-                asyncio.run(aria2c(
-                    segment.uri,
-                    segment_save_path,
-                    session.headers,
-                    proxy,
+                aria2c(
+                    uri=segment.uri,
+                    out=segment_save_path,
+                    headers=session.headers,
+                    proxy=proxy,
                     silent=True
-                ))
+                )
 
             data_size = segment_save_path.stat().st_size
 

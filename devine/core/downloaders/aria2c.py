@@ -1,6 +1,4 @@
-import asyncio
 import subprocess
-from asyncio import IncompleteReadError
 from functools import partial
 from pathlib import Path
 from typing import Optional, Union
@@ -12,7 +10,7 @@ from devine.core.console import console
 from devine.core.utilities import get_binary_path, start_pproxy
 
 
-async def aria2c(
+def aria2c(
     uri: Union[str, list[str]],
     out: Path,
     headers: Optional[dict] = None,
@@ -81,68 +79,54 @@ async def aria2c(
         if proxy.lower().split(":")[0] != "http":
             # HTTPS proxies are not supported by aria2(c).
             # Proxy the proxy via pproxy to access it as an HTTP proxy.
-            async with start_pproxy(proxy) as pproxy_:
-                return await aria2c(uri, out, headers, pproxy_)
+            with start_pproxy(proxy) as pproxy_:
+                return aria2c(uri, out, headers, pproxy_)
         arguments += ["--all-proxy", proxy]
 
-    p = await asyncio.create_subprocess_exec(
-        executable,
-        *arguments,
+    p = subprocess.Popen(
+        [executable, *arguments],
         stdin=subprocess.PIPE,
         stderr=[None, subprocess.DEVNULL][silent],
         stdout=(
             subprocess.PIPE if progress else
             subprocess.DEVNULL if silent else
             None
-        )
+        ),
+        universal_newlines=True
     )
 
-    p.stdin.write(uri.encode())
-    await p.stdin.drain()
-    p.stdin.close()
+    p._stdin_write(uri)  # noqa
 
     if progress:
-        def update_progress_bar(data: str):
-            if "%" in data:
-                # id, dledMiB/totalMiB(x%), CN:xx, DL:xxMiB, ETA:Xs
-                # eta may not always be available
-                data_parts = data[1:-1].split()
-                perc_parts = data_parts[1].split("(")
-                if len(perc_parts) == 2:
-                    # might otherwise be e.g., 0B/0B, with no % symbol provided
-                    progress(
-                        total=100,
-                        completed=int(perc_parts[1][:-2]),
-                        downloaded=f"{data_parts[3].split(':')[1]}/s"
-                    )
+        is_dl_summary = False
+        for line in iter(p.stdout.readline, ""):
+            line = line.strip()
+            if line:
+                if line.startswith("[") and line.endswith("]"):
+                    if "%" in line:
+                        # id, dledMiB/totalMiB(x%), CN:xx, DL:xxMiB, ETA:Xs
+                        # eta may not always be available
+                        data_parts = line[1:-1].split()
+                        perc_parts = data_parts[1].split("(")
+                        if len(perc_parts) == 2:
+                            # might otherwise be e.g., 0B/0B, with no % symbol provided
+                            progress(
+                                total=100,
+                                completed=int(perc_parts[1][:-2]),
+                                downloaded=f"{data_parts[3].split(':')[1]}/s"
+                            )
+                elif line.startswith("Download Results"):
+                    # we know it's 100% downloaded, but let's use the avg dl speed value
+                    is_dl_summary = True
+                elif is_dl_summary and "OK" in line and "|" in line:
+                    gid, status, avg_speed, path_or_uri = line.split("|")
+                    progress(total=100, completed=100, downloaded=avg_speed.strip())
+                elif not is_dl_summary:
+                    buffer_msg = line.split(" ", maxsplit=2)
+                    buffer_msg = f"[Aria2c]: {buffer_msg[-1].strip()}"
+                    console.log(Text.from_ansi(buffer_msg))
 
-        # I'm sorry for this shameful code, aria2(c) is annoying as f!!!
-        while not p.stdout.at_eof():
-            try:
-                buffer = await p.stdout.readuntil(b"\r")
-            except IncompleteReadError as e:
-                buffer = e.partial
-
-            buffer = buffer.decode().strip()
-            if buffer:
-                buffer_lines = buffer.splitlines()
-                is_dl_summary = False
-                for line in buffer_lines:
-                    if line:
-                        if line.startswith("[") and line.endswith("]"):
-                            update_progress_bar(line)
-                        elif line.startswith("Download Results"):
-                            # we know it's 100% downloaded, but let's use the avg dl speed value
-                            is_dl_summary = True
-                        elif is_dl_summary and "OK" in line and "|" in line:
-                            gid, status, avg_speed, path_or_uri = line.split("|")
-                            progress(total=100, completed=100, downloaded=avg_speed.strip())
-                        elif not is_dl_summary:
-                            buffer_msg = line.split(" ", maxsplit=2)
-                            buffer_msg = f"[Aria2c]: {buffer_msg[-1].strip()}"
-                            console.log(Text.from_ansi(buffer_msg))
-
-    await p.wait()
+    p.wait()
 
     if p.returncode != 0:
         raise subprocess.CalledProcessError(p.returncode, arguments)
