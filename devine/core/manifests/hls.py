@@ -360,12 +360,9 @@ class HLS:
                     for i, segment in enumerate(master.segments)
                 )):
                     finished_threads += 1
-                    if download.cancelled():
-                        continue
                     e = download.exception()
                     if e:
                         state_event.set()
-                        pool.shutdown(wait=False, cancel_futures=True)
                         traceback.print_exception(e)
                         log.error(f"Segment Download worker threw an unhandled exception: {e!r}")
                         sys.exit(1)
@@ -387,7 +384,6 @@ class HLS:
                             download_sizes.clear()
             except KeyboardInterrupt:
                 state_event.set()
-                pool.shutdown(wait=False, cancel_futures=True)
                 log.info("Received Keyboard Interrupt, stopping...")
                 return
 

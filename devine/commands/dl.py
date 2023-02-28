@@ -473,19 +473,15 @@ class dl:
                                 )
                                 for i, track in enumerate(title.tracks)
                             )):
-                                if download.cancelled():
-                                    continue
                                 try:
                                     download.result()
                                 except Exception:  # noqa
                                     self.DL_POOL_STOP.set()
-                                    pool.shutdown(wait=False, cancel_futures=True)
                                     self.log.error("Download worker threw an unhandled exception:")
                                     console.print_exception()
                                     return
                         except KeyboardInterrupt:
                             self.DL_POOL_STOP.set()
-                            pool.shutdown(wait=False, cancel_futures=True)
                             self.log.info("Received Keyboard Interrupt, stopping...")
                             return
 
