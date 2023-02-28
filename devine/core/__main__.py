@@ -1,11 +1,12 @@
 import atexit
 import logging
-import textwrap
 from datetime import datetime
 from pathlib import Path
 
 import click
 import urllib3
+from rich.console import Group
+from rich.text import Text
 from urllib3.exceptions import InsecureRequestWarning
 from rich import traceback
 from rich.padding import Padding
@@ -56,21 +57,22 @@ def main(version: bool, debug: bool, log_path: Path) -> None:
 
     console.print(
         Padding(
-            textwrap.dedent(
-                f"""
-                [ascii.art]
-                ⠀⠀⠀/ __ \/ ____/ |  / /  _/ | / / ____/
-                ⠀⠀/ / / / __/  | | / // //  |/ / __/⠀⠀⠀
-                ⠀/ /_/ / /___  | |/ // // /|  / /___⠀⠀⠀
-                /_____/_____/  |___/___/_/ |_/_____/⠀⠀⠀
-                [/]
-                v[repr.number]{__version__}[/] Copyright © 2019-{datetime.now().year} rlaphoenix
-                [bright_blue]https://github.com/devine-dl/devine[/]
-                """
-            ).strip(),
-            (0, 21, 1, 20)
+            Group(
+                Text(
+                    r"   / __ \/ ____/ |  / /  _/ | / / ____/" + "\n"
+                    r"  / / / / __/  | | / // //  |/ / __/   " + "\n"
+                    r" / /_/ / /___  | |/ // // /|  / /___   " + "\n"
+                    r"/_____/_____/  |___/___/_/ |_/_____/   ⠀",
+                    style="ascii.art"
+                ),
+                "",
+                f"v[repr.number]{__version__}[/] Copyright © 2019-{datetime.now().year} rlaphoenix",
+                f"[bright_blue]https://github.com/devine-dl/devine[/]"
+            ),
+            (1, 21, 1, 20),
+            expand=True
         ),
-        justify="center"
+        justify="left"
     )
 
     if version:
