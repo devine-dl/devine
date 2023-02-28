@@ -753,6 +753,10 @@ class dl:
                 license_widevine=prepare_drm
             )
 
+        if self.DL_POOL_STOP.is_set():
+            # we stopped during the download, let's exit
+            return
+
         # no else-if as DASH may convert the track to URL descriptor
         if track.descriptor == track.Descriptor.URL:
             aria2c(
@@ -762,6 +766,11 @@ class dl:
                 proxy=proxy if track.needs_proxy else None,
                 progress=progress
             )
+
+            if self.DL_POOL_STOP.is_set():
+                # we stopped during the download, let's exit
+                return
+
             track.path = save_path
 
             if not track.drm and isinstance(track, (Video, Audio)):
