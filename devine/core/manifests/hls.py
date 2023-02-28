@@ -297,7 +297,7 @@ class HLS:
                     silent=True
                 ))
 
-            data_size = len(newest_init_data or b"")
+            data_size = segment_save_path.stat().st_size
 
             if isinstance(track, Audio) or newest_init_data:
                 with open(segment_save_path, "rb+") as f:
@@ -315,7 +315,6 @@ class HLS:
                         f.seek(0)
                         f.write(newest_init_data)
                         f.write(segment_data)
-                    data_size += len(segment_data)
 
             if newest_segment_key[0]:
                 newest_segment_key[0].decrypt(segment_save_path)
@@ -346,11 +345,12 @@ class HLS:
 
         progress(total=len(master.segments))
 
-        download_start_time = time.time()
         download_sizes = []
+        last_speed_refresh = time.time()
 
         with ThreadPoolExecutor(max_workers=16) as pool:
             try:
+                finished_threads = 0
                 for download in futures.as_completed((
                     pool.submit(
                         download_segment,
@@ -361,6 +361,7 @@ class HLS:
                     )
                     for i, segment in enumerate(master.segments)
                 )):
+                    finished_threads += 1
                     if download.cancelled():
                         continue
                     e = download.exception()
@@ -371,16 +372,21 @@ class HLS:
                         log.error(f"Segment Download worker threw an unhandled exception: {e!r}")
                         sys.exit(1)
                     else:
+                        progress(advance=1)
+
+                        now = time.time()
+                        time_since = now - last_speed_refresh
+
                         download_size = download.result()
-                        elapsed_time = time.time() - download_start_time
-                        download_sizes.append(download_size)
-                        while elapsed_time - len(download_sizes) > 10:
-                            download_sizes.pop(0)
-                        download_speed = sum(download_sizes) / len(download_sizes)
-                        progress(
-                            advance=1,
-                            downloaded=f"HLS {filesize.decimal(download_speed)}/s"
-                        )
+                        if download_size:  # no size == skipped dl
+                            download_sizes.append(download_size)
+
+                        if time_since > 5 or finished_threads == len(master.segments):
+                            data_size = sum(download_sizes)
+                            download_speed = data_size / time_since
+                            progress(downloaded=f"HLS {filesize.decimal(download_speed)}/s")
+                            last_speed_refresh = now
+                            download_sizes.clear()
             except KeyboardInterrupt:
                 state_event.set()
                 pool.shutdown(wait=False, cancel_futures=True)
