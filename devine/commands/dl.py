@@ -701,6 +701,7 @@ class dl:
         progress: partial
     ):
         if self.DL_POOL_STOP.is_set():
+            progress(downloaded="[yellow]SKIPPED")
             return
 
         if track.needs_proxy:
