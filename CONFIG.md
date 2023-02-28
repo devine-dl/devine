@@ -211,31 +211,6 @@ together.
 - `set_title`
   Set the container title to `Show SXXEXX Episode Name` or `Movie (Year)`. Default: `true`
 
-## nordvpn (dict)
-
-Set your NordVPN Service credentials with `username` and `password` keys to automate the use of NordVPN as a Proxy
-system where required.
-
-You can also specify specific servers to use per-region with the `servers` key.  
-Sometimes a specific server works best for a service than others, so hard-coding one for a day or two helps.
-
-For example,
-
-```yaml
-username: zxqsR7C5CyGwmGb6KSvk8qsZ  # example of the login format
-password: wXVHmht22hhRKUEQ32PQVjCZ
-servers:
-  - us: 12  # force US server #12 for US proxies
-```
-
-The username and password should NOT be your normal NordVPN Account Credentials.  
-They should be the `Service credentials` which can be found on your Nord Account Dashboard.
-
-Once set, you can also specifically opt in to use a NordVPN proxy by specifying `--proxy=gb` or such.
-You can even set a specific server number this way, e.g., `--proxy=gb2366`.
-
-Note that `gb` is used instead of `uk` to be more consistent across regional systems.
-
 ## profiles (dict)
 
 Pre-define Profiles to use Per-Service.
@@ -264,11 +239,15 @@ ALL4: false
 CTV: false
 ```
 
-## proxies (dict)
+## proxy_providers (dict)
 
-Define a list of proxies to use where required.  
-The keys are region Alpha 2 Country Codes. Alpha 2 Country Codes are `a-z{2}` codes, e.g., `us`, `gb`, and `jp`.  
-Don't get mixed up between language codes like `en` vs. `gb`, or `ja` vs. `jp`.
+Enable external proxy provider services.
+
+### basic (dict)
+
+Define a mapping of country to proxy to use where required.  
+The keys are region Alpha 2 Country Codes. Alpha 2 Country Codes are `[a-z]{2}` codes, e.g., `us`, `gb`, and `jp`.  
+Don't get this mixed up with language codes like `en` vs. `gb`, or `ja` vs. `jp`.
 
 For example,
 
@@ -276,6 +255,31 @@ For example,
 us: "http://john%40email.tld:password123@proxy-us.domain.tld:8080"
 de: "http://127.0.0.1:8888"
 ```
+
+### nordvpn (dict)
+
+Set your NordVPN Service credentials with `username` and `password` keys to automate the use of NordVPN as a Proxy
+system where required.
+
+You can also specify specific servers to use per-region with the `servers` key.  
+Sometimes a specific server works best for a service than others, so hard-coding one for a day or two helps.
+
+For example,
+
+```yaml
+username: zxqsR7C5CyGwmGb6KSvk8qsZ  # example of the login format
+password: wXVHmht22hhRKUEQ32PQVjCZ
+servers:
+  - us: 12  # force US server #12 for US proxies
+```
+
+The username and password should NOT be your normal NordVPN Account Credentials.  
+They should be the `Service credentials` which can be found on your Nord Account Dashboard.
+
+Once set, you can also specifically opt in to use a NordVPN proxy by specifying `--proxy=gb` or such.
+You can even set a specific server number this way, e.g., `--proxy=gb2366`.
+
+Note that `gb` is used instead of `uk` to be more consistent across regional systems.
 
 ## remote_cdm (list\[dict])
 

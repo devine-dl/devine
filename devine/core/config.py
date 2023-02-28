@@ -58,7 +58,6 @@ class Config:
         self.muxing: dict = kwargs.get("muxing") or {}
         self.nordvpn: dict = kwargs.get("nordvpn") or {}
         self.profiles: dict = kwargs.get("profiles") or {}
-        self.proxies: dict = kwargs.get("proxies") or {}
         self.proxy_providers: dict = kwargs.get("proxy_providers") or {}
         self.serve: dict = kwargs.get("serve") or {}
         self.services: dict = kwargs.get("services") or {}
