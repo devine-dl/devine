@@ -67,7 +67,7 @@ class Video(Track):
         @staticmethod
         def from_netflix_profile(profile: str) -> Video.Codec:
             profile = profile.lower().strip()
-            if profile.startswith("playready-h264"):
+            if profile.startswith(("h264", "playready-h264")):
                 return Video.Codec.AVC
             if profile.startswith("hevc"):
                 return Video.Codec.HEVC
