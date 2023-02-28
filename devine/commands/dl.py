@@ -433,16 +433,16 @@ class dl:
             if skip_dl:
                 self.log.info("Skipping Download...")
             else:
-                with Live(
-                    Padding(
-                        download_table,
-                        (1, 5)
-                    ),
-                    console=console,
-                    refresh_per_second=5
-                ):
-                    with ThreadPoolExecutor(workers) as pool:
-                        try:
+                try:
+                    with Live(
+                        Padding(
+                            download_table,
+                            (1, 5)
+                        ),
+                        console=console,
+                        refresh_per_second=5
+                    ):
+                        with ThreadPoolExecutor(workers) as pool:
                             for download in futures.as_completed((
                                 pool.submit(
                                     self.download_track,
@@ -480,9 +480,12 @@ class dl:
                                     self.log.error("Download worker threw an unhandled exception:")
                                     console.print_exception()
                                     return
-                        except KeyboardInterrupt:
-                            self.log.info("Received Keyboard Interrupt, stopping...")
-                            return
+                except KeyboardInterrupt:
+                    console.print(Padding(
+                        ":x: Download Cancelled...",
+                        (0, 5, 1, 5)
+                    ))
+                    return
 
                 video_track_n = 0
 
