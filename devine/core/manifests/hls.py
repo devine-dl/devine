@@ -364,9 +364,6 @@ class HLS:
                     download_size = download.result()
                 except KeyboardInterrupt:
                     stop_event.set()
-                    if not has_stopped:
-                        has_stopped = True
-                        progress(downloaded="[orange]STOPPING")
                 except Exception as e:
                     stop_event.set()
                     if has_stopped:
@@ -377,24 +374,28 @@ class HLS:
                         progress(downloaded="[red]FAILING")
                     traceback.print_exception(e)
                     log.error(f"Segment Download worker threw an unhandled exception: {e!r}")
-                else:
-                    if stop_event.is_set():
-                        # skipped
-                        continue
-                    progress(advance=1)
+                    continue
 
-                    now = time.time()
-                    time_since = now - last_speed_refresh
+                if stop_event.is_set():
+                    if not has_stopped:
+                        has_stopped = True
+                        progress(downloaded="[orange]STOPPING")
+                    continue
 
-                    if download_size:  # no size == skipped dl
-                        download_sizes.append(download_size)
+                progress(advance=1)
 
-                    if time_since > 5 or finished_threads == len(master.segments):
-                        data_size = sum(download_sizes)
-                        download_speed = data_size / time_since
-                        progress(downloaded=f"HLS {filesize.decimal(download_speed)}/s")
-                        last_speed_refresh = now
-                        download_sizes.clear()
+                now = time.time()
+                time_since = now - last_speed_refresh
+
+                if download_size:  # no size == skipped dl
+                    download_sizes.append(download_size)
+
+                if time_since > 5 or finished_threads == len(master.segments):
+                    data_size = sum(download_sizes)
+                    download_speed = data_size / time_since
+                    progress(downloaded=f"HLS {filesize.decimal(download_speed)}/s")
+                    last_speed_refresh = now
+                    download_sizes.clear()
             if has_failed:
                 progress(downloaded="[red]FAILED")
             if has_stopped:
