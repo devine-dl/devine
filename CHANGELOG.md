@@ -5,6 +5,100 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2023-03-01
+
+This release brings a huge change to the fundamentals of Devine's logging, UI, and UX.
+
+### Added
+
+- Add new dependency [rich](https://github.com/Textualize/rich) for advanced color and logging capabilities.
+- Set rich console output color scheme to the [Catppuccin Mocha](https://github.com/catppuccin/palette) theme.
+- Add full download cancellation support by using CTRL+C. Track downloads will now be marked as STOPPED if you press
+  CTRL+C to stop the download, or FAILED if any unexpected exception occurs during a download. The track will be marked
+  as SKIPPED if the download stopped or failed before it got a chance to begin. It will print a download cancelled
+  message if downloading was stopped, or a download error message if downloading failed. It will print the first
+  download error traceback with rich before stopping.
+- Downloads will now automatically cancel if any track or segment download fails.
+- Implement sub-commands `add` and `delete` to the `wvd` command for adding and deleting WVD (Widevine Device) files to
+  and from the configured WVDs directory (#31).
+- Add new config option to disable the forced background color. You may want to disable the purple background if you're
+  terminal isn't able to apply it correctly, or you prefer to use your own terminal's background color.
+- Create `ComfyConsole`, `ComfyLogRenderer`, and `ComfyRichHandler`. These are hacky classes to implement padding to
+  the left and right of all rich console output. This gives devine a comfortable and freeing look-and-feel.
+- An ASCII banner is now displayed at the start of software execution with the version number.
+- Add rich status output to various parts of the download process. It's also used when checking GEOFENCE within the
+  base Service class. I encourage you to follow similar procedures where possible in Service code. This will result in
+  cleaner log output, and overall less logs being made when finished.
+- Add three rich horizontal rules to separate logs during the download process. The Service used, the Title received
+  from `get_titles()`, and then the Title being downloaded. This helps identify which logs are part of which process.
+- Add new `tree` methods to `Series`, `Movies`, and `Album` classes to list items within the objects with Rich Tree.
+  This allows for more rich console output when displaying E.g., Seasons and Episodes within a Series, or Songs within
+  an Album.
+- Add new `tree` method to the `Tracks` class to list the tracks received from `get_tracks()` with Rich Tree. Similar
+  to the change just above, this allows for more rich console output. It has replaced the `Tracks.print()` method.
+- Add a rich progress bar to the track multiplexing operation.
+- Add a log when a download finishes, how long it took, and where the final muxed file was moved to.
+- Add a new track event, `OnMultiplex`. This event is run prior to multiplexing the finalized track data together. Use
+  this to run code once a track has finished downloading and all the post-download operations.
+- Add support for mapping Netflix profiles beginning with `h264` to AVC. E.g., the new -QC profiles.
+- Download progress bars now display the download speed. It displays in decimal (^1024) size. E.g., MB/s.
+- If a download stops or fails, any residual file that may have been downloaded in an incomplete OR complete state will
+  now be deleted. Download continuation is not yet supported, and this will help to reduce leftover stale files.
+
+### Changed
+
+- The logging base config now has `ComfyRichHandler` as its log handler for automatic rich console output when using
+  the logging system.
+- The standard `traceback` module has been overridden with `rich.traceback` for styled traceback output.
+- Only the rich console output is now saved when using `--log`.
+- All `tqdm` progress bars have been replaced with rich progress bars. The rich progress bars are now displayed under
+  each track tree.
+- The titles are now only listed if `--list-titles` is used. Otherwise, only a brief explanation of what it received
+  from `get_titles()` will be returned. E.g., for Series it will list how many seasons and episodes were received.
+- Similarly, all available tracks are now only listed if `--list` is used. This is to reduce unnecessary prints, and to
+  separate confusion between listings of available tracks, and listings of tracks that are going to be downloaded.
+- Listing all available tracks with `--list` no longer continues execution. It now stops after the first list. If you
+  want to list available tracks for a specific title, use `-w` in combination with `--list`.
+- The available tracks are now printed in a rich panel with a header denoting the tracks as such.
+- The `Series`, `Movies`, and `Album` classes now have a much more simplified string representation. They now simply
+  state the overarching content within them. E.g., Series says the title and year of the TV Show.
+- The final log when all titles are processed is now a rich log and states how long the entire process took.
+- Widevine DRM license information is now printed below the tracks as a rich tree.
+- The CCExtractor process, Subtitle Conversion process, and FFmpeg Repacking process were all moved out of the track
+  download function (and therefore the thread) to be done on the main thread after downloading. This improves download
+  speed as the threads can close and be freed quicker for the next track to begin.
+- The CCExtractor process is now optional and will be skipped if the binary could not be found. An error is still
+  logged in the cases where it would have run.
+- The execution point of the `OnDownloaded` event has been moved to directly run after the stream has been downloaded.
+  It used to run after all the post-download operations finished like CCExtractor, FFmpeg Repacking, and Subtitle
+  Conversion.
+- The automatic SDH-stripped subtitle track now uses the new `OnMultiplex` event instead of `OnDownloaded`. This is to
+  account for the previous change as it requires the subtitle to be first converted to SubRip to support SDH-stripping.
+- Logs during downloads now appear before the downloading track list. This way it isn't constantly interrupting view of
+  the progress.
+- Now running aria2(c) with normal subprocess instead of through asyncio. This removes the creation of yet another
+  thread which is unnecessary as these calls would have already been under a non-main thread.
+- Moved Widevine DRM licensing calls before the download process for normal URL track downloads.
+- Segment Merging code for DASH and HLS downloads have been moved from the `dl` class to the HLS and DASH class.
+
+### Removed
+
+- Remove explicit dependency on `coloredlogs` and `colorama` as they are no longer used by devine itself.
+- Remove dependency `tqdm` as it was replaced with rich progress bars.
+- Remove now-unused logging constants like the custom log formats.
+- Remove `Tracks.print()` function as it was replaced with the new `Tracks.tree()` function.
+- Remove unnecessary sleep calls at the start of threads. This was believed to help with the download stop event check
+  but that was not the case. It instead added an artificial delay with downloads.
+
+### Fixed
+
+- Fix another crash when using devine without a config file. It now creates the directory of the config file before
+  making a new config file.
+- Set the default aria2(c) file-allocation to `prealloc` like stated in the config documentation. It uses `prealloc` as
+  the default, as `falloc` is generally unsupported in most scenarios, so it's not a good default.
+- Correct the config documentation in regard to `proxies` now being called `proxy_providers`, and `basic` actually
+  being a `dict` of lists, and not a `dict` of strings.
+
 ## [1.4.0] - 2023-02-25
 
 ### Added
@@ -169,6 +263,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial public release under the name Devine.
 
+[2.0.0]: https://github.com/devine-dl/devine/releases/tag/v2.0.0
 [1.4.0]: https://github.com/devine-dl/devine/releases/tag/v1.4.0
 [1.3.1]: https://github.com/devine-dl/devine/releases/tag/v1.3.1
 [1.3.0]: https://github.com/devine-dl/devine/releases/tag/v1.3.0
