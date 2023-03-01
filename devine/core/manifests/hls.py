@@ -392,7 +392,7 @@ class HLS:
                 if download_size:  # no size == skipped dl
                     download_sizes.append(download_size)
 
-                if time_since > 5 or finished_threads == len(master.segments):
+                if download_sizes and (time_since > 5 or finished_threads == len(master.segments)):
                     data_size = sum(download_sizes)
                     download_speed = data_size / time_since
                     progress(downloaded=f"HLS {filesize.decimal(download_speed)}/s")

@@ -552,7 +552,7 @@ class DASH:
                     if download_size:  # no size == skipped dl
                         download_sizes.append(download_size)
 
-                    if time_since > 5 or finished_threads == len(segments):
+                    if download_sizes and (time_since > 5 or finished_threads == len(segments)):
                         data_size = sum(download_sizes)
                         download_speed = data_size / time_since
                         progress(downloaded=f"DASH {filesize.decimal(download_speed)}/s")
