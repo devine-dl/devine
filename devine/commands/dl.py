@@ -8,7 +8,6 @@ import re
 import shutil
 import sys
 import time
-import traceback
 from concurrent import futures
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
@@ -729,79 +728,88 @@ class dl:
         else:
             save_dir = save_path.parent
 
+        def cleanup():
+            # e.g., foo.mp4
+            save_path.unlink(missing_ok=True)
+            # e.g., foo.mp4.aria2
+            save_path.with_suffix(f"{save_path.suffix}.aria2").unlink(missing_ok=True)
+            for file in config.directories.temp.glob(f"{save_path.stem}.*{save_path.suffix}"):
+                # e.g., foo.decrypted.mp4, foo.repack.mp4, and such
+                file.unlink()
+            if save_dir.exists() and save_dir.name.endswith("_segments"):
+                shutil.rmtree(save_dir)
+
         # Delete any pre-existing temp files matching this track.
         # We can't re-use or continue downloading these tracks as they do not use a
         # lock file. Or at least the majority don't. Even if they did I've encountered
         # corruptions caused by sudden interruptions to the lock file.
-        for existing_file in config.directories.temp.glob(f"{save_path.stem}.*{save_path.suffix}"):
-            # e.g., foo.decrypted.mp4, foo.repack.mp4, and such
-            existing_file.unlink()
-        if save_dir.exists() and save_dir.name.endswith("_segments"):
-            shutil.rmtree(save_dir)
+        cleanup()
 
-        if track.descriptor == track.Descriptor.M3U:
-            HLS.download_track(
-                track=track,
-                save_path=save_path,
-                save_dir=save_dir,
-                stop_event=self.DL_POOL_STOP,
-                progress=progress,
-                session=service.session,
-                proxy=proxy,
-                license_widevine=prepare_drm
-            )
-        elif track.descriptor == track.Descriptor.MPD:
-            DASH.download_track(
-                track=track,
-                save_path=save_path,
-                save_dir=save_dir,
-                stop_event=self.DL_POOL_STOP,
-                progress=progress,
-                session=service.session,
-                proxy=proxy,
-                license_widevine=prepare_drm
-            )
-        # no else-if as DASH may convert the track to URL descriptor
-        if track.descriptor == track.Descriptor.URL:
-            try:
-                if not track.drm and isinstance(track, (Video, Audio)):
-                    # the service might not have explicitly defined the `drm` property
-                    # try find widevine DRM information from the init data of URL
-                    try:
-                        drm = Widevine.from_track(track, service.session)
-                    except Widevine.Exceptions.PSSHNotFound:
-                        # it might not have Widevine DRM, or might not have found the PSSH
-                        self.log.warning("No Widevine PSSH was found for this track, is it DRM free?")
-                    else:
-                        prepare_drm(drm)
-                        track.drm = [drm]
-
-                aria2c(
-                    uri=track.url,
-                    out=save_path,
-                    headers=service.session.headers,
-                    proxy=proxy if track.needs_proxy else None,
-                    progress=progress
+        try:
+            if track.descriptor == track.Descriptor.M3U:
+                HLS.download_track(
+                    track=track,
+                    save_path=save_path,
+                    save_dir=save_dir,
+                    stop_event=self.DL_POOL_STOP,
+                    progress=progress,
+                    session=service.session,
+                    proxy=proxy,
+                    license_widevine=prepare_drm
                 )
+            elif track.descriptor == track.Descriptor.MPD:
+                DASH.download_track(
+                    track=track,
+                    save_path=save_path,
+                    save_dir=save_dir,
+                    stop_event=self.DL_POOL_STOP,
+                    progress=progress,
+                    session=service.session,
+                    proxy=proxy,
+                    license_widevine=prepare_drm
+                )
+            # no else-if as DASH may convert the track to URL descriptor
+            if track.descriptor == track.Descriptor.URL:
+                try:
+                    if not track.drm and isinstance(track, (Video, Audio)):
+                        # the service might not have explicitly defined the `drm` property
+                        # try find widevine DRM information from the init data of URL
+                        try:
+                            drm = Widevine.from_track(track, service.session)
+                        except Widevine.Exceptions.PSSHNotFound:
+                            # it might not have Widevine DRM, or might not have found the PSSH
+                            self.log.warning("No Widevine PSSH was found for this track, is it DRM free?")
+                        else:
+                            prepare_drm(drm)
+                            track.drm = [drm]
 
-                track.path = save_path
+                    aria2c(
+                        uri=track.url,
+                        out=save_path,
+                        headers=service.session.headers,
+                        proxy=proxy if track.needs_proxy else None,
+                        progress=progress
+                    )
 
-                if track.drm:
-                    drm = track.drm[0]  # just use the first supported DRM system for now
-                    drm.decrypt(save_path)
-                    track.drm = None
-                    if callable(track.OnDecrypted):
-                        track.OnDecrypted(track)
-            except KeyboardInterrupt:
-                progress(downloaded="[yellow]STOPPED")
-            except Exception as e:
-                progress(downloaded="[red]FAILED")
-                traceback.print_exception(e)
-                self.log.error(f"URL Download worker threw an unhandled exception: {e!r}")
-            finally:
-                self.DL_POOL_STOP.set()
-                save_path.unlink(missing_ok=True)
-                save_path.with_suffix(f"{save_path.suffix}.aria2").unlink(missing_ok=True)
+                    track.path = save_path
+
+                    if track.drm:
+                        drm = track.drm[0]  # just use the first supported DRM system for now
+                        drm.decrypt(save_path)
+                        track.drm = None
+                        if callable(track.OnDecrypted):
+                            track.OnDecrypted(track)
+                except KeyboardInterrupt:
+                    self.DL_POOL_STOP.set()
+                    progress(downloaded="[yellow]STOPPED")
+                    raise
+                except Exception:
+                    self.DL_POOL_STOP.set()
+                    progress(downloaded="[red]FAILED")
+                    raise
+        except (Exception, KeyboardInterrupt):
+            cleanup()
+            raise
 
         if self.DL_POOL_STOP.is_set():
             # we stopped during the download, let's exit
