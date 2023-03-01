@@ -4,6 +4,7 @@ import base64
 import logging
 import math
 import re
+import shutil
 import sys
 import time
 import traceback
@@ -272,6 +273,7 @@ class DASH:
     @staticmethod
     def download_track(
         track: AnyTrack,
+        save_path: Path,
         save_dir: Path,
         stop_event: Event,
         progress: partial,
@@ -504,13 +506,13 @@ class DASH:
 
             progress(total=len(segments))
 
+            finished_threads = 0
+            has_stopped = False
+            has_failed = False
             download_sizes = []
             last_speed_refresh = time.time()
 
             with ThreadPoolExecutor(max_workers=16) as pool:
-                finished_threads = 0
-                has_stopped = False
-                has_failed = False
                 for download in futures.as_completed((
                     pool.submit(
                         download_segment,
@@ -556,10 +558,23 @@ class DASH:
                         progress(downloaded=f"DASH {filesize.decimal(download_speed)}/s")
                         last_speed_refresh = now
                         download_sizes.clear()
-                if has_failed:
-                    progress(downloaded="[red]FAILED")
+
+            try:
                 if has_stopped:
                     progress(downloaded="[yellow]STOPPED")
+                    return
+                if has_failed:
+                    progress(downloaded="[red]FAILED")
+                    return
+
+                with open(save_path, "wb") as f:
+                    for segment_file in sorted(save_dir.iterdir()):
+                        f.write(segment_file.read_bytes())
+                        segment_file.unlink()
+
+                track.path = save_path
+            finally:
+                shutil.rmtree(save_dir)
 
     @staticmethod
     def get_language(*options: Any) -> Optional[Language]:

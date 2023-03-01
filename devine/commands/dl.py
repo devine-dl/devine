@@ -735,6 +735,7 @@ class dl:
         if track.descriptor == track.Descriptor.M3U:
             HLS.download_track(
                 track=track,
+                save_path=save_path,
                 save_dir=save_dir,
                 stop_event=self.DL_POOL_STOP,
                 progress=progress,
@@ -745,6 +746,7 @@ class dl:
         elif track.descriptor == track.Descriptor.MPD:
             DASH.download_track(
                 track=track,
+                save_path=save_path,
                 save_dir=save_dir,
                 stop_event=self.DL_POOL_STOP,
                 progress=progress,
@@ -791,13 +793,6 @@ class dl:
                 track.drm = None
                 if callable(track.OnDecrypted):
                     track.OnDecrypted(track)
-        else:
-            with open(save_path, "wb") as f:
-                for file in sorted(save_dir.iterdir()):
-                    f.write(file.read_bytes())
-                    file.unlink()
-            save_dir.rmdir()
-            track.path = save_path
 
         if track.path.stat().st_size <= 3:  # Empty UTF-8 BOM == 3 bytes
             raise IOError(
