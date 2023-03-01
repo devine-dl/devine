@@ -34,6 +34,7 @@ from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
+from rich.console import Group
 
 from devine.core.config import config
 from devine.core.console import console
@@ -474,17 +475,22 @@ class dl:
                                 )
                                 for i, track in enumerate(title.tracks)
                             )):
-                                try:
-                                    download.result()
-                                except Exception:  # noqa
-                                    self.DL_POOL_STOP.set()
-                                    self.log.error("Download worker threw an unhandled exception:")
-                                    console.print_exception()
-                                    return
+                                download.result()
                 except KeyboardInterrupt:
                     console.print(Padding(
                         ":x: Download Cancelled...",
                         (0, 5, 1, 5)
+                    ))
+                    return
+                except Exception:  # noqa
+                    console.print_exception()
+                    console.print(Padding(
+                        Group(
+                            ":x: Download Failed...",
+                            "   One of the download workers had an error!",
+                            "   See the error trace above for more information."
+                        ),
+                        (1, 5)
                     ))
                     return
 
