@@ -434,6 +434,8 @@ class dl:
             if skip_dl:
                 self.log.info("Skipping Download...")
             else:
+                dl_start_time = time.time()
+
                 try:
                     with Live(
                         Padding(
@@ -561,8 +563,10 @@ class dl:
 
                 final_path = self.mux_tracks(title, not no_folder, not no_source)
 
+                title_dl_time = time_elapsed_since(dl_start_time)
+
                 downloaded_table = Table.grid(expand=True)
-                downloaded_table.add_row("Download Finished! :tada:")
+                downloaded_table.add_row(f" :tada: Download Finished in [progress.elapsed]{title_dl_time}[/]!")
                 downloaded_table.add_row(Text(str(final_path), overflow="fold"))
                 console.print(Padding(
                     downloaded_table,
