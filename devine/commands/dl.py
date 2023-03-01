@@ -48,7 +48,7 @@ from devine.core.services import Services
 from devine.core.titles import Movie, Song, Title_T
 from devine.core.titles.episode import Episode
 from devine.core.tracks import Audio, Subtitle, Video
-from devine.core.utilities import get_binary_path, is_close_match
+from devine.core.utilities import get_binary_path, is_close_match, time_elapsed_since
 from devine.core.utils.click_types import LANGUAGE_RANGE, QUALITY, SEASON_RANGE, ContextData
 from devine.core.utils.collections import merge_dict
 from devine.core.utils.subprocess import ffprobe
@@ -578,12 +578,10 @@ class dl:
                     cookie_jar.set_cookie(cookie)
                 cookie_jar.save(ignore_discard=True)
 
-        minutes, seconds = divmod(int(time.time() - start_time), 60)
-        hours, minutes = divmod(minutes, 60)
-        time_string = (f"{hours:d}h" if hours else "") + f"{minutes:d}m{seconds:d}s"
+        dl_time = time_elapsed_since(start_time)
 
         console.print(Padding(
-            f"Processed all titles in [progress.elapsed]{time_string}",
+            f"Processed all titles in [progress.elapsed]{dl_time}",
             (0, 5, 1, 5)
         ))
 

@@ -4,6 +4,8 @@ import importlib.util
 import re
 import shutil
 import sys
+import time
+
 import unicodedata
 from collections import defaultdict
 from datetime import datetime
@@ -187,6 +189,23 @@ def get_ip_info(session: Optional[requests.Session] = None) -> dict:
     is what will be returned.
     """
     return (session or requests.Session()).get("https://ipinfo.io/json").json()
+
+
+def time_elapsed_since(start: float) -> str:
+    """
+    Get time elapsed since a timestamp as a string.
+    E.g., `1h56m2s`, `15m12s`, `0m55s`, e.t.c.
+    """
+    elapsed = int(time.time() - start)
+
+    minutes, seconds = divmod(elapsed, 60)
+    hours, minutes = divmod(minutes, 60)
+
+    time_string = f"{minutes:d}m{seconds:d}s"
+    if hours:
+        time_string = f"{hours:d}h{time_string}"
+
+    return time_string
 
 
 @contextlib.asynccontextmanager
