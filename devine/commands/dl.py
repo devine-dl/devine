@@ -759,6 +759,18 @@ class dl:
 
         # no else-if as DASH may convert the track to URL descriptor
         if track.descriptor == track.Descriptor.URL:
+            if not track.drm and isinstance(track, (Video, Audio)):
+                # the service might not have explicitly defined the `drm` property
+                # try find widevine DRM information from the init data of URL
+                try:
+                    drm = Widevine.from_track(track, service.session)
+                except Widevine.Exceptions.PSSHNotFound:
+                    # it might not have Widevine DRM, or might not have found the PSSH
+                    self.log.warning("No Widevine PSSH was found for this track, is it DRM free?")
+                else:
+                    prepare_drm(drm)
+                    track.drm = [drm]
+
             aria2c(
                 uri=track.url,
                 out=save_path,
@@ -773,18 +785,8 @@ class dl:
 
             track.path = save_path
 
-            if not track.drm and isinstance(track, (Video, Audio)):
-                try:
-                    track.drm = [Widevine.from_track(track, service.session)]
-                except Widevine.Exceptions.PSSHNotFound:
-                    # it might not have Widevine DRM, or might not have found the PSSH
-                    self.log.warning("No Widevine PSSH was found for this track, is it DRM free?")
-
             if track.drm:
                 drm = track.drm[0]  # just use the first supported DRM system for now
-                if isinstance(drm, Widevine):
-                    # license and grab content keys
-                    prepare_drm(drm)
                 drm.decrypt(save_path)
                 track.drm = None
                 if callable(track.OnDecrypted):
