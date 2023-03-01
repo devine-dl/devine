@@ -8,6 +8,7 @@ import re
 import shutil
 import sys
 import time
+import traceback
 from concurrent import futures
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
@@ -756,34 +757,45 @@ class dl:
             )
         # no else-if as DASH may convert the track to URL descriptor
         if track.descriptor == track.Descriptor.URL:
-            if not track.drm and isinstance(track, (Video, Audio)):
-                # the service might not have explicitly defined the `drm` property
-                # try find widevine DRM information from the init data of URL
-                try:
-                    drm = Widevine.from_track(track, service.session)
-                except Widevine.Exceptions.PSSHNotFound:
-                    # it might not have Widevine DRM, or might not have found the PSSH
-                    self.log.warning("No Widevine PSSH was found for this track, is it DRM free?")
-                else:
-                    prepare_drm(drm)
-                    track.drm = [drm]
+            try:
+                if not track.drm and isinstance(track, (Video, Audio)):
+                    # the service might not have explicitly defined the `drm` property
+                    # try find widevine DRM information from the init data of URL
+                    try:
+                        drm = Widevine.from_track(track, service.session)
+                    except Widevine.Exceptions.PSSHNotFound:
+                        # it might not have Widevine DRM, or might not have found the PSSH
+                        self.log.warning("No Widevine PSSH was found for this track, is it DRM free?")
+                    else:
+                        prepare_drm(drm)
+                        track.drm = [drm]
 
-            aria2c(
-                uri=track.url,
-                out=save_path,
-                headers=service.session.headers,
-                proxy=proxy if track.needs_proxy else None,
-                progress=progress
-            )
+                aria2c(
+                    uri=track.url,
+                    out=save_path,
+                    headers=service.session.headers,
+                    proxy=proxy if track.needs_proxy else None,
+                    progress=progress
+                )
 
-            track.path = save_path
+                track.path = save_path
 
-            if track.drm:
-                drm = track.drm[0]  # just use the first supported DRM system for now
-                drm.decrypt(save_path)
-                track.drm = None
-                if callable(track.OnDecrypted):
-                    track.OnDecrypted(track)
+                if track.drm:
+                    drm = track.drm[0]  # just use the first supported DRM system for now
+                    drm.decrypt(save_path)
+                    track.drm = None
+                    if callable(track.OnDecrypted):
+                        track.OnDecrypted(track)
+            except KeyboardInterrupt:
+                progress(downloaded="[yellow]STOPPED")
+            except Exception as e:
+                progress(downloaded="[red]FAILED")
+                traceback.print_exception(e)
+                self.log.error(f"URL Download worker threw an unhandled exception: {e!r}")
+            finally:
+                self.DL_POOL_STOP.set()
+                save_path.unlink(missing_ok=True)
+                save_path.with_suffix(f"{save_path.suffix}.aria2").unlink(missing_ok=True)
 
         if self.DL_POOL_STOP.is_set():
             # we stopped during the download, let's exit
