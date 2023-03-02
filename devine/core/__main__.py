@@ -65,7 +65,6 @@ def main(version: bool, debug: bool, log_path: Path) -> None:
                     r"/_____/_____/  |___/___/_/ |_/_____/   ⠀",
                     style="ascii.art"
                 ),
-                "",
                 f"v[repr.number]{__version__}[/] Copyright © 2019-{datetime.now().year} rlaphoenix",
                 f"  [bright_blue]https://github.com/devine-dl/devine[/]"
             ),
