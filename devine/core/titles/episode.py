@@ -196,11 +196,13 @@ class Series(SortedKeyList, ABC):
                 )
                 for episode in self:
                     if episode.season == season:
-                        season_tree.add(
-                            f"[bold]{str(episode.number).zfill(len(str(episodes)))}" + (
-                                f".[/] [bright_black]{episode.name}" if episode.name else ""
+                        if episode.name:
+                            season_tree.add(
+                                f"[bold]{str(episode.number).zfill(len(str(episodes)))}.[/] "
+                                f"[bright_black]{episode.name}"
                             )
-                        )
+                        else:
+                            season_tree.add(f"[bright_black]Episode {str(episode.number).zfill(len(str(episodes)))}")
 
         return tree
 
