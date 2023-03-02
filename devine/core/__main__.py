@@ -67,7 +67,7 @@ def main(version: bool, debug: bool, log_path: Path) -> None:
                 ),
                 "",
                 f"v[repr.number]{__version__}[/] Copyright © 2019-{datetime.now().year} rlaphoenix",
-                f"[bright_blue]https://github.com/devine-dl/devine[/]"
+                f"  [bright_blue]https://github.com/devine-dl/devine[/]"
             ),
             (1, 21, 1, 20),
             expand=True
