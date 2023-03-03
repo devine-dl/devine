@@ -471,8 +471,7 @@ class DASH:
                         uri=segment_uri,
                         out=segment_save_path,
                         headers=session.headers,
-                        proxy=proxy,
-                        silent=True
+                        proxy=proxy
                     )
 
                 data_size = segment_save_path.stat().st_size
