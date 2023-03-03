@@ -4,6 +4,7 @@ import base64
 import shutil
 import subprocess
 import sys
+import textwrap
 from pathlib import Path
 from typing import Any, Callable, Optional, Union
 from uuid import UUID
@@ -14,8 +15,10 @@ from pymp4.parser import Box
 from pywidevine.cdm import Cdm as WidevineCdm
 from pywidevine.pssh import PSSH
 from requests import Session
+from rich.text import Text
 
 from devine.core.config import config
+from devine.core.console import console
 from devine.core.constants import AnyTrack
 from devine.core.utilities import get_binary_path, get_boxes
 from devine.core.utils.subprocess import ffprobe
@@ -236,8 +239,7 @@ class Widevine:
         config.directories.temp.mkdir(parents=True, exist_ok=True)
 
         try:
-            subprocess.check_call([
-                executable,
+            arguments = [
                 f"input={path},stream=0,output={decrypted_path}",
                 "--enable_raw_key_decryption", "--keys",
                 ",".join([
@@ -252,11 +254,38 @@ class Widevine:
                     ]
                 ]),
                 "--temp_dir", config.directories.temp
-            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            ]
+
+            p = subprocess.Popen(
+                [executable, *arguments],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                universal_newlines=True
+            )
+
+            shaka_log_buffer = ""
+            for line in iter(p.stderr.readline, ""):
+                line = line.strip()
+                if line and ":INFO:" not in line:
+                    shaka_log_buffer += f"{line.strip()}\n"
+
+            if shaka_log_buffer:
+                # wrap to console width - padding - '[Widevine]: '
+                shaka_log_buffer = "\n            ".join(textwrap.wrap(
+                    shaka_log_buffer.rstrip(),
+                    width=console.width - 22,
+                    initial_indent=""
+                ))
+                console.log(Text.from_ansi("\n[Widevine]: " + shaka_log_buffer))
+
+            p.wait()
+
+            if p.returncode != 0:
+                raise subprocess.CalledProcessError(p.returncode, arguments)
         except subprocess.CalledProcessError as e:
             if e.returncode == 0xC000013A:  # STATUS_CONTROL_C_EXIT
                 raise KeyboardInterrupt()
-            raise subprocess.SubprocessError(f"Failed to Decrypt! Shaka Packager Error: {e}")
+            raise
 
         path.unlink()
         shutil.move(decrypted_path, path)
