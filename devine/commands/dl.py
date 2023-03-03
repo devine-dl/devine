@@ -6,6 +6,7 @@ import math
 import random
 import re
 import shutil
+import subprocess
 import sys
 import time
 from concurrent import futures
@@ -483,14 +484,19 @@ class dl:
                         (0, 5, 1, 5)
                     ))
                     return
-                except Exception:  # noqa
-                    console.print_exception()
+                except Exception as e:  # noqa
+                    error_messages = [
+                        ":x: Download Failed...",
+                        "   One of the download workers had an error!",
+                        "   See the error trace above for more information."
+                    ]
+                    if isinstance(e, subprocess.CalledProcessError):
+                        # ignore process exceptions as proper error logs are already shown
+                        error_messages.append(f"   Process exit code: {e.returncode}")
+                    else:
+                        console.print_exception()
                     console.print(Padding(
-                        Group(
-                            ":x: Download Failed...",
-                            "   One of the download workers had an error!",
-                            "   See the error trace above for more information."
-                        ),
+                        Group(*error_messages),
                         (1, 5)
                     ))
                     return
