@@ -17,6 +17,7 @@ def aria2c(
     headers: Optional[dict] = None,
     proxy: Optional[str] = None,
     silent: bool = False,
+    segmented: bool = False,
     progress: Optional[partial] = None,
     *args: str
 ) -> int:
@@ -27,7 +28,6 @@ def aria2c(
     If multiple URLs are provided they will be downloaded in the provided order
     to the output directory. They will not be merged together.
     """
-    segmented = False
     if isinstance(uri, list) and len(uri) == 1:
         uri = uri[0]
     if isinstance(uri, list):
