@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import html
 import logging
 import math
@@ -791,13 +792,13 @@ class dl:
                             prepare_drm(drm)
                             track.drm = [drm]
 
-                    aria2c(
+                    asyncio.run(aria2c(
                         uri=track.url,
                         out=save_path,
                         headers=service.session.headers,
                         proxy=proxy if track.needs_proxy else None,
                         progress=progress
-                    )
+                    ))
 
                     track.path = save_path
 

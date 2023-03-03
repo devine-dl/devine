@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 import logging
 import math
@@ -467,13 +468,13 @@ class DASH:
                     segment_save_path.parent.mkdir(parents=True, exist_ok=True)
                     segment_save_path.write_bytes(res.content)
                 else:
-                    aria2c(
+                    asyncio.run(aria2c(
                         uri=segment_uri,
                         out=segment_save_path,
                         headers=session.headers,
                         proxy=proxy,
                         segmented=True
-                    )
+                    ))
 
                 data_size = segment_save_path.stat().st_size
 

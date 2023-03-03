@@ -1,3 +1,4 @@
+import asyncio
 import subprocess
 import textwrap
 from functools import partial
@@ -11,7 +12,7 @@ from devine.core.console import console
 from devine.core.utilities import get_binary_path, start_pproxy
 
 
-def aria2c(
+async def aria2c(
     uri: Union[str, list[str]],
     out: Path,
     headers: Optional[dict] = None,
@@ -83,25 +84,35 @@ def aria2c(
         if proxy.lower().split(":")[0] != "http":
             # HTTPS proxies are not supported by aria2(c).
             # Proxy the proxy via pproxy to access it as an HTTP proxy.
-            with start_pproxy(proxy) as pproxy_:
-                return aria2c(uri, out, headers, pproxy_)
+            async with start_pproxy(proxy) as pproxy_:
+                return await aria2c(uri, out, headers, pproxy_, silent, segmented, progress, *args)
         arguments += ["--all-proxy", proxy]
 
     try:
-        p = subprocess.Popen(
-            [executable, *arguments],
+        p = await asyncio.create_subprocess_exec(
+            executable,
+            *arguments,
             stdin=subprocess.PIPE,
-            stdout=[subprocess.PIPE, subprocess.DEVNULL][silent],
-            universal_newlines=True
+            stdout=[subprocess.PIPE, subprocess.DEVNULL][silent]
         )
-        p._stdin_write(uri)  # noqa
+
+        p.stdin.write(uri.encode())
+        await p.stdin.drain()
+        p.stdin.close()
 
         if p.stdout:
             is_dl_summary = False
             aria_log_buffer = ""
-            for line in iter(p.stdout.readline, ""):
-                line = line.strip()
-                if line:
+            while True:
+                try:
+                    chunk = await p.stdout.readuntil(b"\r")
+                except asyncio.IncompleteReadError as e:
+                    chunk = e.partial
+                if not chunk:
+                    break
+                for line in chunk.decode().strip().splitlines():
+                    if not line:
+                        continue
                     if line.startswith("Download Results"):
                         # we know it's 100% downloaded, but let's use the avg dl speed value
                         is_dl_summary = True
@@ -133,7 +144,7 @@ def aria2c(
                 ))
                 console.log(Text.from_ansi("\n[Aria2c]: " + aria_log_buffer))
 
-        p.wait()
+        await p.wait()
 
         if p.returncode != 0:
             raise subprocess.CalledProcessError(p.returncode, arguments)
