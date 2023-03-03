@@ -62,7 +62,10 @@ def aria2c(
         "--max-tries", "5",
         "--max-file-not-found", "5",
         "--summary-interval", "0",
-        "--file-allocation", config.aria2c.get("file_allocation", "prealloc"),
+        "--file-allocation", [
+            config.aria2c.get("file_allocation", "prealloc"),
+            "none"
+        ][segmented],
         "--console-log-level", "warn",
         "--download-result", ["hide", "default"][bool(progress)],
         *args,
