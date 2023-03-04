@@ -658,8 +658,12 @@ class dl:
                                 licence=licence,
                                 certificate=certificate
                             )
-                        except (Widevine.Exceptions.EmptyLicense, Widevine.Exceptions.CEKNotFound) as e:
-                            cek_tree.add(f"[logging.level.error]{e}")
+                        except Exception as e:
+                            if isinstance(e, (Widevine.Exceptions.EmptyLicense, Widevine.Exceptions.CEKNotFound)):
+                                msg = str(e)
+                            else:
+                                msg = f"An exception occurred in the Service's license function: {e}"
+                            cek_tree.add(f"[logging.level.error]{msg}")
                             if not pre_existing_tree:
                                 table.add_row(cek_tree)
                             raise e
