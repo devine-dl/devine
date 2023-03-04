@@ -267,8 +267,18 @@ class HLS:
                     if not segment.init_section.uri.startswith(segment.init_section.base_uri):
                         segment.init_section.uri = segment.init_section.base_uri + segment.init_section.uri
 
+                    if segment.init_section.byterange:
+                        byte_range = HLS.calculate_byte_range(segment.init_section.byterange)
+                        _ = range_offset.get()
+                        range_offset.put(byte_range.split("-")[0])
+                        headers = {
+                            "Range": f"bytes={byte_range}"
+                        }
+                    else:
+                        headers = {}
+
                     log.debug("Got new init segment, %s", segment.init_section.uri)
-                    res = session.get(segment.init_section.uri)
+                    res = session.get(segment.init_section.uri, headers=headers)
                     res.raise_for_status()
                     newest_init_data = res.content
             finally:
