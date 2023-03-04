@@ -266,8 +266,14 @@ class Widevine:
             shaka_log_buffer = ""
             for line in iter(p.stderr.readline, ""):
                 line = line.strip()
-                if line and ":INFO:" not in line:
-                    shaka_log_buffer += f"{line.strip()}\n"
+                if not line:
+                    continue
+                if ":INFO:" in line:
+                    continue
+                if "Insufficient bits in bitstream for given AVC profile" in line:
+                    # this is a warning and is something we don't have to worry about
+                    continue
+                shaka_log_buffer += f"{line.strip()}\n"
 
             if shaka_log_buffer:
                 # wrap to console width - padding - '[Widevine]: '
