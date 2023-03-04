@@ -278,21 +278,19 @@ class HLS:
                 segment.uri = segment.base_uri + segment.uri
 
             if segment.byterange:
-                previous_range_offset = range_offset.get()
-                byte_range_parts = [int(x) for x in segment.byterange.split("@")]
-                if len(byte_range_parts) != 2:
-                    byte_range_parts.append(previous_range_offset)
-                range_length, newest_range_offset = byte_range_parts
-                range_offset.put(newest_range_offset)
-
                 # aria2(c) doesn't support byte ranges, let's use python-requests (likely slower)
+                previous_range_offset = range_offset.get()
+                byte_range = HLS.calculate_byte_range(segment.byterange, previous_range_offset)
+                range_offset.put(byte_range.split("-")[0])
+
                 res = session.get(
                     url=segment.uri,
                     headers={
-                        "Range": f"bytes={newest_range_offset}-{newest_range_offset+range_length}"
+                        "Range": f"bytes={byte_range}"
                     }
                 )
                 res.raise_for_status()
+
                 segment_save_path.parent.mkdir(parents=True, exist_ok=True)
                 segment_save_path.write_bytes(res.content)
             else:
@@ -459,6 +457,18 @@ class HLS:
             raise NotImplementedError(f"No support for any of the key systems: {', '.join(unsupported_systems)}")
 
         return drm
+
+    @staticmethod
+    def calculate_byte_range(m3u_range: str, fallback_offset: int = 0) -> str:
+        """
+        Convert a HLS EXT-X-BYTERANGE value to a more traditional range value.
+        E.g., '1433@0' -> '0-1432', '357392@1433' -> '1433-358824'.
+        """
+        parts = [int(x) for x in m3u_range.split("@")]
+        if len(parts) != 2:
+            parts.append(fallback_offset)
+        length, offset = parts
+        return f"{offset}-{offset + length - 1}"
 
 
 __ALL__ = (HLS,)
