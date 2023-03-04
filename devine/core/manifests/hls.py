@@ -222,49 +222,53 @@ class HLS:
             segment_save_path = (save_dir / filename).with_suffix(".mp4")
 
             newest_segment_key = segment_key.get()
-            if segment.key and newest_segment_key[1] != segment.key:
-                try:
-                    drm = HLS.get_drm(
-                        # TODO: We append master.keys because m3u8 class only puts the last EXT-X-KEY
-                        #       to the segment.key property, not supporting multi-drm scenarios.
-                        #       By re-adding every single EXT-X-KEY found, we can at least try to get
-                        #       a suitable key. However, it may not match the right segment/timeframe!
-                        #       It will try to use the first key provided where possible.
-                        keys=[segment.key] + master.keys,
-                        proxy=proxy
-                    )
-                except NotImplementedError as e:
-                    log.error(str(e))
-                    sys.exit(1)
-                else:
-                    if drm:
-                        drm = drm[0]  # just use the first supported DRM system for now
-                        log.debug("Got segment key, %s", drm)
-                        if isinstance(drm, Widevine):
-                            # license and grab content keys
-                            if not license_widevine:
-                                raise ValueError("license_widevine func must be supplied to use Widevine DRM")
-                            license_widevine(drm)
-                        newest_segment_key = (drm, segment.key)
-            segment_key.put(newest_segment_key)
+            try:
+                if segment.key and newest_segment_key[1] != segment.key:
+                    try:
+                        drm = HLS.get_drm(
+                            # TODO: We append master.keys because m3u8 class only puts the last EXT-X-KEY
+                            #       to the segment.key property, not supporting multi-drm scenarios.
+                            #       By re-adding every single EXT-X-KEY found, we can at least try to get
+                            #       a suitable key. However, it may not match the right segment/timeframe!
+                            #       It will try to use the first key provided where possible.
+                            keys=[segment.key] + master.keys,
+                            proxy=proxy
+                        )
+                    except NotImplementedError as e:
+                        log.error(str(e))
+                        sys.exit(1)
+                    else:
+                        if drm:
+                            drm = drm[0]  # just use the first supported DRM system for now
+                            log.debug("Got segment key, %s", drm)
+                            if isinstance(drm, Widevine):
+                                # license and grab content keys
+                                if not license_widevine:
+                                    raise ValueError("license_widevine func must be supplied to use Widevine DRM")
+                                license_widevine(drm)
+                            newest_segment_key = (drm, segment.key)
+            finally:
+                segment_key.put(newest_segment_key)
 
             if callable(track.OnSegmentFilter) and track.OnSegmentFilter(segment):
                 return 0
 
             newest_init_data = init_data.get()
-            if segment.init_section and (not newest_init_data or segment.discontinuity):
-                # Only use the init data if there's no init data yet (e.g., start of file)
-                # or if EXT-X-DISCONTINUITY is reached at the same time as EXT-X-MAP.
-                # Even if a new EXT-X-MAP is supplied, it may just be duplicate and would
-                # be unnecessary and slow to re-download the init data each time.
-                if not segment.init_section.uri.startswith(segment.init_section.base_uri):
-                    segment.init_section.uri = segment.init_section.base_uri + segment.init_section.uri
+            try:
+                if segment.init_section and (not newest_init_data or segment.discontinuity):
+                    # Only use the init data if there's no init data yet (e.g., start of file)
+                    # or if EXT-X-DISCONTINUITY is reached at the same time as EXT-X-MAP.
+                    # Even if a new EXT-X-MAP is supplied, it may just be duplicate and would
+                    # be unnecessary and slow to re-download the init data each time.
+                    if not segment.init_section.uri.startswith(segment.init_section.base_uri):
+                        segment.init_section.uri = segment.init_section.base_uri + segment.init_section.uri
 
-                log.debug("Got new init segment, %s", segment.init_section.uri)
-                res = session.get(segment.init_section.uri)
-                res.raise_for_status()
-                newest_init_data = res.content
-            init_data.put(newest_init_data)
+                    log.debug("Got new init segment, %s", segment.init_section.uri)
+                    res = session.get(segment.init_section.uri)
+                    res.raise_for_status()
+                    newest_init_data = res.content
+            finally:
+                init_data.put(newest_init_data)
 
             if not segment.uri.startswith(segment.base_uri):
                 segment.uri = segment.base_uri + segment.uri
