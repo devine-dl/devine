@@ -11,7 +11,7 @@ from functools import partial
 from hashlib import md5
 from pathlib import Path
 from queue import Queue
-from threading import Event
+from threading import Event, Lock
 from typing import Any, Callable, Optional, Union
 
 import m3u8
@@ -214,6 +214,8 @@ class HLS:
             log.error("Track's HLS playlist has no segments, expecting an invariant M3U8 playlist.")
             sys.exit(1)
 
+        drm_lock = Lock()
+
         def download_segment(filename: str, segment: m3u8.Segment, init_data: Queue, segment_key: Queue) -> int:
             if stop_event.is_set():
                 # the track already started downloading, but another failed or was stopped
@@ -221,34 +223,35 @@ class HLS:
 
             segment_save_path = (save_dir / filename).with_suffix(".mp4")
 
-            newest_segment_key = segment_key.get()
-            try:
-                if segment.key and newest_segment_key[1] != segment.key:
-                    try:
-                        drm = HLS.get_drm(
-                            # TODO: We append master.keys because m3u8 class only puts the last EXT-X-KEY
-                            #       to the segment.key property, not supporting multi-drm scenarios.
-                            #       By re-adding every single EXT-X-KEY found, we can at least try to get
-                            #       a suitable key. However, it may not match the right segment/timeframe!
-                            #       It will try to use the first key provided where possible.
-                            keys=[segment.key] + master.keys,
-                            proxy=proxy
-                        )
-                    except NotImplementedError as e:
-                        log.error(str(e))
-                        sys.exit(1)
-                    else:
-                        if drm:
-                            drm = drm[0]  # just use the first supported DRM system for now
-                            log.debug("Got segment key, %s", drm)
-                            if isinstance(drm, Widevine):
-                                # license and grab content keys
-                                if not license_widevine:
-                                    raise ValueError("license_widevine func must be supplied to use Widevine DRM")
-                                license_widevine(drm)
-                            newest_segment_key = (drm, segment.key)
-            finally:
-                segment_key.put(newest_segment_key)
+            with drm_lock:
+                newest_segment_key = segment_key.get()
+                try:
+                    if segment.key and newest_segment_key[1] != segment.key:
+                        try:
+                            drm = HLS.get_drm(
+                                # TODO: We append master.keys because m3u8 class only puts the last EXT-X-KEY
+                                #       to the segment.key property, not supporting multi-drm scenarios.
+                                #       By re-adding every single EXT-X-KEY found, we can at least try to get
+                                #       a suitable key. However, it may not match the right segment/timeframe!
+                                #       It will try to use the first key provided where possible.
+                                keys=[segment.key] + master.keys,
+                                proxy=proxy
+                            )
+                        except NotImplementedError as e:
+                            log.error(str(e))
+                            sys.exit(1)
+                        else:
+                            if drm:
+                                drm = drm[0]  # just use the first supported DRM system for now
+                                log.debug("Got segment key, %s", drm)
+                                if isinstance(drm, Widevine):
+                                    # license and grab content keys
+                                    if not license_widevine:
+                                        raise ValueError("license_widevine func must be supplied to use Widevine DRM")
+                                    license_widevine(drm)
+                                newest_segment_key = (drm, segment.key)
+                finally:
+                    segment_key.put(newest_segment_key)
 
             if callable(track.OnSegmentFilter) and track.OnSegmentFilter(segment):
                 return 0
