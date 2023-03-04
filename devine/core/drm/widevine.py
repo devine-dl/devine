@@ -210,10 +210,10 @@ class Widevine:
                     for key in cdm.get_keys(session_id, "CONTENT")
                 }
                 if not self.content_keys:
-                    raise ValueError("No Content Keys were returned by the License")
+                    raise Widevine.Exceptions.EmptyLicense("No Content Keys were within the License")
 
                 if kid not in self.content_keys:
-                    raise ValueError(f"No Content Key with the KID ({kid.hex}) was returned")
+                    raise Widevine.Exceptions.CEKNotFound(f"No Content Key for KID {kid.hex} within the License")
             finally:
                 cdm.close(session_id)
 
@@ -302,6 +302,12 @@ class Widevine:
 
         class KIDNotFound(Exception):
             """KID (Encryption Key ID) was not found."""
+
+        class CEKNotFound(Exception):
+            """CEK (Content Encryption Key) for KID was not found in License."""
+
+        class EmptyLicense(Exception):
+            """License returned no Content Encryption Keys."""
 
 
 __ALL__ = (Widevine,)
