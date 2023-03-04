@@ -302,6 +302,7 @@ class DASH:
             adaptation_set.findall("ContentProtection")
         )
         if drm:
+            track.drm = drm
             drm = drm[0]  # just use the first supported DRM system for now
             if isinstance(drm, Widevine):
                 # license and grab content keys
@@ -336,7 +337,6 @@ class DASH:
             # Players would normally calculate segments via Byte-Ranges, but we don't care
             track.url = urljoin(period_base_url, base_url)
             track.descriptor = track.Descriptor.URL
-            track.drm = [drm] if drm else []
         else:
             segments: list[tuple[str, Optional[str]]] = []
 
@@ -442,6 +442,7 @@ class DASH:
                     # it might not have Widevine DRM, or might not have found the PSSH
                     log.warning("No Widevine PSSH was found for this track, is it DRM free?")
                 else:
+                    track.drm = [drm]
                     # license and grab content keys
                     if not license_widevine:
                         raise ValueError("license_widevine func must be supplied to use Widevine DRM")

@@ -242,6 +242,7 @@ class HLS:
                             sys.exit(1)
                         else:
                             if drm:
+                                track.drm = drm
                                 drm = drm[0]  # just use the first supported DRM system for now
                                 log.debug("Got segment key, %s", drm)
                                 if isinstance(drm, Widevine):
