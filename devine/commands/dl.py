@@ -607,7 +607,7 @@ class dl:
         cdm_only: bool = False,
         vaults_only: bool = False,
         export: Optional[Path] = None
-    ):
+    ) -> None:
         """
         Prepare the DRM by getting decryption data like KIDs, Keys, and such.
         The DRM object should be ready for decryption once this function ends.
@@ -643,10 +643,11 @@ class dl:
                                 cek_tree.add(label)
                             self.vaults.add_key(kid, content_key, excluding=vault_used)
                         elif vaults_only:
-                            cek_tree.add(f"[logging.level.error]No Vault has a Key for {kid.hex}, cannot decrypt...")
+                            msg = f"No Vault has a Key for {kid.hex} and --vaults-only was used"
+                            cek_tree.add(f"[logging.level.error]{msg}")
                             if not pre_existing_tree:
                                 table.add_row(cek_tree)
-                            sys.exit(1)
+                            raise Widevine.Exceptions.CEKNotFound(msg)
 
                     if kid not in drm.content_keys and not vaults_only:
                         from_vaults = drm.content_keys.copy()
@@ -657,11 +658,11 @@ class dl:
                                 licence=licence,
                                 certificate=certificate
                             )
-                        except ValueError as e:
-                            cek_tree.add(f"[logging.level.error]{str(e)}")
+                        except (Widevine.Exceptions.EmptyLicense, Widevine.Exceptions.CEKNotFound) as e:
+                            cek_tree.add(f"[logging.level.error]{e}")
                             if not pre_existing_tree:
                                 table.add_row(cek_tree)
-                            sys.exit(1)
+                            raise e
 
                         for kid_, key in drm.content_keys.items():
                             if key == "0" * 32:
@@ -686,10 +687,11 @@ class dl:
                         self.log.info(f" + Newly added to {cached_keys}/{len(drm.content_keys)} Vaults")
 
                         if kid not in drm.content_keys:
-                            cek_tree.add(f"[logging.level.error]No key was returned for {kid.hex}, cannot decrypt...")
+                            msg = f"No Content Key for KID {kid.hex} within the License"
+                            cek_tree.add(f"[logging.level.error]{msg}")
                             if not pre_existing_tree:
                                 table.add_row(cek_tree)
-                            sys.exit(1)
+                            raise Widevine.Exceptions.CEKNotFound(msg)
 
                 if cek_tree.children and not pre_existing_tree:
                     table.add_row()
