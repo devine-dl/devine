@@ -315,13 +315,14 @@ class DASH:
         manifest = load_xml(session.get(manifest_url).text)
         manifest_url_query = urlparse(manifest_url).query
 
-        period_base_url = period.findtext("BaseURL") or manifest.findtext("BaseURL")
-        if not period_base_url or not re.match("^https?://", period_base_url, re.IGNORECASE):
-            period_base_url = urljoin(manifest_url, period_base_url)
-        period_duration = period.get("duration") or manifest.get("mediaPresentationDuration")
+        manifest_base_url = manifest.findtext("BaseURL")
+        if not manifest_base_url or not re.match("^https?://", manifest_base_url, re.IGNORECASE):
+            manifest_base_url = urljoin(manifest_url, "./", manifest_base_url)
+        period_base_url = urljoin(manifest_base_url, period.findtext("BaseURL"))
+        rep_base_url = urljoin(period_base_url, representation.findtext("BaseURL"))
 
+        period_duration = period.get("duration") or manifest.get("mediaPresentationDuration")
         init_data: Optional[bytes] = None
-        base_url = representation.findtext("BaseURL") or period_base_url
 
         segment_template = representation.find("SegmentTemplate")
         if segment_template is None:
@@ -331,11 +332,11 @@ class DASH:
         if segment_list is None:
             segment_list = adaptation_set.find("SegmentList")
 
-        if segment_template is None and segment_list is None and base_url:
+        if segment_template is None and segment_list is None and rep_base_url:
             # If there's no SegmentTemplate and no SegmentList, then SegmentBase is used or just BaseURL
             # Regardless which of the two is used, we can just directly grab the BaseURL
             # Players would normally calculate segments via Byte-Ranges, but we don't care
-            track.url = urljoin(period_base_url, base_url)
+            track.url = rep_base_url
             track.descriptor = track.Descriptor.URL
         else:
             segments: list[tuple[str, Optional[str]]] = []
@@ -350,9 +351,9 @@ class DASH:
                     if not value:
                         continue
                     if not re.match("^https?://", value, re.IGNORECASE):
-                        if not base_url:
+                        if not rep_base_url:
                             raise ValueError("Resolved Segment URL is not absolute, and no Base URL is available.")
-                        value = urljoin(base_url, value)
+                        value = urljoin(rep_base_url, value)
                     if not urlparse(value).query and manifest_url_query:
                         value += f"?{manifest_url_query}"
                     segment_template.set(item, value)
@@ -407,14 +408,12 @@ class DASH:
                             ), None
                         ))
             elif segment_list is not None:
-                base_media_url = urljoin(period_base_url, base_url)
-
                 init_data = None
                 initialization = segment_list.find("Initialization")
                 if initialization:
                     source_url = initialization.get("sourceURL")
                     if source_url is None:
-                        source_url = base_media_url
+                        source_url = rep_base_url
 
                     res = session.get(source_url)
                     res.raise_for_status()
@@ -424,7 +423,7 @@ class DASH:
                 for segment_url in segment_urls:
                     media_url = segment_url.get("media")
                     if media_url is None:
-                        media_url = base_media_url
+                        media_url = rep_base_url
 
                     segments.append((
                         media_url,
