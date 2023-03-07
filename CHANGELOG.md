@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2023-03-07
+
+### Added
+
+- Re-added logging support for shaka-packager on errors and warnings. Do note that INFO logs and the 'Insufficient bits
+  in bitstream for given AVC profile' warning logs are ignored and never printed.
+- Added new exceptions to the Widevine DRM class, `CEKNotFound` and `EmptyLicense`.
+- Added support for Byte-ranges on HLS init maps.
+
+### Changed
+
+- Now lists the full 'Episode #' text when listing episode titles without an episode name.
+- Subprocess exceptions from a download worker no longer prints a traceback. It now only logs the return code. This is
+  because all subprocess errors during a download is now logged, therefore the full traceback is no longer necessary.
+- Aria2(c) no longer pre-allocates file space if segmented. This is to reduce generally unnecessary upfront I/O usage.
+- The Widevine DRM class's `get_content_keys` method now raises the new `CEKNotFound` and `EmptyLicense` exceptions not
+  `ValueError` exceptions.
+- The prepare_drm code now raises exceptions where needed instead of `sys.exit(1)`. Callees do not need to make any
+  changes. The exception should continue to go up the call stack and get handled by the `dl` command.
+
+### Fixed
+
+- Fixed regression that broke support for pproxy. Do note that while pproxy has wheel's for Python 3.11+, it seems to
+  be broken. I recommend using Python 3.10 or older for now. See <https://github.com/qwj/python-proxy/issues/161>.
+- Fixed regression and now store the chosen DRM object back to the track.drm field. Please note that using the track
+  DRM field in Service code is not recommended, but for some services it's simply required.
+- Fixed regression since v1.4.0 where the byte-range calculation was actually slightly off one on the right-side range.
+  This was a one-indexed vs. zero-indexed problem. Please note that this could have affected the integrity of HLS
+  downloads if they used EXT-X-BYTERANGE.
+- Fixed possible soft-lock in HLS if the Queue for previous segment key and init data gets stuck in an empty state over
+  an exception in a download thread. E.g., if a thread takes the previous segment key, throws an exception, and did not
+  get the chance to give it back for the next thread.
+- The prepare_drm function now handles unexpected exceptions raised in the Service's license method. This code would of
+  otherwise been absorbed and the download would have soft-locked.
+- Prevented a double-licensing call race-condition on HLS tracks by using a threading lock when preparing DRM
+  information. This is not required in DASH, as it prepares DRM on the main thread, once, not per-segment.
+- Fixed printing of aria2(c) logs when redirecting progress information to rich progress bars.
+- Explicitly mark DASH and HLS aria2(c) downloads as segmented.
+- Fixed listing of episode titles without an episode name.
+- Fixed centering of the project URL in the ASCII banner.
+- Removed the accidental double-newline after the ASCII banner.
+
 ## [2.0.0] - 2023-03-01
 
 This release brings a huge change to the fundamentals of Devine's logging, UI, and UX.
@@ -263,6 +305,7 @@ This release brings a huge change to the fundamentals of Devine's logging, UI, a
 
 Initial public release under the name Devine.
 
+[2.0.1]: https://github.com/devine-dl/devine/releases/tag/v2.0.1
 [2.0.0]: https://github.com/devine-dl/devine/releases/tag/v2.0.0
 [1.4.0]: https://github.com/devine-dl/devine/releases/tag/v1.4.0
 [1.3.1]: https://github.com/devine-dl/devine/releases/tag/v1.3.1
