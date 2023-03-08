@@ -795,8 +795,8 @@ class dl:
                             # it might not have Widevine DRM, or might not have found the PSSH
                             self.log.warning("No Widevine PSSH was found for this track, is it DRM free?")
                         else:
-                            prepare_drm(drm)
                             track.drm = [drm]
+                            prepare_drm(drm)
 
                     asyncio.run(aria2c(
                         uri=track.url,
