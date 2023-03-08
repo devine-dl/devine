@@ -691,6 +691,7 @@ class dl:
 
                         cached_keys = self.vaults.add_keys(drm.content_keys)
                         self.log.info(f" + Newly added to {cached_keys}/{len(drm.content_keys)} Vaults")
+                        break  # licensing twice will be unnecessary
 
                 if track_kid and track_kid not in drm.content_keys:
                     msg = f"No Content Key for KID {track_kid.hex} was returned in the License"
