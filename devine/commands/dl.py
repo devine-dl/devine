@@ -672,7 +672,7 @@ class dl:
                             if key == "0" * 32:
                                 key = f"[red]{key}[/]"
                             if kid_ == kid:
-                                key += " *"
+                                key += "*"
                             label = f"[text2]{kid_.hex}:{key}"
                             if not any(x.label == label for x in cek_tree.children):
                                 cek_tree.add(label)
