@@ -798,12 +798,13 @@ class dl:
                             self.log.warning("No Widevine PSSH was found for this track, is it DRM free?")
 
                     if track.drm:
+                        track_kid = track.get_key_id(session=service.session)
                         drm = track.drm[0]  # just use the first supported DRM system for now
                         if isinstance(drm, Widevine):
                             # license and grab content keys
                             if not prepare_drm:
                                 raise ValueError("prepare_drm func must be supplied to use Widevine DRM")
-                            prepare_drm(drm)
+                            prepare_drm(drm, track_kid=track_kid)
                     else:
                         drm = None
 
