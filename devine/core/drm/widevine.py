@@ -80,11 +80,6 @@ class Widevine:
 
         if track.descriptor == track.Descriptor.M3U:
             m3u_url = track.url
-            if isinstance(m3u_url, list):
-                # TODO: Find out why exactly the track url could be a list in this
-                #       scenario, as if its a list of segments, they would be files
-                #       not m3u documents
-                m3u_url = m3u_url[0]
             master = m3u8.loads(session.get(m3u_url).text, uri=m3u_url)
             pssh_boxes.extend(
                 Box.parse(base64.b64decode(x.uri.split(",")[-1]))
