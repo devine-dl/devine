@@ -790,13 +790,20 @@ class dl:
                         # the service might not have explicitly defined the `drm` property
                         # try find widevine DRM information from the init data of URL
                         try:
-                            drm = Widevine.from_track(track, service.session)
+                            track.drm = [Widevine.from_track(track, service.session)]
                         except Widevine.Exceptions.PSSHNotFound:
                             # it might not have Widevine DRM, or might not have found the PSSH
                             self.log.warning("No Widevine PSSH was found for this track, is it DRM free?")
-                        else:
-                            track.drm = [drm]
+
+                    if track.drm:
+                        drm = track.drm[0]  # just use the first supported DRM system for now
+                        if isinstance(drm, Widevine):
+                            # license and grab content keys
+                            if not prepare_drm:
+                                raise ValueError("prepare_drm func must be supplied to use Widevine DRM")
                             prepare_drm(drm)
+                    else:
+                        drm = None
 
                     asyncio.run(aria2c(
                         uri=track.url,
@@ -808,8 +815,7 @@ class dl:
 
                     track.path = save_path
 
-                    if track.drm:
-                        drm = track.drm[0]  # just use the first supported DRM system for now
+                    if drm:
                         drm.decrypt(save_path)
                         track.drm = None
                         if callable(track.OnDecrypted):
