@@ -18,6 +18,7 @@ from http.cookiejar import MozillaCookieJar
 from pathlib import Path
 from threading import Event, Lock
 from typing import Any, Callable, Optional
+from uuid import UUID
 
 import click
 import jsonpickle
@@ -603,6 +604,7 @@ class dl:
         title: Title_T,
         certificate: Callable,
         licence: Callable,
+        track_kid: Optional[UUID] = None,
         table: Table = None,
         cdm_only: bool = False,
         vaults_only: bool = False,
@@ -634,11 +636,13 @@ class dl:
                     if kid in drm.content_keys:
                         continue
 
+                    is_track_kid = ["", "*"][kid == track_kid]
+
                     if not cdm_only:
                         content_key, vault_used = self.vaults.get_key(kid)
                         if content_key:
                             drm.content_keys[kid] = content_key
-                            label = f"[text2]{kid.hex}:{content_key} from {vault_used}"
+                            label = f"[text2]{kid.hex}:{content_key}{is_track_kid} from {vault_used}"
                             if not any(x.label == label for x in cek_tree.children):
                                 cek_tree.add(label)
                             self.vaults.add_key(kid, content_key, excluding=vault_used)
@@ -671,9 +675,7 @@ class dl:
                         for kid_, key in drm.content_keys.items():
                             if key == "0" * 32:
                                 key = f"[red]{key}[/]"
-                            if kid_ == kid:
-                                key += "*"
-                            label = f"[text2]{kid_.hex}:{key}"
+                            label = f"[text2]{kid_.hex}:{key}{is_track_kid}"
                             if not any(x.label == label for x in cek_tree.children):
                                 cek_tree.add(label)
 
@@ -690,12 +692,12 @@ class dl:
                         cached_keys = self.vaults.add_keys(drm.content_keys)
                         self.log.info(f" + Newly added to {cached_keys}/{len(drm.content_keys)} Vaults")
 
-                        if kid not in drm.content_keys:
-                            msg = f"No Content Key for KID {kid.hex} within the License"
-                            cek_tree.add(f"[logging.level.error]{msg}")
-                            if not pre_existing_tree:
-                                table.add_row(cek_tree)
-                            raise Widevine.Exceptions.CEKNotFound(msg)
+                if track_kid and track_kid not in drm.content_keys:
+                    msg = f"No Content Key for KID {track_kid.hex} was returned in the License"
+                    cek_tree.add(f"[logging.level.error]{msg}")
+                    if not pre_existing_tree:
+                        table.add_row(cek_tree)
+                    raise Widevine.Exceptions.CEKNotFound(msg)
 
                 if cek_tree.children and not pre_existing_tree:
                     table.add_row()
