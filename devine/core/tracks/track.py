@@ -5,7 +5,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional, Union
 
-import m3u8
 import requests
 from langcodes import Language
 
@@ -85,48 +84,91 @@ class Track:
             extra_parts.append(TERRITORY_MAP.get(territory, territory))
         return ", ".join(extra_parts) or None
 
-    def get_init_segment(self, session: Optional[requests.Session] = None) -> bytes:
+    def get_init_segment(
+        self,
+        fallback_size: int = 20000,
+        url: Optional[str] = None,
+        byte_range: Optional[str] = None,
+        session: Optional[requests.Session] = None
+    ) -> bytes:
         """
         Get the Track's Initial Segment Data Stream.
-        If the Track URL is not detected to be an init segment, it will download
-        up to the first 20,000 (20KB) bytes only.
+
+        HLS and DASH tracks must explicitly provide a URL to the init segment or file.
+        Providing the byte-range for the init segment is recommended where possible.
+
+        If `byte_range` is not set, it will make a HEAD request and check the size of
+        the file. If the size could not be determined, it will download up to the first
+        20KB only, which should contain the entirety of the init segment. You may
+        override this by changing the `fallback_size`.
+
+        The default fallback_size of 20000 (20KB) is a tried-and-tested value that
+        seems to work well across the board.
+
+        Parameters:
+            fallback_size: Size to assume as the content length if byte-range is not
+                used and the content size could not be determined. 20000 (20KB) or
+                higher is recommended.
+            url: Explicit init map or file URL to probe from.
+            byte_range: Range of bytes to download from the explicit or implicit URL.
+            session: Session context, e.g., authorization and headers.
         """
         if not session:
             session = requests.Session()
 
-        url = None
-        is_init_stream = False
+        if self.descriptor != self.Descriptor.URL and not url:
+            # We cannot know which init map from the HLS or DASH playlist is actually used.
+            # For DASH this could be from any adaptation set, any period, e.t.c.
+            # For HLS we could make some assumptions, but it's best that it is explicitly provided.
+            raise ValueError(
+                f"An explicit URL to an init map or file must be provided for {self.descriptor.name} tracks."
+            )
 
-        if self.descriptor == self.Descriptor.M3U:
-            master = m3u8.loads(session.get(self.url).text, uri=self.url)
-            for segment in master.segments:
-                if not segment.init_section:
-                    continue
-                # skip any segment that would be skipped from the download
-                # as we cant consider these a true initial segment
-                if callable(self.OnSegmentFilter) and self.OnSegmentFilter(segment):
-                    continue
-                url = ("" if re.match("^https?://", segment.init_section.uri) else segment.init_section.base_uri)
-                url += segment.init_section.uri
-                is_init_stream = True
-                break
-
+        url = url or self.url
         if not url:
-            url = self.url
+            raise ValueError("The track must have an URL to point towards it's data.")
 
-        if isinstance(url, list):
-            url = url[0]
-            is_init_stream = True
+        content_length = fallback_size
 
-        if is_init_stream:
-            return session.get(url).content
+        if byte_range:
+            if not isinstance(byte_range, str):
+                raise TypeError(f"Expected byte_range to be a str, not {byte_range!r}")
+            if not re.match(r"^\d+-\d+$", byte_range):
+                raise ValueError(f"The value of byte_range is unrecognized: '{byte_range}'")
+            start, end = byte_range.split("-")
+            if start > end:
+                raise ValueError(f"The start range cannot be greater than the end range: {start}>{end}")
+        else:
+            size_test = session.head(url)
+            if "Content-Length" in size_test.headers:
+                content_length = int(size_test.headers['Content-Length'])
+            range_test = session.head(url, headers={"Range": "bytes=0-1"})
+            if range_test.status_code == 206:
+                if content_length < 100000:  # 100KB limit
+                    # if it supports it, and is less than 100KB, use byte-range
+                    byte_range = f"0-{content_length-1}"
 
-        # likely a full single-file download, get first 20k bytes
-        with session.get(url, stream=True) as s:
-            # assuming enough to contain the pssh/kid
-            for chunk in s.iter_content(20000):
-                # we only want the first chunk
-                return chunk
+        if byte_range:
+            res = session.get(
+                url=url,
+                headers={
+                    "Range": f"bytes={byte_range}"
+                }
+            )
+            res.raise_for_status()
+            init_data = res.content
+        else:
+            # Take advantage of streaming support to take just the first n bytes
+            # This is a hacky alternative to HTTP's Range on unsupported servers
+            init_data = None
+            with session.get(url, stream=True) as s:
+                for chunk in s.iter_content(content_length):
+                    init_data = chunk
+                    break
+            if not init_data:
+                raise ValueError(f"Failed to read {content_length} bytes from the track URI.")
+
+        return init_data
 
     def delete(self) -> None:
         if self.path:

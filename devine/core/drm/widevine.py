@@ -87,7 +87,7 @@ class Widevine:
                 if x and x.keyformat and x.keyformat.lower() == WidevineCdm.urn
             )
 
-        init_data = track.get_init_segment(session)
+        init_data = track.get_init_segment(session=session)
         if init_data:
             # try get via ffprobe, needed for non mp4 data e.g. WEBM from Google Play
             probe = ffprobe(init_data)
