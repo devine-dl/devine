@@ -133,6 +133,8 @@ async def aria2c(
                         gid, status, avg_speed, path_or_uri = line.split("|")
                         progress(total=100, completed=100, downloaded=avg_speed.strip())
                     elif not is_dl_summary:
+                        if "aria2 will resume download if the transfer is restarted" in line:
+                            continue
                         aria_log_buffer += f"{line.strip()}\n"
 
             if aria_log_buffer:
