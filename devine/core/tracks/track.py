@@ -86,7 +86,7 @@ class Track:
 
     def get_init_segment(
         self,
-        fallback_size: int = 20000,
+        maximum_size: int = 20000,
         url: Optional[str] = None,
         byte_range: Optional[str] = None,
         session: Optional[requests.Session] = None
@@ -100,15 +100,15 @@ class Track:
         If `byte_range` is not set, it will make a HEAD request and check the size of
         the file. If the size could not be determined, it will download up to the first
         20KB only, which should contain the entirety of the init segment. You may
-        override this by changing the `fallback_size`.
+        override this by changing the `maximum_size`.
 
-        The default fallback_size of 20000 (20KB) is a tried-and-tested value that
+        The default maximum_size of 20000 (20KB) is a tried-and-tested value that
         seems to work well across the board.
 
         Parameters:
-            fallback_size: Size to assume as the content length if byte-range is not
-                used and the content size could not be determined. 20000 (20KB) or
-                higher is recommended.
+            maximum_size: Size to assume as the content length if byte-range is not
+                used, the content size could not be determined, or the content size
+                is larger than it. A value of 20000 (20KB) or higher is recommended.
             url: Explicit init map or file URL to probe from.
             byte_range: Range of bytes to download from the explicit or implicit URL.
             session: Session context, e.g., authorization and headers.
@@ -128,7 +128,7 @@ class Track:
         if not url:
             raise ValueError("The track must have an URL to point towards it's data.")
 
-        content_length = fallback_size
+        content_length = maximum_size
 
         if byte_range:
             if not isinstance(byte_range, str):
@@ -141,12 +141,12 @@ class Track:
         else:
             size_test = session.head(url)
             if "Content-Length" in size_test.headers:
-                content_length = int(size_test.headers['Content-Length'])
+                content_length = int(size_test.headers["Content-Length"])
+                # use whichever is smaller in case this is a full file
+                content_length = min(content_length, maximum_size)
             range_test = session.head(url, headers={"Range": "bytes=0-1"})
             if range_test.status_code == 206:
-                if content_length < 100000:  # 100KB limit
-                    # if it supports it, and is less than 100KB, use byte-range
-                    byte_range = f"0-{content_length-1}"
+                byte_range = f"0-{content_length-1}"
 
         if byte_range:
             res = session.get(
