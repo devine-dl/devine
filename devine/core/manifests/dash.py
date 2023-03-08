@@ -330,6 +330,7 @@ class DASH:
             track.descriptor = track.Descriptor.URL
         else:
             segments: list[tuple[str, Optional[str]]] = []
+            track_kid: Optional[UUID] = None
 
             if segment_template is not None:
                 segment_template = copy(segment_template)
@@ -357,6 +358,7 @@ class DASH:
                     ))
                     res.raise_for_status()
                     init_data = res.content
+                    track_kid = track.get_key_id(init_data)
 
                 if segment_timeline is not None:
                     seg_time_list = []
@@ -408,6 +410,7 @@ class DASH:
                     res = session.get(source_url)
                     res.raise_for_status()
                     init_data = res.content
+                    track_kid = track.get_key_id(init_data)
 
                 segment_urls = segment_list.findall("SegmentURL")
                 for segment_url in segment_urls:
@@ -432,12 +435,14 @@ class DASH:
                     log.warning("No Widevine PSSH was found for this track, is it DRM free?")
 
             if track.drm:
+                # last chance to find the KID
+                track_kid = track_kid or track.get_key_id(url=segments[0], session=session)
                 # license and grab content keys
                 drm = track.drm[0]  # just use the first supported DRM system for now
                 if isinstance(drm, Widevine):
                     if not license_widevine:
                         raise ValueError("license_widevine func must be supplied to use Widevine DRM")
-                    license_widevine(drm)
+                    license_widevine(drm, track_kid=track_kid)
             else:
                 drm = None
 
