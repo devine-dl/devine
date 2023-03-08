@@ -1,16 +1,19 @@
+import base64
 import re
 import shutil
 import subprocess
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional, Union
+from uuid import UUID
 
 import requests
 from langcodes import Language
 
 from devine.core.constants import TERRITORY_MAP
 from devine.core.drm import DRM_T
-from devine.core.utilities import get_binary_path
+from devine.core.utilities import get_binary_path, get_boxes
+from devine.core.utils.subprocess import ffprobe
 
 
 class Track:
@@ -83,6 +86,43 @@ class Track:
             territory = reduced.territory_name(max_distance=25)
             extra_parts.append(TERRITORY_MAP.get(territory, territory))
         return ", ".join(extra_parts) or None
+
+    def get_key_id(self, init_data: Optional[bytes] = None, *args, **kwargs) -> Optional[UUID]:
+        """
+        Probe the DRM encryption Key ID (KID) for this specific track.
+
+        It currently supports finding the Key ID by probing the track's stream
+        with ffprobe for `enc_key_id` data, as well as for mp4 `tenc` (Track
+        Encryption) boxes.
+
+        It explicitly ignores PSSH information like the `PSSH` box, as the box
+        is likely to contain multiple Key IDs that may or may not be for this
+        specific track.
+
+        To retrieve the initialization segment, this method calls :meth:`get_init_segment`
+        with the positional and keyword arguments. The return value of `get_init_segment`
+        is then used to determine the Key ID.
+
+        Returns:
+            The Key ID as a UUID object, or None if the Key ID could not be determined.
+        """
+        if not init_data:
+            init_data = self.get_init_segment(*args, **kwargs)
+        if not isinstance(init_data, bytes):
+            raise TypeError(f"Expected init_data to be bytes, not {init_data!r}")
+
+        # try get via ffprobe, needed for non mp4 data e.g. WEBM from Google Play
+        probe = ffprobe(init_data)
+        if probe:
+            for stream in probe.get("streams") or []:
+                enc_key_id = stream.get("tags", {}).get("enc_key_id")
+                if enc_key_id:
+                    return UUID(bytes=base64.b64decode(enc_key_id))
+
+        # look for track encryption mp4 boxes
+        for tenc in get_boxes(init_data, b"tenc"):
+            if tenc.key_ID.int != 0:
+                return tenc.key_ID
 
     def get_init_segment(
         self,
