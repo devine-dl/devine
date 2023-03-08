@@ -297,20 +297,10 @@ class DASH:
 
         manifest_url, representation, adaptation_set, period = track.url
 
-        drm = DASH.get_drm(
+        track.drm = DASH.get_drm(
             representation.findall("ContentProtection") +
             adaptation_set.findall("ContentProtection")
         )
-        if drm:
-            track.drm = drm
-            drm = drm[0]  # just use the first supported DRM system for now
-            if isinstance(drm, Widevine):
-                # license and grab content keys
-                if not license_widevine:
-                    raise ValueError("license_widevine func must be supplied to use Widevine DRM")
-                license_widevine(drm)
-        else:
-            drm = None
 
         manifest = load_xml(session.get(manifest_url).text)
         manifest_url_query = urlparse(manifest_url).query
@@ -434,18 +424,22 @@ class DASH:
                 log.debug(manifest_url)
                 sys.exit(1)
 
-            if not drm and isinstance(track, (Video, Audio)):
+            if not track.drm and isinstance(track, (Video, Audio)):
                 try:
-                    drm = Widevine.from_init_data(init_data)
+                    track.drm = [Widevine.from_init_data(init_data)]
                 except Widevine.Exceptions.PSSHNotFound:
                     # it might not have Widevine DRM, or might not have found the PSSH
                     log.warning("No Widevine PSSH was found for this track, is it DRM free?")
-                else:
-                    track.drm = [drm]
-                    # license and grab content keys
+
+            if track.drm:
+                # license and grab content keys
+                drm = track.drm[0]  # just use the first supported DRM system for now
+                if isinstance(drm, Widevine):
                     if not license_widevine:
                         raise ValueError("license_widevine func must be supplied to use Widevine DRM")
                     license_widevine(drm)
+            else:
+                drm = None
 
             def download_segment(filename: str, segment: tuple[str, Optional[str]]) -> int:
                 if stop_event.is_set():
