@@ -256,15 +256,10 @@ class HLS:
             with drm_lock:
                 newest_segment_key = segment_key.get()
                 try:
-                    if segment.key and newest_segment_key[1] != segment.key:
+                    if segment.keys and newest_segment_key[1] != segment.keys:
                         try:
                             drm = HLS.get_drm(
-                                # TODO: We append master.keys because m3u8 class only puts the last EXT-X-KEY
-                                #       to the segment.key property, not supporting multi-drm scenarios.
-                                #       By re-adding every single EXT-X-KEY found, we can at least try to get
-                                #       a suitable key. However, it may not match the right segment/timeframe!
-                                #       It will try to use the first key provided where possible.
-                                keys=[segment.key] + master.keys,
+                                keys=segment.keys,
                                 proxy=proxy
                             )
                         except NotImplementedError as e:
@@ -281,7 +276,7 @@ class HLS:
                                     if not license_widevine:
                                         raise ValueError("license_widevine func must be supplied to use Widevine DRM")
                                     license_widevine(drm, track_kid=track_kid)
-                                newest_segment_key = (drm, segment.key)
+                                newest_segment_key = (drm, segment.keys)
                 finally:
                     segment_key.put(newest_segment_key)
 

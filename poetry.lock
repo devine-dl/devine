@@ -696,21 +696,6 @@ htmlsoup = ["BeautifulSoup4"]
 source = ["Cython (>=0.29.7)"]
 
 [[package]]
-name = "m3u8"
-version = "3.4.0"
-description = "Python m3u8 parser"
-category = "main"
-optional = false
-python-versions = ">=3.6"
-files = [
-    {file = "m3u8-3.4.0-py3-none-any.whl", hash = "sha256:5016060622786abf4924bd7f0e04923c261762c999edaab073690d9031c1a8db"},
-    {file = "m3u8-3.4.0.tar.gz", hash = "sha256:6dddfb57ce485f67bf307e9581990db9a55614eeb2df4b89d6ae2c0ca7e525cd"},
-]
-
-[package.dependencies]
-iso8601 = "*"
-
-[[package]]
 name = "marisa-trie"
 version = "0.7.8"
 description = "Static memory-efficient and fast Trie-like structures for Python."
@@ -1397,6 +1382,21 @@ pygments = ">=2.14.0,<3.0.0"
 jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
 [[package]]
+name = "rlaphoenix-m3u8"
+version = "3.4.0"
+description = "Python m3u8 parser"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "rlaphoenix.m3u8-3.4.0-py3-none-any.whl", hash = "sha256:cd2c22195c747d52c63189d4bd5f664e1fc5ea202f5a7396b7336581f26a2838"},
+    {file = "rlaphoenix.m3u8-3.4.0.tar.gz", hash = "sha256:6f8c71350bc8a07f2bd714d1e72b0a483455b9c6e5141a5a308bf264b6718504"},
+]
+
+[package.dependencies]
+iso8601 = "*"
+
+[[package]]
 name = "ruamel-yaml"
 version = "0.17.21"
 description = "ruamel.yaml is a YAML parser/emitter that supports roundtrip preservation of comments, seq/map flow style, and map key order"
@@ -1730,4 +1730,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9.0,<3.12"
-content-hash = "2f0a42a2b10aaad2f946f3eee9d317db401fa12bca5fd2b3bc99f9bde5d843c8"
+content-hash = "74e5f149b8cb8e02b0faee5d5eae309eb97e2a4e1d614bbdb9ef41cab5ba5095"
