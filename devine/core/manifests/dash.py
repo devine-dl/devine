@@ -455,25 +455,34 @@ class DASH:
 
                 segment_uri, segment_range = segment
 
-                if segment_range:
-                    # aria2(c) doesn't support byte ranges, let's use python-requests (likely slower)
-                    r = session.get(
-                        url=segment_uri,
-                        headers={
-                            "Range": f"bytes={segment_range}"
-                        }
-                    )
-                    r.raise_for_status()
-                    segment_save_path.parent.mkdir(parents=True, exist_ok=True)
-                    segment_save_path.write_bytes(res.content)
-                else:
-                    asyncio.run(aria2c(
-                        uri=segment_uri,
-                        out=segment_save_path,
-                        headers=session.headers,
-                        proxy=proxy,
-                        segmented=True
-                    ))
+                attempts = 1
+                while True:
+                    try:
+                        if segment_range:
+                            # aria2(c) doesn't support byte ranges, let's use python-requests (likely slower)
+                            r = session.get(
+                                url=segment_uri,
+                                headers={
+                                    "Range": f"bytes={segment_range}"
+                                }
+                            )
+                            r.raise_for_status()
+                            segment_save_path.parent.mkdir(parents=True, exist_ok=True)
+                            segment_save_path.write_bytes(res.content)
+                        else:
+                            asyncio.run(aria2c(
+                                uri=segment_uri,
+                                out=segment_save_path,
+                                headers=session.headers,
+                                proxy=proxy,
+                                segmented=True
+                            ))
+                        break
+                    except Exception as ee:
+                        if stop_event.is_set() or attempts == 5:
+                            raise ee
+                        time.sleep(2)
+                        attempts += 1
 
                 data_size = segment_save_path.stat().st_size
 

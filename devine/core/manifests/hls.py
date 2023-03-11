@@ -283,30 +283,39 @@ class HLS:
             if not segment.uri.startswith(segment.base_uri):
                 segment.uri = segment.base_uri + segment.uri
 
-            if segment.byterange:
-                # aria2(c) doesn't support byte ranges, let's use python-requests (likely slower)
-                previous_range_offset = range_offset.get()
-                byte_range = HLS.calculate_byte_range(segment.byterange, previous_range_offset)
-                range_offset.put(byte_range.split("-")[0])
+            attempts = 1
+            while True:
+                try:
+                    if segment.byterange:
+                        # aria2(c) doesn't support byte ranges, let's use python-requests (likely slower)
+                        previous_range_offset = range_offset.get()
+                        byte_range = HLS.calculate_byte_range(segment.byterange, previous_range_offset)
+                        range_offset.put(byte_range.split("-")[0])
 
-                res = session.get(
-                    url=segment.uri,
-                    headers={
-                        "Range": f"bytes={byte_range}"
-                    }
-                )
-                res.raise_for_status()
+                        res = session.get(
+                            url=segment.uri,
+                            headers={
+                                "Range": f"bytes={byte_range}"
+                            }
+                        )
+                        res.raise_for_status()
 
-                segment_save_path.parent.mkdir(parents=True, exist_ok=True)
-                segment_save_path.write_bytes(res.content)
-            else:
-                asyncio.run(aria2c(
-                    uri=segment.uri,
-                    out=segment_save_path,
-                    headers=session.headers,
-                    proxy=proxy,
-                    segmented=True
-                ))
+                        segment_save_path.parent.mkdir(parents=True, exist_ok=True)
+                        segment_save_path.write_bytes(res.content)
+                    else:
+                        asyncio.run(aria2c(
+                            uri=segment.uri,
+                            out=segment_save_path,
+                            headers=session.headers,
+                            proxy=proxy,
+                            segmented=True
+                        ))
+                    break
+                except Exception as ee:
+                    if stop_event.is_set() or attempts == 5:
+                        raise ee
+                    time.sleep(2)
+                    attempts += 1
 
             data_size = segment_save_path.stat().st_size
 
