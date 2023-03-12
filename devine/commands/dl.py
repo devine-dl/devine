@@ -879,7 +879,7 @@ class dl:
                 if return_code == 1:
                     self.log.warning("mkvmerge had at least one warning, will continue anyway...")
                 elif return_code >= 2:
-                    self.log.error(" - Failed to Mux video to Matroska file")
+                    self.log.error(f"Failed to Mux video to Matroska file ({return_code})")
                     sys.exit(1)
         else:
             # dont mux
