@@ -138,9 +138,18 @@ async def aria2c(
                         log_buffer += f"{line.strip()}\n"
 
             if log_buffer:
+                log_buffer = log_buffer.rstrip()
+                refused_errors = (
+                    "the target machine actively refused it",
+                    "SSL/TLS handshake failure"
+                )
+                if segmented and any(x in log_buffer for x in refused_errors):
+                    # likely too many connections
+                    raise ConnectionRefusedError("Aria2 could not connect as the target machine actively refused it.")
+
                 # wrap to console width - padding - '[Aria2c]: '
                 log_buffer = "\n          ".join(textwrap.wrap(
-                    log_buffer.rstrip(),
+                    log_buffer,
                     width=console.width - 20,
                     initial_indent=""
                 ))
