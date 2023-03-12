@@ -102,7 +102,7 @@ async def aria2c(
 
         if p.stdout:
             is_dl_summary = False
-            aria_log_buffer = ""
+            log_buffer = ""
             while True:
                 try:
                     chunk = await p.stdout.readuntil(b"\r")
@@ -135,16 +135,16 @@ async def aria2c(
                     elif not is_dl_summary:
                         if "aria2 will resume download if the transfer is restarted" in line:
                             continue
-                        aria_log_buffer += f"{line.strip()}\n"
+                        log_buffer += f"{line.strip()}\n"
 
-            if aria_log_buffer:
+            if log_buffer:
                 # wrap to console width - padding - '[Aria2c]: '
-                aria_log_buffer = "\n          ".join(textwrap.wrap(
-                    aria_log_buffer.rstrip(),
+                log_buffer = "\n          ".join(textwrap.wrap(
+                    log_buffer.rstrip(),
                     width=console.width - 20,
                     initial_indent=""
                 ))
-                console.log(Text.from_ansi("\n[Aria2c]: " + aria_log_buffer))
+                console.log(Text.from_ansi("\n[Aria2c]: " + log_buffer))
 
         await p.wait()
 
