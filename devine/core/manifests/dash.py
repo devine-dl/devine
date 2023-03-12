@@ -475,6 +475,7 @@ class DASH:
                                 out=segment_save_path,
                                 headers=session.headers,
                                 proxy=proxy,
+                                silent=attempts != 5,
                                 segmented=True
                             ))
                         break
