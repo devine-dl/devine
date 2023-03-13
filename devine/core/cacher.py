@@ -150,6 +150,8 @@ class Cacher:
             except ValueError:
                 timestamp = float(timestamp)
         try:
+            if len(str(int(timestamp))) == 13:  # JS-style timestamp
+                timestamp /= 1000
             timestamp = datetime.fromtimestamp(timestamp)
         except ValueError:
             raise ValueError(f"Unrecognized Timestamp value {timestamp!r}")
