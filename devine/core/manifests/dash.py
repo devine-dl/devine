@@ -167,7 +167,14 @@ class DASH:
                         if x.get("schemeIdUri") == "tag:dolby.com,2018:dash:EC3_ExtensionComplexityIndex:2018"
                     ), None)
 
-                    track_lang = DASH.get_language(rep.get("lang"), adaptation_set.get("lang"), language)
+                    if rep.get("id") is not None:
+                        rep_id_lang = re.match(r"\w+_(\w+)=\d+", rep.get("id"))
+                        if rep_id_lang:
+                            rep_id_lang = rep_id_lang.group(1)
+                    else:
+                        rep_id_lang = None
+
+                    track_lang = DASH.get_language(rep.get("lang"), adaptation_set.get("lang"), rep_id_lang, language)
                     if not track_lang:
                         raise ValueError(
                             "One or more Tracks had no Language information. "
