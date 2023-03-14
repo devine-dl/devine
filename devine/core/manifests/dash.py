@@ -124,7 +124,8 @@ class DASH:
                     for x in adaptation_set.findall("Accessibility")
                 )
                 forced = any(
-                    (x.get("schemeIdUri"), x.get("value")) == ("urn:mpeg:dash:role:2011", "forced-subtitle")
+                    x.get("schemeIdUri") == "urn:mpeg:dash:role:2011"
+                    and x.get("value") in ("forced-subtitle", "forced_subtitle")
                     for x in adaptation_set.findall("Role")
                 )
                 cc = any(
