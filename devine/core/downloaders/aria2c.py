@@ -135,6 +135,8 @@ async def aria2c(
                     elif not is_dl_summary:
                         if "aria2 will resume download if the transfer is restarted" in line:
                             continue
+                        if "If there are any errors, then see the log file" in line:
+                            continue
                         log_buffer += f"{line.strip()}\n"
 
             if log_buffer:
