@@ -5,6 +5,70 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2023-03-16
+
+### Added
+
+- The Track get_init_segment method has been re-written to be more controllable. A specific Byte-range, URL, and
+  maximum size can now be specified. A manually specified URL will override the Track's current URL. The Byte-range
+  will override the fallback value of `0-20000` (where 20000 is the default `maximum_size`). It now also checks if the
+  server supports Byte-range, or it will otherwise stream the response. It also tries to get the file size length and
+  uses that instead of `maximum_size` unless it's bigger than `maximum_size`.
+- Added new `get_key_id` method to Track to probe the track for a track-specific Encryption Key ID. This is similar to
+  Widevine's `from_track` method but ignores all `pssh` boxes and manifest information as the information within those
+  could be for a wider range of tracks or not for that track at all.
+- Added a 5-attempt retry system to DASH and HLS downloads. URL downloads only uses aria2(c)'s built in retry system
+  which has the same amount of tries and same delay between attempts. Any errors emitted when downloading segments will
+  not be printed to console unless it occurred on the last attempt.
+- Added a fallback way to obtain language information by taking it from the representation ID value, which may have the
+  language code within it. E.g., `audio_en=128000` would be an English audio track at 128kb/s. We now take the `en`
+  from that ID where possible.
+- Added support for 13-char JS-style timestamp values to the Cacher system.
+- Improved Forced Subtitle recognition by checking for both `forced-subtitle` and `forced_subtitle` (#43).
+
+### Changed
+
+- The `*` symbol is no longer spaced after the Widevine `KID:KEY` when denoting that it is for this specific PSSH.
+  This reduces wasted vertical space.
+- The "aria2 will resume download if the transfer is restarted" logs that occur when aria2(c) handles the CTRL+C break,
+  and "If there are any errors, then see the log file" logs are now ignored and no longer logged to the console.
+- DASH tracks will no longer prepare and license DRM unless it's just about to download. This is to reduce unnecessary
+  preparation of DRM if the track had been converted to a URL download.
+- For a fix listed below, we now use a fork of https://github.com/globocom/m3u8 that fixes a glaring problem with the
+  EXT-X-KEY parsing system. See <https://github.com/globocom/m3u8/pull/313>.
+- The return code when mkvmerge returns an error is now logged with the error message.
+- SubtitleEdit has been silenced when using it for SDH stripping.
+
+### Fixed
+
+- Fixed URL joining and Base URL calculations on DASH manifests that use multiple Base URL values.
+- URL downloads will now store the chosen DRM before preparing and licensing with the DRM.
+- URL downloads will now prepare and license with the DRM if the Track has pre-existing DRM information. Previously it
+  would only prepare and license DRM if it did not pre-emptively have DRM information before downloading.
+- The `*` symbol that indicates that the KID:KEY is for the track being downloaded now uses the new `get_key_id` method
+  of the track for a more accurate reading.
+- License check now ensures if a KEY was returned for the Track instead of all KIDs of the Track's PSSH. This prevents
+  an issue where the PSSH may have Key IDs for a 720p and 1080p track, yet only a KEY for the 720p track was returned.
+  It would have then raised an error and stopped the download, even though you are downloading the 720p track and not
+  the 1080p track, therefore the error was irrelevant.
+- Unnecessary duplicate license calls are now prevented in some scenarios where `--cdm-only` is used.
+- Fixed accuracy and speed of preparing and licensing DRM on HLS manifests where multiple EXT-X-KEY definitions appear
+  in the manifest throughout the file. Using <https://github.com/globocom/m3u8/pull/313> we can now accurately get a
+  list of EXT-X-KEYs mapped to each segment. This is a game changer for HLS manifests that use unique keys for every
+  single (or most) segments as it would have otherwised needed to initialize (and possibly do network requests) for
+  100s of EXT-X-KEY information, per segment. This caused downloads of HLS manifests that used a unique key per segment
+  to slow to a binding crawl, and still not even decrypt correctly as it wouldn't be able to map the correct initialized
+  key to the correct segment.
+- Fixed a regression that incorrectly implemented the OnMultiplex event for Audio and Subtitle tracks causing them to
+  never trigger. It would instead accidentally have trigger the last Video track's OnMultiplex event instead of the
+  Audio or Subtitle's event.
+- The above fix also fixed the automatic SDH stripping subtitle. Any automatically created SDH->non-SDH subtitle from
+  prior downloads would not have actually had SDH captions stripped, it would instead be a duplicate subtitle.
+
+### New Contributors
+
+- [Hollander-1908](https://github.com/Hollander-1908)
+
 ## [2.0.1] - 2023-03-07
 
 ### Added
@@ -305,6 +369,7 @@ This release brings a huge change to the fundamentals of Devine's logging, UI, a
 
 Initial public release under the name Devine.
 
+[2.1.0]: https://github.com/devine-dl/devine/releases/tag/v2.1.0
 [2.0.1]: https://github.com/devine-dl/devine/releases/tag/v2.0.1
 [2.0.0]: https://github.com/devine-dl/devine/releases/tag/v2.0.0
 [1.4.0]: https://github.com/devine-dl/devine/releases/tag/v1.4.0
