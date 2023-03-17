@@ -643,7 +643,7 @@ class dl:
                         if content_key:
                             drm.content_keys[kid] = content_key
                             label = f"[text2]{kid.hex}:{content_key}{is_track_kid} from {vault_used}"
-                            if not any(x.label == label for x in cek_tree.children):
+                            if not any(f"{kid.hex}:{content_key}" in x.label for x in cek_tree.children):
                                 cek_tree.add(label)
                             self.vaults.add_key(kid, content_key, excluding=vault_used)
                         elif vaults_only:
@@ -676,7 +676,7 @@ class dl:
                             if key == "0" * 32:
                                 key = f"[red]{key}[/]"
                             label = f"[text2]{kid_.hex}:{key}{is_track_kid}"
-                            if not any(x.label == label for x in cek_tree.children):
+                            if not any(f"{kid_.hex}:{key}" in x.label for x in cek_tree.children):
                                 cek_tree.add(label)
 
                         drm.content_keys = {
