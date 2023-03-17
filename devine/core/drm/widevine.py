@@ -258,11 +258,16 @@ class Widevine:
                 universal_newlines=True
             )
 
+            stream_skipped = False
+
             shaka_log_buffer = ""
             for line in iter(p.stderr.readline, ""):
                 line = line.strip()
                 if not line:
                     continue
+                if "Skip stream" in line:
+                    # file/segment was so small that it didn't have any actual data, ignore
+                    stream_skipped = True
                 if ":INFO:" in line:
                     continue
                 if "Insufficient bits in bitstream for given AVC profile" in line:
@@ -283,13 +288,14 @@ class Widevine:
 
             if p.returncode != 0:
                 raise subprocess.CalledProcessError(p.returncode, arguments)
+
+            path.unlink()
+            if not stream_skipped:
+                shutil.move(decrypted_path, path)
         except subprocess.CalledProcessError as e:
             if e.returncode == 0xC000013A:  # STATUS_CONTROL_C_EXIT
                 raise KeyboardInterrupt()
             raise
-
-        path.unlink()
-        shutil.move(decrypted_path, path)
 
     class Exceptions:
         class PSSHNotFound(Exception):
