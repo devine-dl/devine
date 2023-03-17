@@ -178,8 +178,8 @@ class Subtitle(Track):
                     replace("\n\n<", "\n<")
                 captions: pycaption.CaptionSet = pycaption.WebVTTReader().read(text)
                 return captions
-        except pycaption.exceptions.CaptionReadSyntaxError:
-            raise SyntaxError(f"A syntax error has occurred when reading the \"{codec}\" subtitle")
+        except pycaption.exceptions.CaptionReadSyntaxError as e:
+            raise SyntaxError(f"A syntax error has occurred when reading the \"{codec}\" subtitle: {e}")
         except pycaption.exceptions.CaptionReadNoCaptions:
             return pycaption.CaptionSet({"en": []})
 
