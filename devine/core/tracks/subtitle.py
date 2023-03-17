@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import subprocess
 from collections import defaultdict
 from enum import Enum
@@ -161,6 +162,8 @@ class Subtitle(Track):
                 return captions
             if codec == Subtitle.Codec.TimedTextMarkupLang:
                 text = data.decode("utf8").replace("tt:", "")
+                # negative size values aren't allowed in TTML/DFXP spec, replace with 0
+                text = re.sub(r'"(-\d+(\.\d+)?(px|em|%|c|pt))"', '"0"', text)
                 return pycaption.DFXPReader().read(text)
             if codec == Subtitle.Codec.fVTT:
                 caption_lists: dict[str, pycaption.CaptionList] = defaultdict(pycaption.CaptionList)
