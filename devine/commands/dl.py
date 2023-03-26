@@ -594,7 +594,7 @@ class dl:
 
                 for track in list(title.tracks.videos):
                     title.tracks.videos = [track]
-                    final_path = self.mux_tracks(
+                    self.mux_tracks(
                         title,
                         season_folder=not no_folder,
                         add_source=not no_source,
@@ -609,7 +609,6 @@ class dl:
 
                 downloaded_table = Table.grid(expand=True)
                 downloaded_table.add_row(f" :tada: Download Finished in [progress.elapsed]{title_dl_time}[/]!")
-                downloaded_table.add_row(Text(str(final_path), overflow="fold"))
                 console.print(Padding(
                     downloaded_table,
                     (0, 5, 1, 5)
