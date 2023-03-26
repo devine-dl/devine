@@ -94,22 +94,34 @@ class LanguageRange(click.ParamType):
         return re.split(r"\s*[,;]\s*", value)
 
 
-class Quality(click.ParamType):
-    name = "quality"
+class QualityList(click.ParamType):
+    name = "quality_list"
 
-    def convert(self, value: str, param: Optional[click.Parameter] = None, ctx: Optional[click.Context] = None) -> int:
-        try:
-            return int(value.lower().rstrip("p"))
-        except TypeError:
-            self.fail(
-                f"expected string for int() conversion, got {value!r} of type {type(value).__name__}",
-                param,
-                ctx
-            )
-        except ValueError:
-            self.fail(f"{value!r} is not a valid integer", param, ctx)
+    def convert(
+        self,
+        value: Union[str, list[str]],
+        param: Optional[click.Parameter] = None,
+        ctx: Optional[click.Context] = None
+    ) -> list[int]:
+        if not value:
+            return []
+        if not isinstance(value, list):
+            value = value.split(",")
+        resolutions = []
+        for resolution in value:
+            try:
+                resolutions.append(int(resolution.lower().rstrip("p")))
+            except TypeError:
+                self.fail(
+                    f"Expected string for int() conversion, got {resolution!r} of type {type(resolution).__name__}",
+                    param,
+                    ctx
+                )
+            except ValueError:
+                self.fail(f"{resolution!r} is not a valid integer", param, ctx)
+        return resolutions
 
 
 SEASON_RANGE = SeasonRange()
 LANGUAGE_RANGE = LanguageRange()
-QUALITY = Quality()
+QUALITY_LIST = QualityList()

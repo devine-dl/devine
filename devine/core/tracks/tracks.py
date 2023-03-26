@@ -268,6 +268,36 @@ class Tracks:
                 videos_quality = [x for x in self.videos if int(x.width * (9 / 16)) == resolution]
             self.videos = videos_quality
 
+    def by_resolutions(self, resolutions: list[int], per_resolution: int = 0) -> None:
+        # Note: Do not merge these list comprehensions. They must be done separately so the results
+        # from the 16:9 canvas check is only used if there's no exact height resolution match.
+        selected = []
+        for resolution in resolutions:
+            matches = [  # exact matches
+                x
+                for x in self.videos
+                if x.height == resolution
+            ]
+            if not matches:
+                matches = [  # 16:9 canvas matches
+                    x
+                    for x in self.videos
+                    if int(x.width * (9 / 16)) == resolution
+                ]
+            selected.extend(matches[:per_resolution or None])
+        self.videos = selected
+
+    @staticmethod
+    def by_language(tracks: list[TrackT], languages: list[str], per_language: int = 0) -> list[TrackT]:
+        selected = []
+        for language in languages:
+            selected.extend([
+                x
+                for x in tracks
+                if closest_supported_match(x.language, [language], LANGUAGE_MAX_DISTANCE)
+            ][:per_language or None])
+        return selected
+
     def export_chapters(self, to_file: Optional[Union[Path, str]] = None) -> str:
         """Export all chapters in order to a string or file."""
         self.sort_chapters()
@@ -277,19 +307,6 @@ class Tracks:
             to_file.parent.mkdir(parents=True, exist_ok=True)
             to_file.write_text(data, encoding="utf8")
         return data
-
-    @staticmethod
-    def select_per_language(tracks: list[TrackT], languages: list[str]) -> list[TrackT]:
-        """
-        Enumerates and return the first Track per language.
-        You should sort the list so the wanted track is closer to the start of the list.
-        """
-        tracks_ = []
-        for language in languages:
-            match = closest_supported_match(language, [str(x.language) for x in tracks], LANGUAGE_MAX_DISTANCE)
-            if match:
-                tracks_.append(next(x for x in tracks if str(x.language) == match))
-        return tracks_
 
     def mux(self, title: str, delete: bool = True, progress: Optional[partial] = None) -> tuple[Path, int]:
         """
