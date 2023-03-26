@@ -600,6 +600,7 @@ class dl:
                         add_source=not no_source,
                         delete=False
                     )
+                    track.delete()
 
                 for track in title.tracks:
                     track.delete()
