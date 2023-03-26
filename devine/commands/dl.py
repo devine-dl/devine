@@ -598,18 +598,59 @@ class dl:
                         # we don't want to fill up the log with "Repacked x track"
                         self.log.info("Repacked one or more tracks with FFMPEG")
 
-                for track in list(title.tracks.videos):
-                    title.tracks.videos = [track]
-                    self.mux_tracks(
-                        title,
-                        season_folder=not no_folder,
-                        add_source=not no_source,
-                        delete=False
+                if isinstance(title, (Movie, Episode)):
+                    progress = Progress(
+                        TextColumn("[progress.description]{task.description}"),
+                        SpinnerColumn(finished_text=""),
+                        BarColumn(),
+                        "•",
+                        TimeRemainingColumn(compact=True, elapsed_when_finished=True),
+                        console=console
                     )
-                    track.delete()
+                    multi_jobs = len(title.tracks.videos) > 1
+                    tasks = [
+                        progress.add_task(
+                            f"Multiplexing{f' {x.height}p' if multi_jobs else ''}...",
+                            total=None,
+                            start=False
+                        )
+                        for x in title.tracks.videos
+                    ]
+                    with Live(
+                        Padding(progress, (0, 5, 1, 5)),
+                        console=console
+                    ):
+                        for track, task in zip(title.tracks.videos, tasks):
+                            title.tracks.videos = [track]
+                            progress.start_task(task)  # TODO: Needed?
+                            muxed_path, return_code = title.tracks.mux(
+                                str(title),
+                                progress=partial(progress.update, task_id=task),
+                                delete=False
+                            )
+                            if return_code == 1:
+                                self.log.warning("mkvmerge had at least one warning, will continue anyway...")
+                            elif return_code >= 2:
+                                self.log.error(f"Failed to Mux video to Matroska file ({return_code})")
+                                sys.exit(1)
+                            track.delete()
+                        for track in title.tracks:
+                            track.delete()
+                else:
+                    # dont mux
+                    muxed_path = title.tracks.audio[0].path
 
-                for track in title.tracks:
-                    track.delete()
+                media_info = MediaInfo.parse(muxed_path)
+                final_dir = config.directories.downloads
+                final_filename = title.get_filename(media_info, show_service=not no_source)
+
+                if not no_folder and isinstance(title, (Episode, Song)):
+                    final_dir /= title.get_filename(media_info, show_service=not no_source, folder=True)
+
+                final_dir.mkdir(parents=True, exist_ok=True)
+                final_path = final_dir / f"{final_filename}{muxed_path.suffix}"
+
+                shutil.move(muxed_path, final_path)
 
                 title_dl_time = time_elapsed_since(dl_start_time)
                 console.print(Padding(
@@ -888,59 +929,6 @@ class dl:
 
         if callable(track.OnDownloaded):
             track.OnDownloaded(track)
-
-    def mux_tracks(
-        self,
-        title: Title_T,
-        season_folder: bool = True,
-        add_source: bool = True,
-        delete: bool = False
-    ) -> Path:
-        """Mux Tracks, Delete Pre-Mux files, and move to the final location."""
-        if isinstance(title, (Movie, Episode)):
-            multiplexing_progress = Progress(
-                TextColumn("[progress.description]{task.description}"),
-                SpinnerColumn(finished_text=""),
-                BarColumn(),
-                "•",
-                TimeRemainingColumn(compact=True, elapsed_when_finished=True),
-                console=console
-            )
-            with Live(
-                Padding(multiplexing_progress, (0, 5, 1, 5)),
-                console=console
-            ):
-                task = multiplexing_progress.add_task("Multiplexing...", total=100)
-                muxed_path, return_code = title.tracks.mux(
-                    str(title),
-                    progress=partial(
-                        multiplexing_progress.update,
-                        task_id=task
-                    ),
-                    delete=delete
-                )
-                if return_code == 1:
-                    self.log.warning("mkvmerge had at least one warning, will continue anyway...")
-                elif return_code >= 2:
-                    self.log.error(f"Failed to Mux video to Matroska file ({return_code})")
-                    sys.exit(1)
-        else:
-            # dont mux
-            muxed_path = title.tracks.audio[0].path
-
-        media_info = MediaInfo.parse(muxed_path)
-        final_dir = config.directories.downloads
-        final_filename = title.get_filename(media_info, show_service=add_source)
-
-        if season_folder and isinstance(title, (Episode, Song)):
-            final_dir /= title.get_filename(media_info, show_service=add_source, folder=True)
-
-        final_dir.mkdir(parents=True, exist_ok=True)
-        final_path = final_dir / f"{final_filename}{muxed_path.suffix}"
-
-        shutil.move(muxed_path, final_path)
-
-        return final_path
 
     @staticmethod
     def get_profile(service: str) -> Optional[str]:
