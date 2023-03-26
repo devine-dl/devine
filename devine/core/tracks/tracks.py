@@ -259,15 +259,6 @@ class Tracks:
     def select_subtitles(self, x: Callable[[Subtitle], bool]) -> None:
         self.subtitles = list(filter(x, self.subtitles))
 
-    def with_resolution(self, resolution: int) -> None:
-        if resolution:
-            # Note: Do not merge these list comprehensions. They must be done separately so the results
-            # from the 16:9 canvas check is only used if there's no exact height resolution match.
-            videos_quality = [x for x in self.videos if x.height == resolution]
-            if not videos_quality:
-                videos_quality = [x for x in self.videos if int(x.width * (9 / 16)) == resolution]
-            self.videos = videos_quality
-
     def by_resolutions(self, resolutions: list[int], per_resolution: int = 0) -> None:
         # Note: Do not merge these list comprehensions. They must be done separately so the results
         # from the 16:9 canvas check is only used if there's no exact height resolution match.
