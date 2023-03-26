@@ -395,6 +395,8 @@ class dl:
                             plural = "s" if len(missing_resolutions) > 1 else ""
                             self.log.error(f"There's no {res_list} Video Track{plural}...")
                             sys.exit(1)
+                    else:
+                        title.tracks.videos = [title.tracks.videos[0]]
 
                     # filter subtitle tracks
                     if s_lang and "all" not in s_lang:
