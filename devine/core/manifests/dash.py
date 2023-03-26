@@ -568,7 +568,7 @@ class DASH:
 
                         if download_sizes and (time_since > 5 or finished_threads == len(segments)):
                             data_size = sum(download_sizes)
-                            download_speed = data_size / time_since
+                            download_speed = data_size / (time_since or 1)
                             progress(downloaded=f"DASH {filesize.decimal(download_speed)}/s")
                             last_speed_refresh = now
                             download_sizes.clear()
