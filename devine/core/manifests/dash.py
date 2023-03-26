@@ -410,12 +410,17 @@ class DASH:
             elif segment_list is not None:
                 init_data = None
                 initialization = segment_list.find("Initialization")
-                if initialization:
+                if initialization is not None:
                     source_url = initialization.get("sourceURL")
                     if source_url is None:
                         source_url = rep_base_url
 
-                    res = session.get(source_url)
+                    if initialization.get("range"):
+                        headers = {"Range": f"bytes={initialization.get('range')}"}
+                    else:
+                        headers = None
+
+                    res = session.get(url=source_url, headers=headers)
                     res.raise_for_status()
                     init_data = res.content
                     track_kid = track.get_key_id(init_data)
@@ -468,13 +473,13 @@ class DASH:
                     try:
                         if segment_range:
                             # aria2(c) doesn't support byte ranges, let's use python-requests (likely slower)
-                            r = session.get(
+                            res = session.get(
                                 url=segment_uri,
                                 headers={
                                     "Range": f"bytes={segment_range}"
                                 }
                             )
-                            r.raise_for_status()
+                            res.raise_for_status()
                             segment_save_path.parent.mkdir(parents=True, exist_ok=True)
                             segment_save_path.write_bytes(res.content)
                         else:
