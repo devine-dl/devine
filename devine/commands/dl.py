@@ -526,6 +526,12 @@ class dl:
                     ))
                     return
 
+                dl_time = time_elapsed_since(dl_start_time)
+                console.print(Padding(
+                    f"Track downloads finished in [progress.elapsed]{dl_time}[/]",
+                    (0, 5)
+                ))
+
                 video_track_n = 0
 
                 while (
@@ -606,11 +612,8 @@ class dl:
                     track.delete()
 
                 title_dl_time = time_elapsed_since(dl_start_time)
-
-                downloaded_table = Table.grid(expand=True)
-                downloaded_table.add_row(f" :tada: Download Finished in [progress.elapsed]{title_dl_time}[/]!")
                 console.print(Padding(
-                    downloaded_table,
+                    f":tada: Title downloaded in [progress.elapsed]{title_dl_time}[/]!",
                     (0, 5, 1, 5)
                 ))
 
