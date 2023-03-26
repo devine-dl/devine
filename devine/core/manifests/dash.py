@@ -415,13 +415,12 @@ class DASH:
                     if source_url is None:
                         source_url = rep_base_url
 
-                    res = session.get(
-                        url=source_url, 
-                        headers=dict(
-                            **session.headers, 
-                            **{"Range": f"bytes={initialization.get('range')}"}
-                        )
-                    )
+                    if initialization.get("range"):
+                        headers = {"Range": f"bytes={initialization.get('range')}"}
+                    else:
+                        headers = None
+
+                    res = session.get(url=source_url, headers=headers)
                     res.raise_for_status()
                     init_data = res.content
                     track_kid = track.get_key_id(init_data)
