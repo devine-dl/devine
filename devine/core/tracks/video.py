@@ -205,6 +205,9 @@ class Video(Track):
         if not executable:
             raise EnvironmentError("ccextractor executable was not found.")
 
+        # ccextractor often fails in weird ways unless we repack
+        self.repackage()
+
         out_path = Path(out_path)
 
         try:
