@@ -213,8 +213,11 @@ class Video(Track):
         try:
             subprocess.run([
                 executable,
-                "-trim", "-noru", "-ru1",
-                self.path, "-o", out_path
+                "-trim",
+                "-nobom",
+                "-noru", "-ru1",
+                "-o", out_path,
+                self.path
             ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except subprocess.CalledProcessError as e:
             out_path.unlink(missing_ok=True)
@@ -222,11 +225,6 @@ class Video(Track):
                 raise
 
         if out_path.exists():
-            if out_path.stat().st_size <= 3:
-                # An empty UTF-8 file with BOM is 3 bytes.
-                # If the subtitle file is empty, mkvmerge will fail to mux.
-                out_path.unlink()
-                return None
             cc_track = Subtitle(
                 id_=track_id,
                 url="",  # doesn't need to be downloaded
