@@ -598,6 +598,8 @@ class dl:
                         # we don't want to fill up the log with "Repacked x track"
                         self.log.info("Repacked one or more tracks with FFMPEG")
 
+                muxed_paths = []
+
                 if isinstance(title, (Movie, Episode)):
                     progress = Progress(
                         TextColumn("[progress.description]{task.description}"),
@@ -628,6 +630,7 @@ class dl:
                                 progress=partial(progress.update, task_id=task),
                                 delete=False
                             )
+                            muxed_paths.append(muxed_path)
                             if return_code == 1:
                                 self.log.warning("mkvmerge had at least one warning, will continue anyway...")
                             elif return_code >= 2:
@@ -638,19 +641,20 @@ class dl:
                             track.delete()
                 else:
                     # dont mux
-                    muxed_path = title.tracks.audio[0].path
+                    muxed_paths.append(title.tracks.audio[0].path)
 
-                media_info = MediaInfo.parse(muxed_path)
-                final_dir = config.directories.downloads
-                final_filename = title.get_filename(media_info, show_service=not no_source)
+                for muxed_path in muxed_paths:
+                    media_info = MediaInfo.parse(muxed_path)
+                    final_dir = config.directories.downloads
+                    final_filename = title.get_filename(media_info, show_service=not no_source)
 
-                if not no_folder and isinstance(title, (Episode, Song)):
-                    final_dir /= title.get_filename(media_info, show_service=not no_source, folder=True)
+                    if not no_folder and isinstance(title, (Episode, Song)):
+                        final_dir /= title.get_filename(media_info, show_service=not no_source, folder=True)
 
-                final_dir.mkdir(parents=True, exist_ok=True)
-                final_path = final_dir / f"{final_filename}{muxed_path.suffix}"
+                    final_dir.mkdir(parents=True, exist_ok=True)
+                    final_path = final_dir / f"{final_filename}{muxed_path.suffix}"
 
-                shutil.move(muxed_path, final_path)
+                    shutil.move(muxed_path, final_path)
 
                 title_dl_time = time_elapsed_since(dl_start_time)
                 console.print(Padding(
