@@ -1397,6 +1397,21 @@ files = [
 iso8601 = "*"
 
 [[package]]
+name = "rlaphoenix-pymp4"
+version = "1.5.0"
+description = "A Python parser for MP4 boxes"
+category = "main"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
+files = [
+    {file = "rlaphoenix_pymp4-1.5.0-py2.py3-none-any.whl", hash = "sha256:2309389dd6087519a1eed8b148d586b5d7f12c9210c8f588b0aa623827d75d35"},
+    {file = "rlaphoenix_pymp4-1.5.0.tar.gz", hash = "sha256:6aaa85a0503c22f8acb0ea1b334c6ad69c3f0591e78520453b0404648d5629f6"},
+]
+
+[package.dependencies]
+construct = "2.8.8"
+
+[[package]]
 name = "ruamel-yaml"
 version = "0.17.21"
 description = "ruamel.yaml is a YAML parser/emitter that supports roundtrip preservation of comments, seq/map flow style, and map key order"
@@ -1730,4 +1745,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9.0,<3.12"
-content-hash = "74e5f149b8cb8e02b0faee5d5eae309eb97e2a4e1d614bbdb9ef41cab5ba5095"
+content-hash = "83608be51420040e95fd8981f7dc774cb60a6db1145a70ad0ed2b08d29bf56f6"
