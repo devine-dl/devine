@@ -119,7 +119,7 @@ class QualityList(click.ParamType):
                 )
             except ValueError:
                 self.fail(f"{resolution!r} is not a valid integer", param, ctx)
-        return resolutions
+        return sorted(resolutions, reverse=True)
 
 
 SEASON_RANGE = SeasonRange()
