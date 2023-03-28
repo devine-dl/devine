@@ -121,14 +121,14 @@ class Track:
 
         # look for track encryption mp4 boxes
         for tenc in get_boxes(init_data, b"tenc"):
-            if tenc.key_ID.int != 0:
+            if tenc.version <= 1 and tenc.key_ID.int != 0:
                 return tenc.key_ID
 
         # look for UUID mp4 boxes holding track encryption mp4 boxes
         for uuid_box in get_boxes(init_data, b"uuid"):
             if uuid_box.extended_type == UUID("8974dbce-7be7-4c51-84f9-7148f9882554"):
                 tenc = uuid_box.data
-                if tenc.key_ID.int != 0:
+                if tenc.version <= 1 and tenc.key_ID.int != 0:
                     return tenc.key_ID
 
     def get_init_segment(
