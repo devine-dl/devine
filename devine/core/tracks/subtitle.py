@@ -315,17 +315,16 @@ class Subtitle(Track):
                     layout: Optional[Layout] = None
                     nodes: list[CaptionNode] = []
 
-                    for cue_box in MP4.parse_stream(BytesIO(vttc_box.data)):
+                    for cue_box in vttc_box.children:
                         if cue_box.type == b"vsid":
                             # this is a V(?) Source ID box, we don't care
                             continue
-                        cue_data = cue_box.data.decode("utf8")
                         if cue_box.type == b"sttg":
-                            layout = Layout(webvtt_positioning=cue_data)
+                            layout = Layout(webvtt_positioning=cue_box.settings)
                         elif cue_box.type == b"payl":
                             nodes.extend([
                                 node
-                                for line in cue_data.split("\n")
+                                for line in cue_box.cue_text.split("\n")
                                 for node in [
                                     CaptionNode.create_text(WebVTTReader()._decode(line)),
                                     CaptionNode.create_break()
