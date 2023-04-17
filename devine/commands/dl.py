@@ -15,6 +15,7 @@ from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from functools import partial
 from http.cookiejar import MozillaCookieJar
+from itertools import zip_longest
 from pathlib import Path
 from threading import Event, Lock
 from typing import Any, Callable, Optional
@@ -616,14 +617,15 @@ class dl:
                             total=None,
                             start=False
                         )
-                        for x in title.tracks.videos
+                        for x in title.tracks.videos or [None]
                     ]
                     with Live(
                         Padding(progress, (0, 5, 1, 5)),
                         console=console
                     ):
-                        for track, task in zip(title.tracks.videos, tasks):
-                            title.tracks.videos = [track]
+                        for task, video_track in zip_longest(tasks, title.tracks.videos, fillvalue=None):
+                            if video_track:
+                                title.tracks.videos = [video_track]
                             progress.start_task(task)  # TODO: Needed?
                             muxed_path, return_code = title.tracks.mux(
                                 str(title),
@@ -636,7 +638,8 @@ class dl:
                             elif return_code >= 2:
                                 self.log.error(f"Failed to Mux video to Matroska file ({return_code})")
                                 sys.exit(1)
-                            track.delete()
+                            if video_track:
+                                video_track.delete()
                         for track in title.tracks:
                             track.delete()
                 else:
