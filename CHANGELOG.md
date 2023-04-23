@@ -5,6 +5,65 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2023-04-23
+
+### Breaking Changes
+
+Since `-q/--quality` has been reworked to support specifying multiple qualities, the type of this value is
+no longer `None|int`. It is now `list[int]` and the list may be empty. It is no longer ever a `None` value.
+
+Please make sure any Service code that uses `quality` via `ctx.parent.params` reflects this change. You may
+need to go from an `if quality: ...` to `for res in quality: ...`, or such. You may still use `if quality`
+to check if it has 1 or more resolution specified, but make sure that the code within that if tree supports
+more than 1 value in the `quality` variable, which is now a list. Note that the list will always be in
+descending order regardless of how the user specified them.
+
+### Added
+
+- Added the ability to specify and download multiple resolutions with `-q/--quality`. E.g., `-q 1080p,720p`.
+- Added support for DASH manifests that use SegmentList with range values on the Initialization definition (#47).
+- Added a check for `uuid` mp4 boxes containing `tenc` box data when getting the Track's Key ID to improve
+  chances of finding a Key ID.
+
+### Changed
+
+- The download path is no longer printed after each download. The simple reason is it felt unnecessary.
+  It filled up a fair amount of vertical space for information you should already know.
+- The logs after a download finishes has been split into two logs. One after the actual downloading process
+  and the other after the multiplexing process. The downloading process has its own timer as well, so you can
+  see how long the downloads itself took.
+- I've switched from using the official pymp4 (for now) with my fork. At the time this change was made the
+  original bearypig pymp4 repo was stagnant and the PyPI releases were old. I forked it, added some fixes
+  by TrueDread and released my own update to PyPI, so it's no longer outdated. This was needed for some
+  mp4 box parsing fixes. Since then the original repo is no longer stagnant, and a new release was made on
+  PyPI. However, my repo still has some of TrueDread's fixes that is not yet on the original repository nor
+  on PyPI.
+
+### Removed
+
+- Removed the `with_resolution` method in the Tracks class. It has been replaced with `by_resolutions`. The
+  new replacement method supports getting all or n amount of tracks by resolution instead of the original
+  always getting all tracks by resolution.
+- Removed the `select_per_language` method in the Tracks class. It has been replaced with `by_language`. The
+  new replacement method supports getting all or n amount of tracks by language instead of the original only
+  able to get one track by language. It now defaults to getting all tracks by language.
+
+### Fixed
+
+- Prevented some duplicate Widevine tree logs under specific edge-cases.
+- The Subtitle parse method no longer absorbs the syntax error message.
+- Replaced all negative size values with 0 on TTML subtitles as a negative value would cause syntax errors.
+- Fixed crash during decryption when shaka-packager skips decryption of a segment as it had no actual data and
+  was just headers.
+- Fixed CCExtractor crash in some scenarios by repacking the video stream prior to extraction.
+- Fixed rare crash when calculating download speed of DASH and HLS downloads where a segment immediately finished
+  after the previous segment. This seemed to only happen on the very last segment in rare situations.
+- Fixed some failures parsing `tenc` mp4 boxes when obtaining the track's Key ID by using my own fork of pymp4
+  with up-to-date code and further fixes.
+- Fixed crashes when parsing some `tenc` mp4 boxes by simply skipping `tenc` boxes that fail to parse. This happens
+  because some services seem to mix up the data of the `tenc` box with that of another type of box.
+- Fixed using invalid `tenc` boxes by skipping ones with a version number greater than 1.
+
 ## [2.1.0] - 2023-03-16
 
 ### Added
@@ -369,6 +428,7 @@ This release brings a huge change to the fundamentals of Devine's logging, UI, a
 
 Initial public release under the name Devine.
 
+[2.2.0]: https://github.com/devine-dl/devine/releases/tag/v2.2.0
 [2.1.0]: https://github.com/devine-dl/devine/releases/tag/v2.1.0
 [2.0.1]: https://github.com/devine-dl/devine/releases/tag/v2.0.1
 [2.0.0]: https://github.com/devine-dl/devine/releases/tag/v2.0.0
