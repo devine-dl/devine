@@ -44,7 +44,7 @@ PyYAML = "^6.0"
 requests = { extras = ["socks"], version = "^2.28.2" }
 rich = "^13.3.1"
 "rlaphoenix.m3u8" = "^3.4.0"
-rlaphoenix-pymp4 = "^1.5.0"
+rlaphoenix-pymp4 = "^1.4.0"
 "ruamel.yaml" = "^0.17.21"
 sortedcontainers = "^2.4.0"
 subtitle-filter = "^1.4.4"
