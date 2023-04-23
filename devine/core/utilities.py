@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 
 import pproxy
 import requests
+from construct import ConstError
 from langcodes import Language, closest_match
 from pymp4.parser import Box
 from unidecode import unidecode
@@ -146,6 +147,12 @@ def get_boxes(data: bytes, box_type: bytes, as_bytes: bool = False) -> Box:
         except IOError:
             # TODO: Does this miss any data we may need?
             break
+        except ConstError as e:
+            if box_type == b"tenc":
+                # ignore this error on tenc boxes as the tenc definition isn't consistent
+                # some services don't even put valid data and mix it up with avc1...
+                continue
+            raise e
         if as_bytes:
             box = Box.build(box)
         yield box
