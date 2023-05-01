@@ -13,9 +13,10 @@ class Audio(Track):
         AC3 = "DD"     # https://wikipedia.org/wiki/Dolby_Digital
         EC3 = "DD+"    # https://wikipedia.org/wiki/Dolby_Digital_Plus
         OPUS = "OPUS"  # https://wikipedia.org/wiki/Opus_(audio_format)
-        OGG = "VORB"  # https://wikipedia.org/wiki/Vorbis
-        DTS = "DTS"  # https://en.wikipedia.org/wiki/DTS_(company)#DTS_Digital_Surround
+        OGG = "VORB"   # https://wikipedia.org/wiki/Vorbis
+        DTS = "DTS"    # https://en.wikipedia.org/wiki/DTS_(company)#DTS_Digital_Surround
         ALAC = "ALAC"  # https://en.wikipedia.org/wiki/Apple_Lossless_Audio_Codec
+        FLAC = "FLAC"  # https://en.wikipedia.org/wiki/FLAC
 
         @property
         def extension(self) -> str:
@@ -36,6 +37,8 @@ class Audio(Track):
                 return Audio.Codec.DTS
             if mime == "alac":
                 return Audio.Codec.ALAC
+            if mime == "flac":
+                return Audio.Codec.FLAC
             raise ValueError(f"The MIME '{mime}' is not a supported Audio Codec")
 
         @staticmethod
