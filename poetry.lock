@@ -1222,13 +1222,14 @@ files = [
 
 [[package]]
 name = "pymp4"
-version = "1.2.0"
-description = "A Python parser for MP4 boxes"
+version = "1.4.0"
+description = "Python parser for MP4 boxes"
 category = "main"
 optional = false
-python-versions = "*"
+python-versions = ">=3.7,<4.0"
 files = [
-    {file = "pymp4-1.2.0.tar.gz", hash = "sha256:4a3d2e0838cfe28cd3dc64f45379e16d91b0212192f87a3e28f3804372727456"},
+    {file = "pymp4-1.4.0-py3-none-any.whl", hash = "sha256:3401666c1e2a97ac94dffb18c5a5dcbd46d0a436da5272d378a6f9f6506dd12d"},
+    {file = "pymp4-1.4.0.tar.gz", hash = "sha256:bc9e77732a8a143d34c38aa862a54180716246938e4bf3e07585d19252b77bb5"},
 ]
 
 [package.dependencies]
@@ -1395,21 +1396,6 @@ files = [
 
 [package.dependencies]
 iso8601 = "*"
-
-[[package]]
-name = "rlaphoenix-pymp4"
-version = "1.4.0"
-description = "Python parser for MP4 boxes"
-category = "main"
-optional = false
-python-versions = ">=3.7,<4.0"
-files = [
-    {file = "rlaphoenix_pymp4-1.4.0-py3-none-any.whl", hash = "sha256:dbe15f8b5721066b497dd853393e4a8ee28c2ade1656901128e965bb9a575bd5"},
-    {file = "rlaphoenix_pymp4-1.4.0.tar.gz", hash = "sha256:aca6094782e4ba8cbfa0f131a892dd97c15eb4db14802bc8b42fc43698512d13"},
-]
-
-[package.dependencies]
-construct = "2.8.8"
 
 [[package]]
 name = "ruamel-yaml"
@@ -1745,4 +1731,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9.0,<3.12"
-content-hash = "0f23d2cc6ed4e674aba0e1e8775b53d41a053143016cf38d4c91ed2ace4e724f"
+content-hash = "0dd28e64144d868bb35f2b41596e7892aec1b3510003e9c9419e80f1d92195c0"
