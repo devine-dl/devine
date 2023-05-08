@@ -16,7 +16,7 @@ from urllib.parse import urlparse
 
 import pproxy
 import requests
-from construct import ConstError
+from construct import ValidationError
 from langcodes import Language, closest_match
 from pymp4.parser import Box
 from unidecode import unidecode
@@ -129,7 +129,7 @@ def get_boxes(data: bytes, box_type: bytes, as_bytes: bool = False) -> Box:
     """Scan a byte array for a wanted box, then parse and yield each find."""
     # using slicing to get to the wanted box is done because parsing the entire box and recursively
     # scanning through each box and its children often wouldn't scan far enough to reach the wanted box.
-    # since it doesnt care what child box the wanted box is from, this works fine.
+    # since it doesn't care what child box the wanted box is from, this works fine.
     if not isinstance(data, (bytes, bytearray)):
         raise ValueError("data must be bytes")
     while True:
@@ -145,11 +145,12 @@ def get_boxes(data: bytes, box_type: bytes, as_bytes: bool = False) -> Box:
         try:
             box = Box.parse(data)
         except IOError:
-            # TODO: Does this miss any data we may need?
+            # since get_init_segment might cut off unexpectedly, pymp4 may be unable to read
+            # the expected amounts of data and complain, so let's just end the function here
             break
-        except ConstError as e:
+        except ValidationError as e:
             if box_type == b"tenc":
-                # ignore this error on tenc boxes as the tenc definition isn't consistent
+                # ignore this error on tenc boxes as the tenc definition isn't consistent,
                 # some services don't even put valid data and mix it up with avc1...
                 continue
             raise e
