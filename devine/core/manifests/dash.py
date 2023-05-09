@@ -448,8 +448,8 @@ class DASH:
                     log.warning("No Widevine PSSH was found for this track, is it DRM free?")
 
             if track.drm:
-                # last chance to find the KID
-                track_kid = track_kid or track.get_key_id(url=segments[0], session=session)
+                # last chance to find the KID, assumes first segment will hold the init data
+                track_kid = track_kid or track.get_key_id(url=segments[0][0], session=session)
                 # license and grab content keys
                 drm = track.drm[0]  # just use the first supported DRM system for now
                 if isinstance(drm, Widevine):
