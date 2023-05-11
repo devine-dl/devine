@@ -209,7 +209,7 @@ class DASH:
 
                     tracks.add(track_type(
                         id_=track_id,
-                        url=(self.url, rep, adaptation_set, period),
+                        url=(self.url, self.manifest, rep, adaptation_set, period),
                         codec=track_codec,
                         language=track_lang,
                         is_original_lang=not track_lang or not language or is_close_match(track_lang, [language]),
@@ -303,14 +303,13 @@ class DASH:
 
         log = logging.getLogger("DASH")
 
-        manifest_url, representation, adaptation_set, period = track.url
+        manifest_url, manifest, representation, adaptation_set, period = track.url
 
         track.drm = DASH.get_drm(
             representation.findall("ContentProtection") +
             adaptation_set.findall("ContentProtection")
         )
 
-        manifest = load_xml(session.get(manifest_url).text)
         manifest_url_query = urlparse(manifest_url).query
 
         manifest_base_url = manifest.findtext("BaseURL")
