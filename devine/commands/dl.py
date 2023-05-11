@@ -134,6 +134,7 @@ class dl:
         return dl(ctx, **kwargs)
 
     DL_POOL_STOP = Event()
+    DL_POOL_SKIP = Event()
     DRM_TABLE_LOCK = Lock()
 
     def __init__(
@@ -458,75 +459,78 @@ class dl:
             download_table = Table.grid()
             download_table.add_row(selected_tracks)
 
+            dl_start_time = time.time()
+
             if skip_dl:
-                self.log.info("Skipping Download...")
-            else:
-                dl_start_time = time.time()
+                self.DL_POOL_SKIP.set()
 
-                try:
-                    with Live(
-                        Padding(
-                            download_table,
-                            (1, 5)
-                        ),
-                        console=console,
-                        refresh_per_second=5
-                    ):
-                        with ThreadPoolExecutor(workers) as pool:
-                            for download in futures.as_completed((
-                                pool.submit(
-                                    self.download_track,
-                                    service=service,
-                                    track=track,
-                                    prepare_drm=partial(
-                                        partial(
-                                            self.prepare_drm,
-                                            table=download_table
-                                        ),
-                                        track=track,
-                                        title=title,
-                                        certificate=partial(
-                                            service.get_widevine_service_certificate,
-                                            title=title,
-                                            track=track
-                                        ),
-                                        licence=partial(
-                                            service.get_widevine_license,
-                                            title=title,
-                                            track=track
-                                        ),
-                                        cdm_only=cdm_only,
-                                        vaults_only=vaults_only,
-                                        export=export
-                                    ),
-                                    progress=tracks_progress_callables[i]
-                                )
-                                for i, track in enumerate(title.tracks)
-                            )):
-                                download.result()
-                except KeyboardInterrupt:
-                    console.print(Padding(
-                        ":x: Download Cancelled...",
-                        (0, 5, 1, 5)
-                    ))
-                    return
-                except Exception as e:  # noqa
-                    error_messages = [
-                        ":x: Download Failed...",
-                        "   One of the download workers had an error!",
-                        "   See the error trace above for more information."
-                    ]
-                    if isinstance(e, subprocess.CalledProcessError):
-                        # ignore process exceptions as proper error logs are already shown
-                        error_messages.append(f"   Process exit code: {e.returncode}")
-                    else:
-                        console.print_exception()
-                    console.print(Padding(
-                        Group(*error_messages),
+            try:
+                with Live(
+                    Padding(
+                        download_table,
                         (1, 5)
-                    ))
-                    return
+                    ),
+                    console=console,
+                    refresh_per_second=5
+                ):
+                    with ThreadPoolExecutor(workers) as pool:
+                        for download in futures.as_completed((
+                            pool.submit(
+                                self.download_track,
+                                service=service,
+                                track=track,
+                                prepare_drm=partial(
+                                    partial(
+                                        self.prepare_drm,
+                                        table=download_table
+                                    ),
+                                    track=track,
+                                    title=title,
+                                    certificate=partial(
+                                        service.get_widevine_service_certificate,
+                                        title=title,
+                                        track=track
+                                    ),
+                                    licence=partial(
+                                        service.get_widevine_license,
+                                        title=title,
+                                        track=track
+                                    ),
+                                    cdm_only=cdm_only,
+                                    vaults_only=vaults_only,
+                                    export=export
+                                ),
+                                progress=tracks_progress_callables[i]
+                            )
+                            for i, track in enumerate(title.tracks)
+                        )):
+                            download.result()
+            except KeyboardInterrupt:
+                console.print(Padding(
+                    ":x: Download Cancelled...",
+                    (0, 5, 1, 5)
+                ))
+                return
+            except Exception as e:  # noqa
+                error_messages = [
+                    ":x: Download Failed...",
+                    "   One of the download workers had an error!",
+                    "   See the error trace above for more information."
+                ]
+                if isinstance(e, subprocess.CalledProcessError):
+                    # ignore process exceptions as proper error logs are already shown
+                    error_messages.append(f"   Process exit code: {e.returncode}")
+                else:
+                    console.print_exception()
+                console.print(Padding(
+                    Group(*error_messages),
+                    (1, 5)
+                ))
+                return
 
+            if skip_dl:
+                console.log("Skipped downloads as --skip-dl was used...")
+            else:
                 dl_time = time_elapsed_since(dl_start_time)
                 console.print(Padding(
                     f"Track downloads finished in [progress.elapsed]{dl_time}[/]",
@@ -806,6 +810,9 @@ class dl:
         prepare_drm: Callable,
         progress: partial
     ):
+        if self.DL_POOL_SKIP.is_set():
+            progress(downloaded="[yellow]SKIPPING")
+
         if self.DL_POOL_STOP.is_set():
             progress(downloaded="[yellow]SKIPPED")
             return
@@ -814,12 +821,6 @@ class dl:
             proxy = next(iter(service.session.proxies.values()), None)
         else:
             proxy = None
-
-        if config.directories.temp.is_file():
-            self.log.error(f"Temp Directory '{config.directories.temp}' must be a Directory, not a file")
-            sys.exit(1)
-
-        config.directories.temp.mkdir(parents=True, exist_ok=True)
 
         save_path = config.directories.temp / f"{track.__class__.__name__}_{track.id}.mp4"
         if isinstance(track, Subtitle):
@@ -841,11 +842,18 @@ class dl:
             if save_dir.exists() and save_dir.name.endswith("_segments"):
                 shutil.rmtree(save_dir)
 
-        # Delete any pre-existing temp files matching this track.
-        # We can't re-use or continue downloading these tracks as they do not use a
-        # lock file. Or at least the majority don't. Even if they did I've encountered
-        # corruptions caused by sudden interruptions to the lock file.
-        cleanup()
+        if not self.DL_POOL_SKIP.is_set():
+            if config.directories.temp.is_file():
+                self.log.error(f"Temp Directory '{config.directories.temp}' must be a Directory, not a file")
+                sys.exit(1)
+
+            config.directories.temp.mkdir(parents=True, exist_ok=True)
+
+            # Delete any pre-existing temp files matching this track.
+            # We can't re-use or continue downloading these tracks as they do not use a
+            # lock file. Or at least the majority don't. Even if they did I've encountered
+            # corruptions caused by sudden interruptions to the lock file.
+            cleanup()
 
         try:
             if track.descriptor == track.Descriptor.M3U:
@@ -854,6 +862,7 @@ class dl:
                     save_path=save_path,
                     save_dir=save_dir,
                     stop_event=self.DL_POOL_STOP,
+                    skip_event=self.DL_POOL_SKIP,
                     progress=progress,
                     session=service.session,
                     proxy=proxy,
@@ -865,6 +874,7 @@ class dl:
                     save_path=save_path,
                     save_dir=save_dir,
                     stop_event=self.DL_POOL_STOP,
+                    skip_event=self.DL_POOL_SKIP,
                     progress=progress,
                     session=service.session,
                     proxy=proxy,
@@ -893,21 +903,24 @@ class dl:
                     else:
                         drm = None
 
-                    asyncio.run(aria2c(
-                        uri=track.url,
-                        out=save_path,
-                        headers=service.session.headers,
-                        proxy=proxy if track.needs_proxy else None,
-                        progress=progress
-                    ))
+                    if self.DL_POOL_SKIP.is_set():
+                        progress(downloaded="[yellow]SKIPPED")
+                    else:
+                        asyncio.run(aria2c(
+                            uri=track.url,
+                            out=save_path,
+                            headers=service.session.headers,
+                            proxy=proxy if track.needs_proxy else None,
+                            progress=progress
+                        ))
 
-                    track.path = save_path
+                        track.path = save_path
 
-                    if drm:
-                        drm.decrypt(save_path)
-                        track.drm = None
-                        if callable(track.OnDecrypted):
-                            track.OnDecrypted(track)
+                        if drm:
+                            drm.decrypt(save_path)
+                            track.drm = None
+                            if callable(track.OnDecrypted):
+                                track.OnDecrypted(track)
                 except KeyboardInterrupt:
                     self.DL_POOL_STOP.set()
                     progress(downloaded="[yellow]STOPPED")
@@ -917,25 +930,27 @@ class dl:
                     progress(downloaded="[red]FAILED")
                     raise
         except (Exception, KeyboardInterrupt):
-            cleanup()
+            if not self.DL_POOL_SKIP.is_set():
+                cleanup()
             raise
 
         if self.DL_POOL_STOP.is_set():
             # we stopped during the download, let's exit
             return
 
-        if track.path.stat().st_size <= 3:  # Empty UTF-8 BOM == 3 bytes
-            raise IOError(
-                "Download failed, the downloaded file is empty. "
-                f"This {'was' if track.needs_proxy else 'was not'} downloaded with a proxy." +
-                (
-                    " Perhaps you need to set `needs_proxy` as True to use the proxy for this track."
-                    if not track.needs_proxy else ""
+        if not self.DL_POOL_SKIP.is_set():
+            if track.path.stat().st_size <= 3:  # Empty UTF-8 BOM == 3 bytes
+                raise IOError(
+                    "Download failed, the downloaded file is empty. "
+                    f"This {'was' if track.needs_proxy else 'was not'} downloaded with a proxy." +
+                    (
+                        " Perhaps you need to set `needs_proxy` as True to use the proxy for this track."
+                        if not track.needs_proxy else ""
+                    )
                 )
-            )
 
-        if callable(track.OnDownloaded):
-            track.OnDownloaded(track)
+            if callable(track.OnDownloaded):
+                track.OnDownloaded(track)
 
     @staticmethod
     def get_profile(service: str) -> Optional[str]:

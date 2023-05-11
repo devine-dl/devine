@@ -184,6 +184,7 @@ class HLS:
         save_path: Path,
         save_dir: Path,
         stop_event: Event,
+        skip_event: Event,
         progress: partial,
         session: Optional[Session] = None,
         proxy: Optional[str] = None,
@@ -279,6 +280,10 @@ class HLS:
                                 newest_segment_key = (drm, segment.keys)
                 finally:
                     segment_key.put(newest_segment_key)
+
+                if skip_event.is_set():
+                    progress(downloaded="[yellow]SKIPPING")
+                    return 0
 
             if not segment.uri.startswith(segment.base_uri):
                 segment.uri = segment.base_uri + segment.uri

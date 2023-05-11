@@ -283,6 +283,7 @@ class DASH:
         save_path: Path,
         save_dir: Path,
         stop_event: Event,
+        skip_event: Event,
         progress: partial,
         session: Optional[Session] = None,
         proxy: Optional[str] = None,
@@ -457,6 +458,10 @@ class DASH:
                     license_widevine(drm, track_kid=track_kid)
             else:
                 drm = None
+
+            if skip_event.is_set():
+                progress(downloaded="[yellow]SKIPPED")
+                return
 
             def download_segment(filename: str, segment: tuple[str, Optional[str]]) -> int:
                 if stop_event.is_set():
