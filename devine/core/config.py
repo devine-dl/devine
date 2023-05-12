@@ -49,6 +49,8 @@ class Config:
                 continue
             setattr(self.directories, name, Path(path).expanduser())
 
+        self.downloader = kwargs.get("downloader") or "aria2c"
+
         self.filenames = self._Filenames()
         for name, filename in (kwargs.get("filenames") or {}).items():
             setattr(self.filenames, name, filename)

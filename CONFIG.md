@@ -128,6 +128,15 @@ AMZN:
   bitrate: CVBR
 ```
 
+## downloader (str)
+
+Choose what software to use to download data throughout Devine where needed.
+
+Options:
+
+- `aria2c` (default) - https://github.com/aria2/aria2
+- `saldl` - https://github.com/saldl/saldl
+
 ## headers (dict)
 
 Case-Insensitive dictionary of headers that all Services begin their Request Session state with.  

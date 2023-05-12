@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import base64
 import logging
 import math
@@ -26,7 +25,7 @@ from requests import Session
 from rich import filesize
 
 from devine.core.constants import AnyTrack
-from devine.core.downloaders import aria2c
+from devine.core.downloaders import downloader
 from devine.core.drm import Widevine
 from devine.core.tracks import Audio, Subtitle, Tracks, Video
 from devine.core.utilities import is_close_match
@@ -487,14 +486,14 @@ class DASH:
                             segment_save_path.parent.mkdir(parents=True, exist_ok=True)
                             segment_save_path.write_bytes(res.content)
                         else:
-                            asyncio.run(aria2c(
+                            downloader(
                                 uri=segment_uri,
                                 out=segment_save_path,
                                 headers=session.headers,
                                 proxy=proxy,
                                 silent=attempts != 5,
                                 segmented=True
-                            ))
+                            )
                         break
                     except Exception as ee:
                         if stop_event.is_set() or attempts == 5:

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import html
 import logging
 import math
@@ -43,7 +42,7 @@ from devine.core.config import config
 from devine.core.console import console
 from devine.core.constants import AnyTrack, context_settings
 from devine.core.credential import Credential
-from devine.core.downloaders import aria2c
+from devine.core.downloaders import downloader
 from devine.core.drm import DRM_T, Widevine
 from devine.core.manifests import DASH, HLS
 from devine.core.proxies import Basic, Hola, NordVPN
@@ -906,13 +905,13 @@ class dl:
                     if self.DL_POOL_SKIP.is_set():
                         progress(downloaded="[yellow]SKIPPED")
                     else:
-                        asyncio.run(aria2c(
+                        downloader(
                             uri=track.url,
                             out=save_path,
                             headers=service.session.headers,
                             proxy=proxy if track.needs_proxy else None,
                             progress=progress
-                        ))
+                        )
 
                         track.path = save_path
 
