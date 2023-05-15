@@ -60,6 +60,7 @@ def requests(
     last_speed_refresh = time.time()
 
     for url, out_path in uri:
+        out_path.parent.mkdir(parents=True, exist_ok=True)
         stream = session.get(url, stream=True)
         file_size = int(stream.headers["Content-Length"])
         with open(out_path, "wb") as f:
