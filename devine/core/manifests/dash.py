@@ -445,29 +445,18 @@ class DASH:
 
                 data_size = segment_save_path.stat().st_size
 
-                if isinstance(track, Audio) or init_data:
+                # fix audio decryption on ATVP by fixing the sample description index
+                # TODO: Should this be done in the video data or the init data?
+                if isinstance(track, Audio):
                     with open(segment_save_path, "rb+") as f:
                         segment_data = f.read()
-                        if isinstance(track, Audio):
-                            # fix audio decryption on ATVP by fixing the sample description index
-                            # TODO: Is this in mpeg data, or init data?
-                            segment_data = re.sub(
-                                b"(tfhd\x00\x02\x00\x1a\x00\x00\x00\x01\x00\x00\x00)\x02",
-                                b"\\g<1>\x01",
-                                segment_data
-                            )
-                        # prepend the init data to be able to decrypt
-                        if init_data:
-                            f.seek(0)
-                            f.write(init_data)
-                            f.write(segment_data)
-
-                if drm:
-                    # TODO: What if the manifest does not mention DRM, but has DRM
-                    drm.decrypt(segment_save_path)
-                    track.drm = None
-                    if callable(track.OnDecrypted):
-                        track.OnDecrypted(track)
+                        segment_data = re.sub(
+                            b"(tfhd\x00\x02\x00\x1a\x00\x00\x00\x01\x00\x00\x00)\x02",
+                            b"\\g<1>\x01",
+                            segment_data
+                        )
+                        f.seek(0)
+                        f.write(segment_data)
 
                 return data_size
 
@@ -524,9 +513,18 @@ class DASH:
                             download_sizes.clear()
 
             with open(save_path, "wb") as f:
+                if init_data:
+                    f.write(init_data)
                 for segment_file in sorted(save_dir.iterdir()):
                     f.write(segment_file.read_bytes())
                     segment_file.unlink()
+
+            if drm:
+                # TODO: What if the manifest does not mention DRM, but has DRM
+                drm.decrypt(save_path)
+                track.drm = None
+                if callable(track.OnDecrypted):
+                    track.OnDecrypted(track)
 
             track.path = save_path
             save_dir.rmdir()
