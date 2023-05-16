@@ -918,10 +918,12 @@ class dl:
                         progress(downloaded="Downloaded")
 
                         if drm:
+                            progress(downloaded="Decrypting", completed=0, total=100)
                             drm.decrypt(save_path)
                             track.drm = None
                             if callable(track.OnDecrypted):
                                 track.OnDecrypted(track)
+                            progress(downloaded="Decrypted", completed=100)
                 except KeyboardInterrupt:
                     self.DL_POOL_STOP.set()
                     progress(downloaded="[yellow]STOPPED")

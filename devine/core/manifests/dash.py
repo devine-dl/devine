@@ -523,10 +523,12 @@ class DASH:
 
             if drm:
                 # TODO: What if the manifest does not mention DRM, but has DRM
+                progress(downloaded="Decrypting", completed=0, total=100)
                 drm.decrypt(save_path)
                 track.drm = None
                 if callable(track.OnDecrypted):
                     track.OnDecrypted(track)
+                progress(downloaded="Decrypted", completed=100)
 
             track.path = save_path
             save_dir.rmdir()
