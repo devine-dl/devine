@@ -57,7 +57,7 @@ def requests(
     for url, out_path in uri:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         stream = session.get(url, stream=True)
-        file_size = int(stream.headers["Content-Length"])
+        file_size = stream.headers.get("Content-Length")
         with open(out_path, "wb") as f:
             written = 0
             for chunk in stream.iter_content(chunk_size=1024):
@@ -77,7 +77,7 @@ def requests(
                         progress(downloaded=f"{filesize.decimal(download_speed)}/s")
                         last_speed_refresh = now
                         download_sizes.clear()
-        if written < file_size:
+        if file_size and written < int(file_size):
             raise ValueError(
                 f"{url} finished downloading unexpectedly, got {decimal(written)}/{decimal(file_size)}")
 
