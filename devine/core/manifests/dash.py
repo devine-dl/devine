@@ -519,6 +519,8 @@ class DASH:
                     f.write(segment_file.read_bytes())
                     segment_file.unlink()
 
+            progress(downloaded="Downloaded")
+
             if drm:
                 # TODO: What if the manifest does not mention DRM, but has DRM
                 drm.decrypt(save_path)

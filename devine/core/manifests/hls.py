@@ -427,6 +427,8 @@ class HLS:
                 f.write(segment_file.read_bytes())
                 segment_file.unlink()
 
+        progress(downloaded="Downloaded")
+
         track.path = save_path
         save_dir.rmdir()
 

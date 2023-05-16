@@ -915,6 +915,8 @@ class dl:
 
                         track.path = save_path
 
+                        progress(downloaded="Downloaded")
+
                         if drm:
                             drm.decrypt(save_path)
                             track.drm = None
