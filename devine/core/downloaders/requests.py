@@ -48,13 +48,8 @@ def requests(
     if proxy:
         session.proxies.update({"all": proxy})
 
-    total_size = sum(
-        int(session.head(url).headers["Content-Length"])
-        for url, _ in uri
-    )
-
     if progress:
-        progress(total=total_size)
+        progress(total=len(uri))
 
     download_sizes = []
     last_speed_refresh = time.time()
@@ -70,7 +65,7 @@ def requests(
                 f.write(chunk)
                 written += download_size
                 if progress:
-                    progress(advance=download_size)
+                    progress(advance=1)
 
                     now = time.time()
                     time_since = now - last_speed_refresh
