@@ -39,7 +39,7 @@ def add(paths: list[Path]) -> None:
         else:
             # TODO: Check for and log errors
             _ = Device.load(path)  # test if WVD is valid
-            shutil.move(path, config.directories.wvds)
+            shutil.move(path, dst_path)
             log.info(f"Added {path.stem}")
 
 
