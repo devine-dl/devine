@@ -450,13 +450,14 @@ class DASH:
                 if isinstance(track, Audio):
                     with open(segment_save_path, "rb+") as f:
                         segment_data = f.read()
-                        segment_data = re.sub(
+                        fixed_segment_data = re.sub(
                             b"(tfhd\x00\x02\x00\x1a\x00\x00\x00\x01\x00\x00\x00)\x02",
                             b"\\g<1>\x01",
                             segment_data
                         )
-                        f.seek(0)
-                        f.write(segment_data)
+                        if fixed_segment_data != segment_data:
+                            f.seek(0)
+                            f.write(fixed_segment_data)
 
                 return data_size
 
