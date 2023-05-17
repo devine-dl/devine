@@ -26,7 +26,7 @@ from requests import Session
 from rich import filesize
 
 from devine.core.constants import AnyTrack
-from devine.core.downloaders import downloader
+from devine.core.downloaders import downloader, requests as requests_downloader
 from devine.core.drm import Widevine
 from devine.core.tracks import Audio, Subtitle, Tracks, Video
 from devine.core.utilities import is_close_match
@@ -416,26 +416,20 @@ class DASH:
                 attempts = 1
                 while True:
                     try:
+                        downloader_ = downloader
+                        headers_ = session.headers
                         if segment_range:
                             # aria2(c) doesn't support byte ranges, let's use python-requests (likely slower)
-                            res = session.get(
-                                url=segment_uri,
-                                headers={
-                                    "Range": f"bytes={segment_range}"
-                                }
-                            )
-                            res.raise_for_status()
-                            segment_save_path.parent.mkdir(parents=True, exist_ok=True)
-                            segment_save_path.write_bytes(res.content)
-                        else:
-                            downloader(
-                                uri=segment_uri,
-                                out=segment_save_path,
-                                headers=session.headers,
-                                proxy=proxy,
-                                silent=attempts != 5,
-                                segmented=True
-                            )
+                            downloader_ = requests_downloader
+                            headers_["Range"] = f"bytes={segment_range}"
+                        downloader_(
+                            uri=segment_uri,
+                            out=segment_save_path,
+                            headers=headers_,
+                            proxy=proxy,
+                            silent=attempts != 5,
+                            segmented=True
+                        )
                         break
                     except Exception as ee:
                         if stop_event.is_set() or attempts == 5:
