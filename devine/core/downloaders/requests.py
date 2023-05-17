@@ -79,7 +79,7 @@ def requests(
                         download_sizes.clear()
         if file_size and written < int(file_size):
             raise ValueError(
-                f"{url} finished downloading unexpectedly, got {decimal(written)}/{decimal(file_size)}")
+                f"{url} finished downloading unexpectedly, got {decimal(written)}/{decimal(int(file_size))}")
 
     return 0
 
