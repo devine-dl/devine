@@ -357,11 +357,11 @@ class DASH:
                         source_url = rep_base_url
 
                     if initialization.get("range"):
-                        headers = {"Range": f"bytes={initialization.get('range')}"}
+                        init_range_header = {"Range": f"bytes={initialization.get('range')}"}
                     else:
-                        headers = None
+                        init_range_header = None
 
-                    res = session.get(url=source_url, headers=headers)
+                    res = session.get(url=source_url, headers=init_range_header)
                     res.raise_for_status()
                     init_data = res.content
                     track_kid = track.get_key_id(init_data)
@@ -511,13 +511,13 @@ class DASH:
         attempts = 1
         while True:
             try:
-                headers_ = headers or {}
                 if bytes_range:
                     # aria2(c) doesn't support byte ranges, use python-requests
                     downloader_ = requests_downloader
-                    headers_["Range"] = f"bytes={bytes_range}"
+                    headers_ = dict(**headers, Range=f"bytes={bytes_range}")
                 else:
                     downloader_ = downloader
+                    headers_ = headers
                 downloader_(
                     uri=url,
                     out=out_path,
