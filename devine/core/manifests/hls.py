@@ -369,8 +369,8 @@ class HLS:
                     segment.init_section.uri = segment.init_section.base_uri + segment.init_section.uri
 
                 if segment.init_section.byterange:
-                    byte_range = HLS.calculate_byte_range(segment.init_section.byterange)
-                    _ = range_offset.get()
+                    previous_range_offset = range_offset.get()
+                    byte_range = HLS.calculate_byte_range(segment.init_section.byterange, previous_range_offset)
                     range_offset.put(byte_range.split("-")[0])
                     range_header = {
                         "Range": f"bytes={byte_range}"
