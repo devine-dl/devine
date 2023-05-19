@@ -391,13 +391,18 @@ class DASH:
             if track.drm:
                 # last chance to find the KID, assumes first segment will hold the init data
                 track_kid = track_kid or track.get_key_id(url=segments[0][0], session=session)
-                # license and grab content keys
                 # TODO: What if we don't want to use the first DRM system?
                 drm = track.drm[0]
                 if isinstance(drm, Widevine):
-                    if not license_widevine:
-                        raise ValueError("license_widevine func must be supplied to use Widevine DRM")
-                    license_widevine(drm, track_kid=track_kid)
+                    # license and grab content keys
+                    try:
+                        if not license_widevine:
+                            raise ValueError("license_widevine func must be supplied to use Widevine DRM")
+                        license_widevine(drm, track_kid=track_kid)
+                    except Exception:  # noqa
+                        stop_event.set()  # skip pending track downloads
+                        progress(downloaded="[red]FAILED")
+                        raise
             else:
                 drm = None
 
