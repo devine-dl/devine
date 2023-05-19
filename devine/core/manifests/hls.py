@@ -215,12 +215,18 @@ class HLS:
             sys.exit(1)
 
         if track.drm:
-            session_drm = track.drm[0]  # just use the first supported DRM system for now
+            # TODO: What if we don't want to use the first DRM system?
+            session_drm = track.drm[0]
             if isinstance(session_drm, Widevine):
                 # license and grab content keys
-                if not license_widevine:
-                    raise ValueError("license_widevine func must be supplied to use Widevine DRM")
-                license_widevine(session_drm)
+                try:
+                    if not license_widevine:
+                        raise ValueError("license_widevine func must be supplied to use Widevine DRM")
+                    license_widevine(session_drm)
+                except Exception:  # noqa
+                    stop_event.set()  # skip pending track downloads
+                    progress(downloaded="[red]FAILED")
+                    raise
         else:
             session_drm = None
 
