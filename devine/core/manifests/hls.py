@@ -12,6 +12,7 @@ from pathlib import Path
 from queue import Queue
 from threading import Event, Lock
 from typing import Any, Callable, Optional, Union
+from urllib.parse import urljoin
 
 import m3u8
 import requests
@@ -96,10 +97,6 @@ class HLS:
         tracks = Tracks()
 
         for playlist in self.manifest.playlists:
-            url = playlist.uri
-            if not re.match("^https?://", url):
-                url = playlist.base_uri + url
-
             audio_group = playlist.stream_info.audio
             if audio_group:
                 audio_codec = Audio.Codec.from_codecs(playlist.stream_info.codecs)
@@ -115,7 +112,7 @@ class HLS:
 
             tracks.add(primary_track_type(
                 id_=md5(str(playlist).encode()).hexdigest()[0:7],  # 7 chars only for filename length
-                url=url,
+                url=urljoin(playlist.base_uri, playlist.uri),
                 codec=primary_track_type.Codec.from_codecs(playlist.stream_info.codecs),
                 language=language,  # HLS manifests do not seem to have language info
                 is_original_lang=True,  # TODO: All we can do is assume Yes
@@ -136,12 +133,8 @@ class HLS:
             ))
 
         for media in self.manifest.media:
-            url = media.uri
-            if not url:
+            if not media.uri:
                 continue
-
-            if not re.match("^https?://", url):
-                url = media.base_uri + url
 
             joc = 0
             if media.type == "AUDIO":
@@ -156,7 +149,7 @@ class HLS:
 
             tracks.add(track_type(
                 id_=md5(str(media).encode()).hexdigest()[0:6],  # 6 chars only for filename length
-                url=url,
+                url=urljoin(media.base_uri, media.uri),
                 codec=codec,
                 language=media.language or language,  # HLS media may not have language info, fallback if needed
                 is_original_lang=language and is_close_match(media.language, [language]),
@@ -371,9 +364,6 @@ class HLS:
                 # or if EXT-X-DISCONTINUITY is reached at the same time as EXT-X-MAP.
                 # Even if a new EXT-X-MAP is supplied, it may just be duplicate and would
                 # be unnecessary and slow to re-download the init data each time.
-                if not segment.init_section.uri.startswith(segment.init_section.base_uri):
-                    segment.init_section.uri = segment.init_section.base_uri + segment.init_section.uri
-
                 if segment.init_section.byterange:
                     previous_range_offset = range_offset.get()
                     byte_range = HLS.calculate_byte_range(segment.init_section.byterange, previous_range_offset)
@@ -383,8 +373,10 @@ class HLS:
                     }
                 else:
                     range_header = {}
-
-                res = session.get(segment.init_section.uri, headers=range_header)
+                res = session.get(
+                    url=urljoin(segment.init_section.base_uri, segment.init_section.uri),
+                    headers=range_header
+                )
                 res.raise_for_status()
                 newest_init_data = res.content
         finally:
@@ -416,9 +408,6 @@ class HLS:
             if skip_event.is_set():
                 return -1
 
-        if not segment.uri.startswith(segment.base_uri):
-            segment.uri = segment.base_uri + segment.uri
-
         attempts = 1
         while True:
             try:
@@ -433,7 +422,7 @@ class HLS:
                 else:
                     downloader_ = downloader
                 downloader_(
-                    uri=segment.uri,
+                    uri=urljoin(segment.base_uri, segment.uri),
                     out=out_path,
                     headers=headers_,
                     proxy=proxy,
