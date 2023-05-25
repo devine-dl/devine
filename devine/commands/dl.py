@@ -24,6 +24,7 @@ import click
 import jsonpickle
 import pycaption
 import yaml
+from construct import ConstError
 from pymediainfo import MediaInfo
 from pywidevine.cdm import Cdm as WidevineCdm
 from pywidevine.device import Device
@@ -1023,5 +1024,14 @@ class dl:
         cdm_path = config.directories.wvds / f"{cdm_name}.wvd"
         if not cdm_path.is_file():
             raise ValueError(f"{cdm_name} does not exist or is not a file")
-        device = Device.load(cdm_path)
+
+        try:
+            device = Device.load(cdm_path)
+        except ConstError as e:
+            if "expected 2 but parsed 1" in str(e):
+                raise ValueError(
+                    f"{cdm_name}.wvd seems to be a v1 WVD file, use `pywidevine migrate --help` to migrate it to v2."
+                )
+            raise ValueError(f"{cdm_name}.wvd is an invalid or corrupt Widevine Device file, {e}")
+
         return WidevineCdm.from_device(device)
