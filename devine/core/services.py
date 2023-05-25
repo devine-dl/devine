@@ -37,7 +37,15 @@ class Services(click.MultiCommand):
     def get_command(self, ctx: click.Context, name: str) -> click.Command:
         """Load the Service and return the Click CLI method."""
         tag = Services.get_tag(name)
-        service = Services.load(tag)
+        try:
+            service = Services.load(tag)
+        except KeyError as e:
+            available_services = self.list_commands(ctx)
+            if not available_services:
+                raise click.ClickException(
+                    f"There are no Services added yet, therefore the '{name}' Service could not be found."
+                )
+            raise click.ClickException(f"{e}. Available Services: {', '.join(available_services)}")
 
         if hasattr(service, "cli"):
             return service.cli
@@ -58,7 +66,7 @@ class Services(click.MultiCommand):
         for service in _SERVICES:
             if service.parent.stem == tag:
                 return service.parent
-        raise click.ClickException(f"Unable to find service by the name '{name}'")
+        raise KeyError(f"There is no Service added by the Tag '{name}'")
 
     @staticmethod
     def get_tag(value: str) -> str:
@@ -80,7 +88,7 @@ class Services(click.MultiCommand):
         """Load a Service module by Service tag."""
         module = _MODULES.get(tag)
         if not module:
-            raise click.ClickException(f"Unable to find Service by the tag '{tag}'")
+            raise KeyError(f"There is no Service added by the Tag '{tag}'")
         return module
 
 
