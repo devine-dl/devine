@@ -51,7 +51,7 @@ from devine.core.service import Service
 from devine.core.services import Services
 from devine.core.titles import Movie, Song, Title_T
 from devine.core.titles.episode import Episode
-from devine.core.tracks import Audio, Subtitle, Video
+from devine.core.tracks import Audio, Subtitle, Video, Tracks
 from devine.core.utilities import get_binary_path, is_close_match, time_elapsed_since
 from devine.core.utils.click_types import LANGUAGE_RANGE, SEASON_RANGE, ContextData, QUALITY_LIST
 from devine.core.utils.collections import merge_dict
@@ -437,22 +437,14 @@ class dl:
                             sys.exit(1)
 
                 if audio_only or subs_only or chapters_only:
-                    title.tracks.videos.clear()
+                    kept_tracks = []
                     if audio_only:
-                        if not subs_only:
-                            title.tracks.subtitles.clear()
-                        if not chapters_only:
-                            title.tracks.chapters.clear()
-                    elif subs_only:
-                        if not audio_only:
-                            title.tracks.audio.clear()
-                        if not chapters_only:
-                            title.tracks.chapters.clear()
-                    elif chapters_only:
-                        if not audio_only:
-                            title.tracks.audio.clear()
-                        if not subs_only:
-                            title.tracks.subtitles.clear()
+                        kept_tracks.extend(title.tracks.audio)
+                    if subs_only:
+                        kept_tracks.extend(title.tracks.subtitles)
+                    if chapters_only:
+                        kept_tracks.extend(title.tracks.chapters)
+                    title.tracks = Tracks(kept_tracks)
 
             selected_tracks, tracks_progress_callables = title.tracks.tree(add_progress=True)
 
