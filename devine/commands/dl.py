@@ -102,6 +102,8 @@ class dl:
                   help="Proxy URI to use. If a 2-letter country is provided, it will try get a proxy from the config.")
     @click.option("--group", type=str, default=None,
                   help="Set the Group Tag to be used, overriding the one in config if any.")
+    @click.option("-V", "--video-only", is_flag=True, default=False,
+                  help="Only download video tracks.")
     @click.option("-A", "--audio-only", is_flag=True, default=False,
                   help="Only download audio tracks.")
     @click.option("-S", "--subs-only", is_flag=True, default=False,
@@ -259,6 +261,7 @@ class dl:
         lang: list[str],
         v_lang: list[str],
         s_lang: list[str],
+        video_only: bool,
         audio_only: bool,
         subs_only: bool,
         chapters_only: bool,
@@ -436,8 +439,10 @@ class dl:
                             self.log.error(f"There's no {lang} Audio Track, cannot continue...")
                             sys.exit(1)
 
-                if audio_only or subs_only or chapters_only:
+                if video_only or audio_only or subs_only or chapters_only:
                     kept_tracks = []
+                    if video_only:
+                        kept_tracks.extend(title.tracks.videos)
                     if audio_only:
                         kept_tracks.extend(title.tracks.audio)
                     if subs_only:
