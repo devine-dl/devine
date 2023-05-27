@@ -295,6 +295,9 @@ class HLS:
                         last_speed_refresh = now
                         download_sizes.clear()
 
+        if skip_event.is_set():
+            return
+
         with open(save_path, "wb") as f:
             for segment_file in sorted(save_dir.iterdir()):
                 f.write(segment_file.read_bytes())
