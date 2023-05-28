@@ -61,7 +61,7 @@ able to be found.
   [chocolatey]: <https://chocolatey.org>
   [aria2(c)]: <https://aria2.github.io>
   [CCExtractor]: <https://github.com/CCExtractor/ccextractor>
-  [FFmpeg]: <https://fmpeg.org>
+  [FFmpeg]: <https://ffmpeg.org>
   [MKVToolNix]: <https://mkvtoolnix.download/downloads.html>
   [shaka-packager]: <https://github.com/google/shaka-packager/releases/latest>
 
