@@ -907,6 +907,7 @@ class dl:
                             uri=track.url,
                             out=save_path,
                             headers=service.session.headers,
+                            cookies=service.session.cookies,
                             proxy=proxy if track.needs_proxy else None,
                             progress=progress
                         )

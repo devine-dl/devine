@@ -2,9 +2,12 @@ import asyncio
 import subprocess
 import textwrap
 from functools import partial
+from http.cookiejar import CookieJar
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, MutableMapping
 
+import requests
+from requests.cookies import RequestsCookieJar, get_cookie_header, cookiejar_from_dict
 from rich.text import Text
 
 from devine.core.config import config
@@ -16,6 +19,7 @@ async def aria2c(
     uri: Union[str, list[str]],
     out: Path,
     headers: Optional[dict] = None,
+    cookies: Optional[Union[MutableMapping[str, str], RequestsCookieJar]] = None,
     proxy: Optional[str] = None,
     silent: bool = False,
     segmented: bool = False,
@@ -73,7 +77,20 @@ async def aria2c(
         "-i", "-"
     ]
 
+    if cookies:
+        # use python-requests pre-existing code to convert a Jar/Dict to a header while
+        # also supporting multiple cookies of the same name with different domain/paths.
+        if isinstance(cookies, CookieJar):
+            cookiejar = cookies
+        else:
+            cookiejar = cookiejar_from_dict(cookies)
+        mock_request = requests.Request(url=uri)
+        cookie_header = get_cookie_header(cookiejar, mock_request)
+        arguments.extend(["--header", f"Cookie: {cookie_header}"])
+
     for header, value in (headers or {}).items():
+        if header.lower() == "cookie":
+            raise ValueError("You cannot set Cookies as a header manually, please use the `cookies` param.")
         if header.lower() == "accept-encoding":
             # we cannot set an allowed encoding, or it will return compressed
             # and the code is not set up to uncompress the data

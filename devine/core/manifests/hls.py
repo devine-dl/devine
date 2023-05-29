@@ -428,6 +428,7 @@ class HLS:
                     uri=urljoin(segment.base_uri, segment.uri),
                     out=out_path,
                     headers=headers_,
+                    cookies=session.cookies,
                     proxy=proxy,
                     silent=attempts != 5,
                     segmented=True

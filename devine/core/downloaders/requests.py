@@ -1,17 +1,18 @@
 import time
 from functools import partial
 from pathlib import Path
-from typing import Optional, Union, Any
+from typing import Optional, Union, Any, MutableMapping
 
 from requests import Session
+from requests.cookies import RequestsCookieJar
 from rich import filesize
-from rich.filesize import decimal
 
 
 def requests(
     uri: Union[str, list[str]],
     out: Path,
     headers: Optional[dict] = None,
+    cookies: Optional[Union[MutableMapping[str, str], RequestsCookieJar]] = None,
     proxy: Optional[str] = None,
     progress: Optional[partial] = None,
     *_: Any,
@@ -45,6 +46,8 @@ def requests(
             if k.lower() != "accept-encoding"
         }
         session.headers.update(headers)
+    if cookies:
+        session.cookies.update(cookies)
     if proxy:
         session.proxies.update({"all": proxy})
 

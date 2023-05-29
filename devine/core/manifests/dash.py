@@ -23,6 +23,7 @@ from lxml.etree import Element
 from pywidevine.cdm import Cdm as WidevineCdm
 from pywidevine.pssh import PSSH
 from requests import Session
+from requests.cookies import RequestsCookieJar
 from rich import filesize
 
 from devine.core.constants import AnyTrack
@@ -425,6 +426,7 @@ class DASH:
                         track=track,
                         proxy=proxy,
                         headers=session.headers,
+                        cookies=session.cookies,
                         bytes_range=bytes_range,
                         stop_event=stop_event
                     )
@@ -491,6 +493,7 @@ class DASH:
         track: AnyTrack,
         proxy: Optional[str] = None,
         headers: Optional[MutableMapping[str, str | bytes]] = None,
+        cookies: Optional[Union[MutableMapping[str, str], RequestsCookieJar]] = None,
         bytes_range: Optional[str] = None,
         stop_event: Optional[Event] = None
     ) -> int:
@@ -504,6 +507,9 @@ class DASH:
                 fix an invalid value in the TFHD box of Audio Tracks.
             proxy: Proxy URI to use when downloading the Segment file.
             headers: HTTP Headers to send when requesting the Segment file.
+            cookies: Cookies to send when requesting the Segment file. The actual cookies sent
+                will be resolved based on the URI among other parameters. Multiple cookies with
+                the same name but a different domain/path are resolved.
             bytes_range: Download only specific bytes of the Segment file using the Range header.
             stop_event: Prematurely stop the Download from beginning. Useful if ran from
                 a Thread Pool. It will raise a KeyboardInterrupt if set.
@@ -527,6 +533,7 @@ class DASH:
                     uri=url,
                     out=out_path,
                     headers=headers_,
+                    cookies=cookies,
                     proxy=proxy,
                     silent=attempts != 5,
                     segmented=True
