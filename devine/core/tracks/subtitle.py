@@ -385,6 +385,30 @@ class Subtitle(Track):
             )
             sub.save()
 
+    def reverse_rtl(self) -> None:
+        """
+        Reverse RTL (Right to Left) Start/End on Captions.
+        This can be used to fix the positioning of sentence-ending characters.
+        """
+        if not self.path or not self.path.exists():
+            raise ValueError("You must download the subtitle track first.")
+
+        executable = get_binary_path("SubtitleEdit")
+        if not executable:
+            raise EnvironmentError("SubtitleEdit executable not found...")
+
+        subprocess.run(
+            [
+                executable,
+                "/Convert", self.path, "srt",
+                "/ReverseRtlStartEnd",
+                "/encoding:utf8",
+                "/overwrite"
+            ],
+            check=True,
+            stdout=subprocess.DEVNULL
+        )
+
     def __str__(self) -> str:
         return " | ".join(filter(bool, [
             "SUB",
