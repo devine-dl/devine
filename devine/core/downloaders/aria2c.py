@@ -102,7 +102,7 @@ async def aria2c(
             # HTTPS proxies are not supported by aria2(c).
             # Proxy the proxy via pproxy to access it as an HTTP proxy.
             async with start_pproxy(proxy) as pproxy_:
-                return await aria2c(uri, out, headers, pproxy_, silent, segmented, progress, *args)
+                return await aria2c(uri, out, headers, cookies, pproxy_, silent, segmented, progress, *args)
         arguments += ["--all-proxy", proxy]
 
     try:
