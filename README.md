@@ -65,32 +65,6 @@ able to be found.
   [MKVToolNix]: <https://mkvtoolnix.download/downloads.html>
   [shaka-packager]: <https://github.com/google/shaka-packager/releases/latest>
 
-### Portable installation
-
-1. Download a Python Embeddable Package of a supported Python version (the `.zip` download).  
-   (make sure it's either x64/x86 and not ARM unless you're on an ARM device).
-2. Extract the `.zip` and rename the folder, if you wish.
-3. Open Terminal and `cd` to the extracted folder.
-4. Run the following on Windows:
-```
-(Invoke-WebRequest -Uri https://gist.githubusercontent.com/rlaphoenix/5ef250e61ceeb123c6696c05ad4dee8b/raw -UseBasicParsing).Content | .\python -
-```
-or the following on Linux/macOS:
-```
-curl -sSL https://gist.githubusercontent.com/rlaphoenix/5ef250e61ceeb123c6696c05ad4dee8b/raw | ./python -
-```
-5. Run `.\python -m pip install devine`
-
-You can now call `devine` by,
-
-- running `./python -m devine --help`, or,
-- running `./Scripts/devine.exe --help`, or,
-- symlinking the `/Scripts/devine.exe` binary to the root of the folder, for `./devine --help`, or,
-- zipping the entire folder to `devine.zip`, for `python devine.zip --help`.
-
-The last method of calling devine, by archiving to a zip file, is incredibly useful for sharing and portability!  
-I urge you to give it a try!
-
 ### Services
 
 Devine does not come with any infringing Service code. You must develop your own Service code and place them in
