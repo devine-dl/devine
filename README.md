@@ -15,6 +15,9 @@
     <a href="https://deepsource.io/gh/devine-dl/devine/?ref=repository-badge">
         <img src="https://deepsource.io/gh/devine-dl/devine.svg/?label=active+issues&token=1ADCbjJ3FPiGT_s0Y0rlugGU" alt="DeepSource">
     </a>
+    <a href="https://discord.gg/34K2MGDrBN">
+        <img src="https://img.shields.io/discord/841055398240059422?label=&logo=discord&logoColor=ffffff&color=7289DA&labelColor=7289DA" alt="Discord">
+    </a>
 </p>
 
 ## Features
