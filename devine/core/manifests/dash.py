@@ -154,7 +154,7 @@ class DASH:
                             bitrate=get("bandwidth") or None,
                             width=get("width") or 0,
                             height=get("height") or 0,
-                            fps=get("frameRate") or rep.find("SegmentBase", {}).get("timescale") or None
+                            fps=get("frameRate") or (rep.find("SegmentBase") or {}).get("timescale") or None
                         )
                     elif content_type == "audio":
                         track_type = Audio
