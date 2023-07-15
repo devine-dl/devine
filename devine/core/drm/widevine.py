@@ -259,6 +259,7 @@ class Widevine:
             )
 
             stream_skipped = False
+            had_error = False
 
             shaka_log_buffer = ""
             for line in iter(p.stderr.readline, ""):
@@ -270,6 +271,8 @@ class Widevine:
                     stream_skipped = True
                 if ":INFO:" in line:
                     continue
+                if ":ERROR:" in line:
+                    had_error = True
                 if "Insufficient bits in bitstream for given AVC profile" in line:
                     # this is a warning and is something we don't have to worry about
                     continue
@@ -286,7 +289,7 @@ class Widevine:
 
             p.wait()
 
-            if p.returncode != 0:
+            if p.returncode != 0 or had_error:
                 raise subprocess.CalledProcessError(p.returncode, arguments)
 
             path.unlink()
