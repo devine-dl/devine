@@ -88,32 +88,34 @@ class Video(Track):
         def from_cicp(primaries: int, transfer: int, matrix: int) -> Video.Range:
             """
             ISO/IEC 23001-8 Coding-independent code points to Video Range.
-            Sources for Code points:
-            https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-H.Sup19-201903-S!!PDF-E&type=items
+
+            Sources:
+            https://www.itu.int/rec/T-REC-H.Sup19-202104-I
             """
             class Primaries(Enum):
                 Unspecified = 0
                 BT_709 = 1
                 BT_601_625 = 5
                 BT_601_525 = 6
-                BT_2020 = 9  # BT.2100 shares the same CP
+                BT_2020_and_2100 = 9
+                SMPTE_ST_2113_and_EG_4321 = 12  # P3D65
 
             class Transfer(Enum):
                 Unspecified = 0
-                SDR_BT_709 = 1
-                SDR_BT_601_625 = 5
-                SDR_BT_601_525 = 6
-                SDR_BT_2020 = 14
-                SDR_BT_2100 = 15
-                PQ = 16
-                HLG = 18
+                BT_709 = 1
+                BT_601 = 6
+                BT_2020 = 14
+                BT_2100 = 15
+                BT_2100_PQ = 16
+                BT_2100_HLG = 18
 
             class Matrix(Enum):
                 RGB = 0
                 YCbCr_BT_709 = 1
                 YCbCr_BT_601_625 = 5
                 YCbCr_BT_601_525 = 6
-                YCbCr_BT_2020 = 9  # YCbCr BT.2100 shares the same CP
+                YCbCr_BT_2020_and_2100 = 9  # YCbCr BT.2100 shares the same CP
+                ICtCp_BT_2100 = 14
 
             primaries = Primaries(primaries)
             transfer = Transfer(transfer)
@@ -123,13 +125,11 @@ class Video(Track):
 
             if (primaries, transfer, matrix) == (0, 0, 0):
                 return Video.Range.SDR
-
-            if primaries in (Primaries.BT_601_525, Primaries.BT_601_625):
+            elif primaries in (Primaries.BT_601_625, Primaries.BT_601_525):
                 return Video.Range.SDR
-
-            if transfer == Transfer.PQ:
+            elif transfer == Transfer.BT_2100_PQ:
                 return Video.Range.HDR10
-            elif transfer == Transfer.HLG:
+            elif transfer == Transfer.BT_2100_HLG:
                 return Video.Range.HLG
             else:
                 return Video.Range.SDR
