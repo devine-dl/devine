@@ -1,9 +1,5 @@
 version = 1
 
-exclude_patterns = [
-  "**_pb2.py"  # protobuf files
-]
-
 [[analyzers]]
 name = "python"
 enabled = true

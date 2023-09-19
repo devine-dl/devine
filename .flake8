@@ -1,3 +1,0 @@
-[flake8]
-exclude = .venv,build,dist,*_pb2.py,*.pyi
-max-line-length = 120

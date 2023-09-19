@@ -15,32 +15,32 @@ jobs:
     name: Tagged Release
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10.x'
-    - name: Install Poetry
-      uses: abatilo/actions-poetry@v2.3.0
-      with:
-        poetry-version: '1.4.2'
-    - name: Install dependencies
-      run: poetry install
-    - name: Build project
-      run: poetry build
-    - name: Upload wheel
-      uses: actions/upload-artifact@v3
-      with:
-        name: Python Wheel
-        path: "dist/*.whl"
-    - name: Deploy release
-      uses: marvinpinto/action-automatic-releases@latest
-      with:
-        prerelease: false
-        repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        files: |
-          dist/*.whl
-    - name: Publish to PyPI
-      env:
-        POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
-      run: poetry publish
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Install Poetry
+        uses: abatilo/actions-poetry@v2
+        with:
+          poetry-version: 1.6.1
+      - name: Install project
+        run: poetry install --only main
+      - name: Build project
+        run: poetry build
+      - name: Upload wheel
+        uses: actions/upload-artifact@v3
+        with:
+          name: Python Wheel
+          path: "dist/*.whl"
+      - name: Deploy release
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          prerelease: false
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          files: |
+            dist/*.whl
+      - name: Publish to PyPI
+        env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
+        run: poetry publish

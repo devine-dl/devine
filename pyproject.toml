@@ -1,76 +1,91 @@
 [build-system]
-requires = ['poetry-core>=1.0.0']
-build-backend = 'poetry.core.masonry.api'
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = 'devine'
-version = '2.2.0'
-description = 'Open-Source Movie, TV, and Music Downloading Solution'
-license = 'GPL-3.0-only'
-authors = ['rlaphoenix <rlaphoenix@pm.me>']
-readme = 'README.md'
-homepage = 'https://github.com/devine-dl/devine'
-repository = 'https://github.com/devine-dl/devine'
-keywords = ['widevine', 'drm', 'downloader']
+name = "devine"
+version = "2.2.0"
+description = "Open-Source Movie, TV, and Music Downloading Solution."
+license = "GPL-3.0-only"
+authors = ["rlaphoenix <rlaphoenix@pm.me>"]
+readme = "README.md"
+homepage = "https://github.com/devine-dl/devine"
+repository = "https://github.com/devine-dl/devine"
+keywords = ["python", "downloader", "drm", "widevine"]
 classifiers = [
-    'Development Status :: 4 - Beta',
-    'Environment :: Console',
-    'Intended Audience :: End Users/Desktop',
-    'Natural Language :: English',
-    'Operating System :: OS Independent',
-    'Topic :: Multimedia :: Video',
-    'Topic :: Security :: Cryptography',
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Security :: Cryptography",
 ]
+include = [
+  { path = "CHANGELOG.md", format = "sdist" },
+  { path = "README.md", format = "sdist" },
+  { path = "LICENSE", format = "sdist" },
+]
+
+[tool.poetry.urls]
+"Issues" = "https://github.com/devine-dl/devine/issues"
+"Discussions" = "https://github.com/devine-dl/devine/discussions"
+"Changelog" = "https://github.com/devine-dl/devine/blob/master/CHANGELOG.md"
 
 [tool.poetry.dependencies]
 python = ">=3.9.0,<3.12"
 appdirs = "^1.4.4"
-Brotli = "^1.0.9"
-click = "^8.1.4"
+Brotli = "^1.1.0"
+click = "^8.1.7"
 construct = "^2.8.8"
 crccheck = "^1.3.0"
-jsonpickle = "^3.0.1"
+jsonpickle = "^3.0.2"
 langcodes = { extras = ["data"], version = "^3.3.0" }
 lxml = "^4.9.3"
 pproxy = "^2.7.8"
 protobuf = "4.21.6"
 pycaption = "^2.1.1"
-pycryptodomex = "^3.18.0"
-pyjwt = "^2.7.0"
+pycryptodomex = "^3.19.0"
+pyjwt = "^2.8.0"
 pymediainfo = "^6.0.1"
 pymp4 = "^1.4.0"
 pymysql = "^1.1.0"
 pywidevine = { extras = ["serve"], version = "^1.6.0" }
-PyYAML = "^6.0"
+PyYAML = "^6.0.1"
 requests = { extras = ["socks"], version = "^2.31.0" }
-rich = "^13.4.2"
+rich = "^13.5.3"
 "rlaphoenix.m3u8" = "^3.4.0"
 "ruamel.yaml" = "^0.17.32"
 sortedcontainers = "^2.4.0"
 subtitle-filter = "^1.4.6"
 Unidecode = "^1.3.6"
-urllib3 = "^2.0.3"
+urllib3 = "^2.0.4"
 
 [tool.poetry.dev-dependencies]
-pre-commit = "^3.3.3"
-mypy = "^1.4.1"
+pre-commit = "^3.4.0"
+mypy = "^1.5.1"
 mypy-protobuf = "^3.3.0"
-types-protobuf = "^3.19.22"
-types-PyMySQL = "^1.1.0.0"
-types-requests = "^2.31.0.1"
+types-protobuf = "^4.24.0.1"
+types-PyMySQL = "^1.1.0.1"
+types-requests = "^2.31.0.2"
 isort = "^5.12.0"
+ruff = "^0.0.292"
 
 [tool.poetry.scripts]
-devine = 'devine.core.__main__:main'
+devine = "devine.core.__main__:main"
+
+[tool.ruff]
+force-exclude = true
+line-length = 120
+select = ["E4", "E7", "E9", "F", "W"]
 
 [tool.isort]
-line_length = 120
+line_length = 118
 
 [tool.mypy]
-exclude = '_pb2\.pyi?$'
 check_untyped_defs = true
 disallow_incomplete_defs = true
 disallow_untyped_defs = true
-follow_imports = 'silent'
+follow_imports = "silent"
 ignore_missing_imports = true
 no_implicit_optional = true

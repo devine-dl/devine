@@ -3,6 +3,10 @@
     <a href="https://github.com/devine-dl/devine">Devine</a>
     <br/>
     <sup><em>Open-Source Movie, TV, and Music Downloading Solution</em></sup>
+    <br/>
+    <a href="https://discord.gg/34K2MGDrBN">
+        <img src="https://img.shields.io/discord/841055398240059422?label=&logo=discord&logoColor=ffffff&color=7289DA&labelColor=7289DA" alt="Discord">
+    </a>
 </p>
 
 <p align="center">
@@ -15,23 +19,30 @@
     <a href="https://deepsource.io/gh/devine-dl/devine/?ref=repository-badge">
         <img src="https://deepsource.io/gh/devine-dl/devine.svg/?label=active+issues&token=1ADCbjJ3FPiGT_s0Y0rlugGU" alt="DeepSource">
     </a>
-    <a href="https://discord.gg/34K2MGDrBN">
-        <img src="https://img.shields.io/discord/841055398240059422?label=&logo=discord&logoColor=ffffff&color=7289DA&labelColor=7289DA" alt="Discord">
+    <br/>
+    <a href="https://github.com/astral-sh/ruff">
+        <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Linter: Ruff">
+    </a>
+    <a href="https://python-poetry.org">
+        <img src="https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json" alt="Dependency management: Poetry">
     </a>
 </p>
 
 ## Features
 
-- 🎥 Supports Movies, TV shows, and Music
-- 🧩 Easy installation via PIP/PyPI
-- 👥 Multi-profile authentication per-service with credentials or cookies
+- 🚀 Seamless Installation via [pip](#installation)
+- 🎥 Movie, Episode, and Song Service Frameworks
+- 🛠️ Built-in [DASH] and [HLS] Parsers
+- 🔒 Widevine DRM integration via [pywidevine](https://github.com/devine-dl/pywidevine)
+- 💾 Local & Remote DRM Key-vaults
+- 🌍 Local & Remote Widevine CDMs
+- 👥 Multi-profile Authentication per-service with Credentials and/or Cookies
 - 🤖 Automatic P2P filename structure with Group Tag
-- 🛠️ Flexible Service framework system
-- 📦 Portable Installations
-- 🗃️ Local and Remote SQL-based Key Vault database
 - ⚙️ YAML for Configuration
-- 🌍 Local and Remote Widevine CDMs
 - ❤️ Fully Open-Source! Pull Requests Welcome
+
+  [DASH]: <devine/core/manifests/dash.py>
+  [HLS]: <devine/core/manifests/hls.py>
 
 ## Installation
 
@@ -39,10 +50,12 @@
 $ pip install devine
 ```
 
-> __Note__ If you see warnings about a path not being in your PATH environment variable, add it, or `devine` won't run.
+> [!NOTE]
+> If pip gives you a warning about a path not being in your PATH environment variable then promptly add that path then
+> close all open command prompt/terminal windows, or `devine` won't work as it will not be found.
 
-Voilà 🎉! You now have the `devine` package installed and a `devine` executable is now available.  
-Check it out with `devine --help`!
+Voilà 🎉 — You now have the `devine` package installed!  
+A command-line interface is now available, try `devine --help`.
 
 ### Dependencies
 
@@ -68,77 +81,165 @@ able to be found.
   [MKVToolNix]: <https://mkvtoolnix.download/downloads.html>
   [shaka-packager]: <https://github.com/google/shaka-packager/releases/latest>
 
-### Services
+## Usage
 
-Devine does not come with any infringing Service code. You must develop your own Service code and place them in
-the `/devine/services` directory. There are different ways the add services depending on your installation type.
-In some cases you may use multiple of these methods to have separate copies.
+First, take a look at `devine --help` for a full help document, listing all commands available and giving you more
+information on what can be done with Devine.
 
-Please refrain from making or using Service code unless you have full rights to do so. I also recommend ensuring that
-you keep the Service code private and secure, i.e. a private repository or keeping it offline.
+Here's a checklist on what I recommend getting started with, in no particular order,
 
-No matter which method you use, make sure that you install any further dependencies needed by the services. There's
-currently no way to have these dependencies automatically install apart from within the Fork method.
+- [ ] Add [Services](#services), these will be used in `devine dl`.
+- [ ] Add [Profiles](#profiles-cookies--credentials), these are your cookies and credentials.
+- [ ] Add [Widevine Provisions](#widevine-provisions), also known as CDMs, these are used for DRM-protected content.
+- [ ] Set your Group Tag, the text at the end of the final filename, e.g., `devine cfg tag NOGRP` for `...-NOGRP`.
+- [ ] Set Up a Local Key Vault, take a look at the [Key Vaults Config](CONFIG.md#keyvaults-listdict).
 
-> __Warning__ Please be careful with who you trust and what you run. The users you collaborate with on Service
+And here's some more advanced things you could take a look at,
+
+- [ ] Setting default Headers that the Request Session uses.
+- [ ] Setting default Profiles and CDM Provisions to use for services.
+- [ ] NordVPN and Hola Proxy Providers for automatic proxies.
+- [ ] Hosting and/or Using Remote Key Vaults.
+- [ ] Serving and/or Using Remote CDM Provisions.
+
+Documentation on the config is available in the [CONFIG.md](CONFIG.md) file, it has a lot of handy settings.  
+If you start to get sick of putting something in your CLI call, then I recommend taking a look at it!
+
+## Services
+
+Unlike similar project's such as [youtube-dl], Devine does not currently come with any Services. You must develop your
+own Services and only use Devine with Services you have the legal right to do so.
+
+> [!NOTE]
+> If you made a Service for Devine that does not use Widevine or any other DRM systems, feel free to make a Pull Request
+> and make your service available to others. Any Service on [youtube-dl] (or [yt-dlp]) would be able to be added to the
+> Devine repository as they both use the [Unlicense license] therefore direct reading and porting of their code would be
+> legal.
+
+  [youtube-dl]: <https://github.com/ytdl-org/youtube-dl>
+  [yt-dlp]: <https://github.com/yt-dlp/yt-dlp>
+  [Unlicense license]: <https://choosealicense.com/licenses/unlicense>
+
+### Creating a Service
+
+> [!WARNING]
+> Only create or use Service Code with Services you have full legal right to do so.
+
+A Service consists of a folder with an `__init__.py` file. The file must contain a class of the same name as the folder.
+The class must inherit the [Service] class and implement all the abstracted methods. It must finally implement a new
+method named `cli` where you define CLI arguments.
+
+1. Make a new folder within `/devine/services`. The folder name you choose will be what's known as the [Service Tag].
+   This "tag" is used in the final output filename of downloaded files, for various code-checks, lookup keys in
+   key-vault databases, and more.
+2. Within the new folder create an `__init__.py` file and write a class inheriting the [Service] class. It must be named
+   the exact same as the folder. It is case-sensitive.
+3. Implement all the methods of the Service class you are inheriting that are marked as abstract.
+4. Define CLI arguments by implementing a `cli` method. This method must be static (i.e. `@staticmethod`). For example
+   to implement the bare minimum to receive a Title ID of sorts:
+   ```python
+   @staticmethod
+   @click.command(name="YT", short_help="https://youtube.com", help=__doc__)
+   @click.argument("title", type=str)
+   @click.pass_context
+   def cli(ctx, **kwargs):
+       return YT(ctx, **kwargs)
+   ```
+   You must implement this `cli` method, even if you do not want or need any CLI arguments. It is required for the core
+   CLI functionality to be able to find and call the class.
+5. Accept the CLI arguments by overriding the constructor (the `__init__()` method):
+   ```python
+   def __init__(self, ctx, title):
+       self.title = title
+       super().__init__(ctx)  # important
+       # ... the title is now available across all methods by calling self.title
+   ```
+
+> [!NOTE]
+> - All methods of your class inherited from `Service` marked as abstract (`@abstractmethod`) MUST be implemented by
+>   your class.
+> - When overriding any method (e.g., `__init__()` method) you MUST super call it, e.g., `super().__init__()` at the
+>   top of the override. This does not apply to any abstract methods, as they are unimplemented.
+> - If preparing your Requests Session with global headers or such, then you should override the `get_session` method,
+>   then modify `self.session`. Do not manually make `self.session` from scratch.
+
+> [!TIP]
+> 1. To make web requests use the `self.session` class instance variable, e.g. `self.session.get(url)`.
+> 2. If you make a `config.yaml` file next to your `__init__.py`, you can access it with `self.config`.
+> 3. You can include any arbitrary file within your Service folder for use by your Service. For example TLS certificate
+>    files, or other python files with helper functions and classes.
+
+  [Service]: <devine/core/service.py>
+  [Service Tag]: <#service-tags>
+
+### Service Tags
+
+Service tags generally follow these rules:
+
+- Tag must be between 2-4 characters long, consisting of just `[A-Z0-9i]{2,4}`.
+  - Lower-case `i` is only used for select services. Specifically BBC iPlayer and iTunes.
+- If the Service's commercial name has a `+` or `Plus`, the last character should be a `P`.
+  E.g., `ATVP` for `Apple TV+`, `DSCP` for `Discovery+`, `DSNP` for `Disney+`, and `PMTP` for `Paramount+`.
+
+These rules are not exhaustive and should only be used as a guide. You don't strictly have to follow these rules, but
+I recommend doing so for consistency.
+
+### Sharing Services
+
+Sending and receiving zipped Service folders is quite cumbersome. Let's explore alternative routes to collaborating on
+Service Code.
+
+> [!WARNING]
+> Please be careful with who you trust and what you run. The users you collaborate with on Service
 > code could update it with malicious code that you would run via devine on the next call.
 
-#### via Copy & Paste
+#### Forking
 
-If you have service code already and wish to just install and use it locally, then simply putting it into the Services
-directory of your local pip installation will do the job. However, this method is the worst in terms of collaboration.
+If you are collaborating with a team on multiple services then forking the project is the best way to go.
 
-1. Get the installation directory by running the following in terminal,
-   `python -c 'import os,devine.__main__ as a;print(os.path.dirname(a.__file__))'`
-2. Head to the installation directory and create a `services` folder if one is not yet created.
-3. Within that `services` folder you may install or create service code.
+1. [Fork the project](https://github.com/devine-dl/devine/fork) and make sure it is Private.
+2. (optionally) Hard reset to the latest stable version by tag. E.g., `git reset --hard v1.0.0`.
+3. Add all your Services to the `/devine/services` folder and commit them to your fork.
 
-> __Warning__ Uninstalling Python or Devine may result in the Services you installed being deleted. Make sure you back
-> up the services before uninstalling.
+Now commit changes or additions within that services folder to your forked repository.  
+Once committed all your other team members can easily pull changes as well as push new changes.
 
-#### via a Forked Repository
+When a new update comes out you can easily rebase your fork to that commit to update. However, please make sure you
+look at changes between each version before rebasing and resolve any breaking changes and deprecations when rebasing to
+a new version.
 
-If you are collaborating with a team on multiple services then forking the project is the best way to go. I recommend
-forking the project then hard resetting to the latest stable update by tag. Once a new stable update comes out you can
-easily rebase your fork to that commit to update.
+If you are new to `git` then take a look at [GitHub Desktop](https://desktop.github.com).
 
-However, please make sure you look at changes between each version before rebasing and resolve any breaking changes and
-deprecations when rebasing to a new version.
+> [!TIP]
+> A huge benefit with this method is that you can also sync dependencies by your own Services as well!
+> Just use `poetry` to add or modify dependencies appropriately and commit the changed `poetry.lock`.
+> However, if the core project also has dependency changes your `poetry.lock` changes will conflict and you
+> will need to learn how to do conflict resolution/rebasing. It is worth it though!
 
-1. Fork the project with `git` or GitHub [(fork)](https://github.com/devine-dl/devine/fork).
-2. Head inside the root `devine` directory and create a `services` directory.
-3. Within that `services` folder you may install or create service code.
+#### Symlinking
 
-You may now commit changes or additions within that services folder to your forked repository.  
-Once committed all your other team members can easily sync and contribute changes.
-
-> __Note__ You may add Service-specific Python dependencies using `poetry` that can install alongside the project.
-> Just do note that this will complicate rebasing when even the `poetry.lock` gets updates in the upstream project.
-
-#### via Cloud storage (symlink)
-
-This is a great option for those who wish to do something like the forking method, but without the need of constantly
-rebasing their fork to the latest version. Overall less knowledge on git would be required, but each user would need
-to do a bit of symlinking compared to the fork method.
+This is a great option for those who wish to do something like the forking method, but may not care what changes
+happened or when and just want changes synced across a team.
 
 This also opens up the ways you can host or collaborate on Service code. As long as you can receive a directory that
 updates with just the services within it, then you're good to go. Options could include an FTP server, Shared Google
 Drive, a non-fork repository with just services, and more.
 
-1. Follow the steps in the [Copy & Paste method](#via-copy--paste) to create the `services` folder.
-2. Use any Cloud Source that gives you a pseudo-directory to access the Service files. E.g., rclone or google drive fs.
-3. Symlink the services directory from your Cloud Source to the new services folder you made.
-   (you may need to delete it first)
+1. Use any Cloud Source that gives you a pseudo-directory to access the Service files like a normal drive. E.g., rclone,
+   Google Drive Desktop (aka File Stream), Air Drive, CloudPool, etc.
+2. Create a `services` directory somewhere in it and have all your services within it.
+3. [Symlink](https://en.wikipedia.org/wiki/Symbolic_link) the `services` directory to the `/devine` folder. You should
+   end up with `/devine/services` folder containing services, not `/devine/services/services`.
 
-Of course, you have to make sure the original folder keeps receiving and downloading/streaming those changes, or that
-you keep git pulling those changes. You must also make sure that the version of devine you have locally is supported by
-the Services code.
+You have to make sure the original folder keeps receiving and downloading/streaming those changes. You must also make
+sure that the version of devine you have locally is supported by the Service code.
 
-> __Note__ If you're using a cloud source that downloads the file once it gets opened, you don't have to worry as those
-> will automatically download. Python importing the files triggers the download to begin. However, it may cause a delay
-> on startup.
+> [!NOTE]
+> If you're using a cloud source that downloads the file once it gets opened, you don't have to worry as those will
+> automatically download. Python importing the files triggers the download to begin. However, it may cause a delay on
+> startup.
 
-### Profiles (Cookies & Credentials)
+## Profiles (Cookies & Credentials)
 
 Just like a streaming service, devine associates both a cookie and/or credential as a Profile. You can associate up to
 one cookie and one credential per-profile, depending on which (or both) are needed by the Service. This system allows
@@ -155,7 +256,7 @@ You can also delete a credential with `devine auth delete`. E.g., to delete the 
 > __Note__ Profile names are case-sensitive and unique per-service. They also have no arbitrary character or length
 > limit, but for convenience I don't recommend using any special characters as your terminal may get confused.
 
-#### Cookie file format and Extensions
+### Cookie file format and Extensions
 
 Cookies must be in the standard Netscape cookies file format.  
 Recommended Cookie exporter extensions:
@@ -172,7 +273,7 @@ Any other extension that exports to the standard Netscape format should theoreti
 > versions floating around (usually just older versions of the extension), but since there are safe alternatives I'd
 > just avoid it altogether. Source: https://reddit.com/r/youtubedl/comments/10ar7o7
 
-### Widevine Provisions
+## Widevine Provisions
 
 A Widevine Provision is needed for acquiring licenses containing decryption keys for DRM-protected content.
 They are not needed if you will be using devine on DRM-free services. Please do not ask for any Widevine Device Files,
@@ -188,49 +289,8 @@ From here you can then set which WVD to use for each specific service. It's best
 provision where possible.
 
 An alternative would be using a pywidevine Serve-compliant CDM API. Of course, you would need to know someone who is
-serving one, and they would need to give you access. Take a look at the [remote_cdm](CONFIG.md#remotecdm--listdict--)
+serving one, and they would need to give you access. Take a look at the [remote_cdm](CONFIG.md#remotecdm-listdict)
 config option for setup information. For further information on it see the pywidevine repository.
-
-## Usage
-
-First, take a look at `devine --help` for a full help document, listing all commands available and giving you more
-information on what can be done with Devine.
-
-Here's a checklist on what I recommend getting started with, in no particular order,
-
-- [ ] Add [Services](#services), these will be used in `devine dl`.
-- [ ] Add [Profiles](#profiles--cookies--credentials-), these are your cookies and credentials.
-- [ ] Add [Widevine Provisions](#widevine-provisions), also known as CDMs, these are used for DRM-protected content.
-- [ ] Set your Group Tag, the text at the end of the final filename, e.g., `devine cfg tag NOGRP` for ...-NOGRP.
-- [ ] Set Up a Local Key Vault, take a look at the [Key Vaults Config](CONFIG.md#keyvaults--listdict--).
-
-And here's some more advanced things you could take a look at,
-
-- [ ] Setting default Headers that the Request Session uses.
-- [ ] Setting default Profiles and CDM Provisions to use for services.
-- [ ] NordVPN and Hola Proxy Providers for automatic proxies.
-- [ ] Hosting and/or Using Remote Key Vaults.
-- [ ] Serving and/or Using Remote CDM Provisions.
-
-Documentation on the config is available in the [CONFIG.md](CONFIG.md) file, it has a lot of handy settings.  
-If you start to get sick of putting something in your CLI call, then I recommend taking a look at it!
-
-## Development
-
-The following steps are instructions on downloading, preparing, and running the code under a [Poetry] environment.
-You can skip steps 3-5 with a simple `pip install .` call instead, but you miss out on a wide array of benefits.
-
-1. `git clone https://github.com/devine-dl/devine`
-2. `cd devine`
-3. (optional) `poetry config virtualenvs.in-project true`
-4. `poetry install`
-5. `poetry run devine --help`
-
-As seen in Step 5, running the `devine` executable is somewhat different to a normal PIP installation.
-See [Poetry's Docs] on various ways of making calls under the virtual-environment.
-
-  [Poetry]: <https://python-poetry.org>
-  [Poetry's Docs]: <https://python-poetry.org/docs/basic-usage/#using-your-virtual-environment>
 
 ## End User License Agreement
 
@@ -246,31 +306,22 @@ Please refrain from spam or asking for questions that infringe upon a Service's 
    back immediately.
 5. Be kind to one another and do not single anyone out.
 
-## Disclaimer
-
-1. This project requires a valid Google-provisioned Private/Public Keypair and a Device-specific Client Identification
-   blob; neither of which are included with this project.
-2. Public testing provisions are available and provided by Google to use for testing projects such as this one.
-3. License Servers have the ability to block requests from any provision, and are likely already blocking test provisions
-   on production endpoints. Therefore, have the ability to block the usage of Devine by themselves.
-4. This project does not condone piracy or any action against the terms of the Service or DRM system.
-5. All efforts in this project have been the result of Reverse-Engineering and Publicly available research.
-
-## Credit
-
-- The awesome community for their shared research and insight into the Widevine Protocol and Key Derivation.
-
 ## Contributors
 
-<a href="https://github.com/rlaphoenix"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/17136956?v=4&h=25&w=25&fit=cover&mask=circle&maxage=7d" alt=""/></a>
-<a href="https://github.com/mnmll"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/22942379?v=4&h=25&w=25&fit=cover&mask=circle&maxage=7d" alt=""/></a>
-<a href="https://github.com/shirt-dev"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/2660574?v=4&h=25&w=25&fit=cover&mask=circle&maxage=7d" alt=""/></a>
-<a href="https://github.com/nyuszika7h"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/482367?v=4&h=25&w=25&fit=cover&mask=circle&maxage=7d" alt=""/></a>
-<a href="https://github.com/bccornfo"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/98013276?v=4&h=25&w=25&fit=cover&mask=circle&maxage=7d" alt=""/></a>
-<a href="https://github.com/Arias800"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/24809312?v=4&h=25&w=25&fit=cover&mask=circle&maxage=7d" alt=""/></a>
-<a href="https://github.com/varyg1001"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/88599103?v=4&h=25&w=25&fit=cover&mask=circle&maxage=7d" alt=""/></a>
-<a href="https://github.com/Hollander-1908"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/93162595?v=4&h=25&w=25&fit=cover&mask=circle&maxage=7d" alt=""/></a>
+<a href="https://github.com/rlaphoenix"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/17136956?v=4&h=25&w=25&fit=cover&mask=circle&maxage=7d" alt="rlaphoenix"/></a>
+<a href="https://github.com/mnmll"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/22942379?v=4&h=25&w=25&fit=cover&mask=circle&maxage=7d" alt="mnmll"/></a>
+<a href="https://github.com/shirt-dev"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/2660574?v=4&h=25&w=25&fit=cover&mask=circle&maxage=7d" alt="shirt-dev"/></a>
+<a href="https://github.com/nyuszika7h"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/482367?v=4&h=25&w=25&fit=cover&mask=circle&maxage=7d" alt="nyuszika7h"/></a>
+<a href="https://github.com/bccornfo"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/98013276?v=4&h=25&w=25&fit=cover&mask=circle&maxage=7d" alt="bccornfo"/></a>
+<a href="https://github.com/Arias800"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/24809312?v=4&h=25&w=25&fit=cover&mask=circle&maxage=7d" alt="Arias800"/></a>
+<a href="https://github.com/varyg1001"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/88599103?v=4&h=25&w=25&fit=cover&mask=circle&maxage=7d" alt="varyg1001"/></a>
+<a href="https://github.com/Hollander-1908"><img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/93162595?v=4&h=25&w=25&fit=cover&mask=circle&maxage=7d" alt="Hollander-1908"/></a>
 
-## License
+## Licensing
 
-© 2019-2023 rlaphoenix — [GNU General Public License, Version 3.0](LICENSE)
+This software is licensed under the terms of [GNU General Public License, Version 3.0](LICENSE).  
+You can find a copy of the license in the LICENSE file in the root folder.
+
+* * *
+
+© rlaphoenix 2019-2023

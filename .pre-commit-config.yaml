@@ -2,17 +2,17 @@
 # See https://pre-commit.com/hooks.html for more hooks
 
 repos:
+  - repo: https://github.com/mtkennerly/pre-commit-hooks
+    rev: v0.3.0
+    hooks:
+      - id: poetry-ruff
   - repo: https://github.com/pycqa/isort
     rev: 5.12.0
     hooks:
       - id: isort
-  - repo: https://github.com/pycqa/flake8
-    rev: 6.0.0
-    hooks:
-      - id: flake8
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
+      - id: end-of-file-fixer
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
-      - id: end-of-file-fixer
