@@ -24,7 +24,8 @@ from requests import Session
 from rich import filesize
 
 from devine.core.constants import AnyTrack
-from devine.core.downloaders import downloader, requests as requests_downloader
+from devine.core.downloaders import downloader
+from devine.core.downloaders import requests as requests_downloader
 from devine.core.drm import DRM_T, ClearKey, Widevine
 from devine.core.tracks import Audio, Subtitle, Tracks, Video
 from devine.core.utilities import is_close_match

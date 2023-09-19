@@ -122,7 +122,8 @@ class Service(metaclass=ABCMeta):
                 raise TypeError(f"Expected cookies to be a {MozillaCookieJar}, not {cookies!r}.")
             self.session.cookies.update(cookies)
 
-    def get_widevine_service_certificate(self, *, challenge: bytes, title: Title_T, track: AnyTrack) -> Union[bytes, str]:
+    def get_widevine_service_certificate(self, *, challenge: bytes, title: Title_T, track: AnyTrack) \
+            -> Union[bytes, str]:
         """
         Get the Widevine Service Certificate used for Privacy Mode.
 

@@ -13,7 +13,7 @@ from functools import partial
 from hashlib import md5
 from pathlib import Path
 from threading import Event
-from typing import Any, Callable, Optional, Union, MutableMapping
+from typing import Any, Callable, MutableMapping, Optional, Union
 from urllib.parse import urljoin, urlparse
 from uuid import UUID
 
@@ -27,7 +27,8 @@ from requests.cookies import RequestsCookieJar
 from rich import filesize
 
 from devine.core.constants import AnyTrack
-from devine.core.downloaders import downloader, requests as requests_downloader
+from devine.core.downloaders import downloader
+from devine.core.downloaders import requests as requests_downloader
 from devine.core.drm import Widevine
 from devine.core.tracks import Audio, Subtitle, Tracks, Video
 from devine.core.utilities import is_close_match

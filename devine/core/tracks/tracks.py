@@ -8,7 +8,7 @@ from typing import Callable, Iterator, Optional, Sequence, Union
 
 from Cryptodome.Random import get_random_bytes
 from langcodes import Language, closest_supported_match
-from rich.progress import Progress, TextColumn, SpinnerColumn, BarColumn, TimeRemainingColumn
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeRemainingColumn
 from rich.table import Table
 from rich.tree import Tree
 

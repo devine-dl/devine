@@ -134,9 +134,12 @@ class ComfyConsole(Console):
     Args:
         color_system (str, optional): The color system supported by your terminal,
             either ``"standard"``, ``"256"`` or ``"truecolor"``. Leave as ``"auto"`` to autodetect.
-        force_terminal (Optional[bool], optional): Enable/disable terminal control codes, or None to auto-detect terminal. Defaults to None.
-        force_jupyter (Optional[bool], optional): Enable/disable Jupyter rendering, or None to auto-detect Jupyter. Defaults to None.
-        force_interactive (Optional[bool], optional): Enable/disable interactive mode, or None to auto detect. Defaults to None.
+        force_terminal (Optional[bool], optional): Enable/disable terminal control codes, or None to auto-detect
+            terminal. Defaults to None.
+        force_jupyter (Optional[bool], optional): Enable/disable Jupyter rendering, or None to auto-detect Jupyter.
+            Defaults to None.
+        force_interactive (Optional[bool], optional): Enable/disable interactive mode, or None to auto-detect.
+            Defaults to None.
         soft_wrap (Optional[bool], optional): Set soft wrap default on print method. Defaults to False.
         theme (Theme, optional): An optional style theme object, or ``None`` for default theme.
         stderr (bool, optional): Use stderr rather than stdout if ``file`` is not specified. Defaults to False.
@@ -145,7 +148,7 @@ class ComfyConsole(Console):
         width (int, optional): The width of the terminal. Leave as default to auto-detect width.
         height (int, optional): The height of the terminal. Leave as default to auto-detect height.
         style (StyleType, optional): Style to apply to all output, or None for no style. Defaults to None.
-        no_color (Optional[bool], optional): Enabled no color mode, or None to auto detect. Defaults to None.
+        no_color (Optional[bool], optional): Enabled no color mode, or None to auto-detect. Defaults to None.
         tab_size (int, optional): Number of spaces used to replace a tab character. Defaults to 8.
         record (bool, optional): Boolean to enable recording of terminal output,
             required to call :meth:`export_html`, :meth:`export_svg`, and :meth:`export_text`. Defaults to False.
@@ -155,13 +158,15 @@ class ComfyConsole(Console):
         highlight (bool, optional): Enable automatic highlighting. Defaults to True.
         log_time (bool, optional): Boolean to enable logging of time by :meth:`log` methods. Defaults to True.
         log_path (bool, optional): Boolean to enable the logging of the caller by :meth:`log`. Defaults to True.
-        log_time_format (Union[str, TimeFormatterCallable], optional): If ``log_time`` is enabled, either string for strftime or callable that formats the time. Defaults to "[%X] ".
+        log_time_format (Union[str, TimeFormatterCallable], optional): If ``log_time`` is enabled, either string for
+            strftime or callable that formats the time. Defaults to "[%X] ".
         highlighter (HighlighterType, optional): Default highlighter.
-        legacy_windows (bool, optional): Enable legacy Windows mode, or ``None`` to auto detect. Defaults to ``None``.
+        legacy_windows (bool, optional): Enable legacy Windows mode, or ``None`` to auto-detect. Defaults to ``None``.
         safe_box (bool, optional): Restrict box options that don't render on legacy Windows.
-        get_datetime (Callable[[], datetime], optional): Callable that gets the current time as a datetime.datetime object (used by Console.log),
-            or None for datetime.now.
-        get_time (Callable[[], time], optional): Callable that gets the current time in seconds, default uses time.monotonic.
+        get_datetime (Callable[[], datetime], optional): Callable that gets the current time as a datetime.datetime
+            object (used by Console.log), or None for datetime.now.
+        get_time (Callable[[], time], optional): Callable that gets the current time in seconds, default uses
+            time.monotonic.
     """
 
     def __init__(

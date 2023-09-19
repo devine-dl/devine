@@ -29,6 +29,7 @@ from pymediainfo import MediaInfo
 from pywidevine.cdm import Cdm as WidevineCdm
 from pywidevine.device import Device
 from pywidevine.remotecdm import RemoteCdm
+from rich.console import Group
 from rich.live import Live
 from rich.padding import Padding
 from rich.panel import Panel
@@ -37,7 +38,6 @@ from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
-from rich.console import Group
 
 from devine.core.config import config
 from devine.core.console import console
@@ -51,9 +51,9 @@ from devine.core.service import Service
 from devine.core.services import Services
 from devine.core.titles import Movie, Song, Title_T
 from devine.core.titles.episode import Episode
-from devine.core.tracks import Audio, Subtitle, Video, Tracks
+from devine.core.tracks import Audio, Subtitle, Tracks, Video
 from devine.core.utilities import get_binary_path, is_close_match, time_elapsed_since
-from devine.core.utils.click_types import LANGUAGE_RANGE, SEASON_RANGE, ContextData, QUALITY_LIST
+from devine.core.utils.click_types import LANGUAGE_RANGE, QUALITY_LIST, SEASON_RANGE, ContextData
 from devine.core.utils.collections import merge_dict
 from devine.core.utils.subprocess import ffprobe
 from devine.core.vaults import Vaults

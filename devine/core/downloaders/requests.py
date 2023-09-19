@@ -1,7 +1,7 @@
 import time
 from functools import partial
 from pathlib import Path
-from typing import Optional, Union, Any, MutableMapping
+from typing import Any, MutableMapping, Optional, Union
 
 from requests import Session
 from requests.cookies import RequestsCookieJar

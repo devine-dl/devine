@@ -4,10 +4,10 @@ import textwrap
 from functools import partial
 from http.cookiejar import CookieJar
 from pathlib import Path
-from typing import Optional, Union, MutableMapping
+from typing import MutableMapping, Optional, Union
 
 import requests
-from requests.cookies import RequestsCookieJar, get_cookie_header, cookiejar_from_dict
+from requests.cookies import RequestsCookieJar, cookiejar_from_dict, get_cookie_header
 from rich.text import Text
 
 from devine.core.config import config

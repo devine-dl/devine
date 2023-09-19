@@ -1,11 +1,10 @@
 import logging
+import shutil
 from pathlib import Path
 from typing import Optional
 
 import click
 import yaml
-import shutil
-
 from google.protobuf.json_format import MessageToDict
 from pywidevine.device import Device
 from pywidevine.license_protocol_pb2 import FileHashes
