@@ -7,7 +7,7 @@ from enum import Enum
 from functools import partial
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Callable, Iterable, Optional
+from typing import Any, Callable, Iterable, Optional, Union
 
 import pycaption
 import requests
@@ -20,6 +20,7 @@ from subtitle_filter import Subtitles
 from devine.core import binaries
 from devine.core.tracks.track import Track
 from devine.core.utilities import try_ensure_utf8
+from devine.core.utils.webvtt import merge_segmented_webvtt
 
 
 class Subtitle(Track):
@@ -202,6 +203,24 @@ class Subtitle(Track):
             self.convert(Subtitle.Codec.TimedTextMarkupLang)
         elif self.codec == Subtitle.Codec.fVTT:
             self.convert(Subtitle.Codec.WebVTT)
+        elif self.codec == Subtitle.Codec.WebVTT:
+            text = self.path.read_text("utf8")
+            if self.descriptor == Track.Descriptor.DASH:
+                text = merge_segmented_webvtt(
+                    text,
+                    segment_durations=self.data["dash"]["segment_durations"],
+                    timescale=self.data["dash"]["timescale"]
+                )
+            elif self.descriptor == Track.Descriptor.HLS:
+                text = merge_segmented_webvtt(
+                    text,
+                    segment_durations=self.data["hls"]["segment_durations"],
+                    timescale=1  # ?
+                )
+            caption_set = pycaption.WebVTTReader().read(text)
+            Subtitle.merge_same_cues(caption_set)
+            subtitle_text = pycaption.WebVTTWriter().write(caption_set)
+            self.path.write_text(subtitle_text, encoding="utf8")
 
     def convert(self, codec: Subtitle.Codec) -> Path:
         """
@@ -308,14 +327,7 @@ class Subtitle(Track):
                 caption_lists[language] = caption_list
                 caption_set: pycaption.CaptionSet = pycaption.CaptionSet(caption_lists)
             elif codec == Subtitle.Codec.WebVTT:
-                text = try_ensure_utf8(data).decode("utf8")
-                # Segmented VTT when merged may have the WEBVTT headers part of the next caption
-                # if they are not separated far enough from the previous caption, hence the \n\n
-                text = text. \
-                    replace("WEBVTT", "\n\nWEBVTT"). \
-                    replace("\r", ""). \
-                    replace("\n\n\n", "\n \n\n"). \
-                    replace("\n\n<", "\n<")
+                text = Subtitle.space_webvtt_headers(data)
                 caption_set = pycaption.WebVTTReader().read(text)
             else:
                 raise ValueError(f"Unknown Subtitle format \"{codec}\"...")
@@ -331,6 +343,27 @@ class Subtitle(Track):
                 del caption_set._captions[language]
 
         return caption_set
+
+    @staticmethod
+    def space_webvtt_headers(data: Union[str, bytes]):
+        """
+        Space out the WEBVTT Headers from Captions.
+
+        Segmented VTT when merged may have the WEBVTT headers part of the next caption
+        as they were not separated far enough from the previous caption and ended up
+        being considered as caption text rather than the header for the next segment.
+        """
+        if isinstance(data, bytes):
+            data = try_ensure_utf8(data).decode("utf8")
+        elif not isinstance(data, str):
+            raise ValueError(f"Expecting data to be a str, not {data!r}")
+
+        text = data.replace("WEBVTT", "\n\nWEBVTT").\
+            replace("\r", "").\
+            replace("\n\n\n", "\n \n\n").\
+            replace("\n\n<", "\n<")
+
+        return text
 
     @staticmethod
     def merge_same_cues(caption_set: pycaption.CaptionSet):
