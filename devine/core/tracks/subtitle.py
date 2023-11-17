@@ -434,6 +434,8 @@ class Subtitle(Track):
         elif self.descriptor is Subtitle.Descriptor.M3U:
             segment_duration = None
             timescale = 1
+        else:
+            return
 
         fixed = fix_webvtt_timestamp(
             self.path.read_text("utf-8"), segment_duration=segment_duration, timescale=timescale
