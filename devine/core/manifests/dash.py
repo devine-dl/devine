@@ -282,11 +282,12 @@ class DASH:
         else:
             segments: list[tuple[str, Optional[str]]] = []
             track_kid: Optional[UUID] = None
-
+            extra: dict = {}
             if segment_template is not None:
                 segment_template = copy(segment_template)
                 start_number = int(segment_template.get("startNumber") or 1)
                 segment_timeline = segment_template.find("SegmentTimeline")
+                extra["_timescale"] = float(segment_template.get("timescale") or 1)
 
                 for item in ("initialization", "media"):
                     value = segment_template.get(item)
@@ -321,6 +322,7 @@ class DASH:
                             seg_time_list.append(current_time)
                             current_time += int(s.get("d"))
                     seg_num_list = list(range(start_number, len(seg_time_list) + start_number))
+                    extra["_segment_duration"] = seg_time_list
 
                     for t, n in zip(seg_time_list, seg_num_list):
                         segments.append((
@@ -350,6 +352,8 @@ class DASH:
                                 Time=s
                             ), None
                         ))
+                    extra["_timescale"] = segment_timescale
+                    extra["_segment_duration"] = [segment_duration]
             elif segment_list is not None:
                 init_data = None
                 initialization = segment_list.find("Initialization")
@@ -378,10 +382,14 @@ class DASH:
                         media_url,
                         segment_url.get("mediaRange")
                     ))
+                extra["_timescale"] = float(segment_list.get("timescale") or 1)
+                extra["_segment_duration"] = [float(segment_list.get("duration"))]
             else:
                 log.error("Could not find a way to get segments from this MPD manifest.")
                 log.debug(manifest_url)
                 sys.exit(1)
+
+            track.extra += (extra,)
 
             if not track.drm and isinstance(track, (Video, Audio)):
                 try:
