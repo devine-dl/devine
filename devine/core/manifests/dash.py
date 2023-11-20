@@ -471,7 +471,11 @@ class DASH:
                 if init_data:
                     f.write(init_data)
                 for segment_file in sorted(save_dir.iterdir()):
-                    f.write(segment_file.read_bytes())
+                    data = segment_file.read_bytes()
+                    # TODO: fix encoding after decryption?
+                    if not drm and isinstance(track, Subtitle) and track.auto_fix_encoding:
+                        data = Subtitle.fix_encoding(data)
+                    f.write(data)
                     segment_file.unlink()
 
             if drm:

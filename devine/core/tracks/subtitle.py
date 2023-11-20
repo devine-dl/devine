@@ -72,7 +72,7 @@ class Subtitle(Track):
             raise ValueError(f"The Content Profile '{profile}' is not a supported Subtitle Codec")
 
     def __init__(self, *args: Any, codec: Subtitle.Codec, cc: bool = False, sdh: bool = False, forced: bool = False,
-                 **kwargs: Any):
+                 auto_fix_encoding: bool = False, **kwargs: Any):
         """
         Information on Subtitle Types:
             https://bit.ly/2Oe4fLC (3PlayMedia Blog on SUB vs CC vs SDH).
@@ -122,6 +122,8 @@ class Subtitle(Track):
                      no other way to reliably work with Forced subtitles where multiple
                      forced subtitles may be in the output file. Just know what to expect
                      with "forced" subtitles.
+            auto_fix_encoding: Try to normalize subtitle character encoding to UTF-8. See
+                                `Subtitle.fix_encoding` docstring for more information.
         """
         super().__init__(*args, **kwargs)
         self.codec = codec
@@ -132,6 +134,7 @@ class Subtitle(Track):
         self.forced = bool(forced)
         if (self.cc or self.sdh) and self.forced:
             raise ValueError("A text track cannot be CC/SDH as well as Forced.")
+        self.auto_fix_encoding = auto_fix_encoding
 
     def get_track_name(self) -> Optional[str]:
         """Return the base Track Name."""
@@ -347,6 +350,22 @@ class Subtitle(Track):
                         captions.append(caption)
 
         return captions, language
+
+    @staticmethod
+    def fix_encoding(data: bytes) -> bytes:
+        """
+        Make sure the caption is UTF-8-encoded.
+
+        The rationale behind this function is that some services use ISO-8859-1 (latin1)
+        or Windows-1252 (CP-1252) instead of UTF-8 encoding, whether intentionally or accidentally.
+        Some services even stream subtitles with malformed/mixed encoding (each segment has a different encoding).
+        """
+        try:
+            data.decode("utf8")
+            return data
+        except UnicodeDecodeError:
+            # CP-1252 is a superset of latin1
+            return data.decode("cp1252").encode("utf8")
 
     def strip_hearing_impaired(self) -> None:
         """

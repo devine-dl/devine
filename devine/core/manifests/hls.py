@@ -301,7 +301,10 @@ class HLS:
 
         with open(save_path, "wb") as f:
             for segment_file in sorted(save_dir.iterdir()):
-                f.write(segment_file.read_bytes())
+                data = segment_file.read_bytes()
+                if isinstance(track, Subtitle) and track.auto_fix_encoding:
+                    data = Subtitle.fix_encoding(data)
+                f.write(data)
                 segment_file.unlink()
 
         progress(downloaded="Downloaded")
