@@ -5,7 +5,7 @@ import subprocess
 from collections import defaultdict
 from enum import Enum
 from io import BytesIO
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable, Optional, Union
 
 import pycaption
 from construct import Container
@@ -173,13 +173,7 @@ class Subtitle(Track):
                 caption_set: pycaption.CaptionSet = pycaption.CaptionSet(caption_lists)
                 return caption_set
             if codec == Subtitle.Codec.WebVTT:
-                # Segmented VTT when merged may have the WEBVTT headers part of the next caption
-                # if they are not separated far enough from the previous caption, hence the \n\n
-                text = data.decode("utf8"). \
-                    replace("WEBVTT", "\n\nWEBVTT"). \
-                    replace("\r", ""). \
-                    replace("\n\n\n", "\n \n\n"). \
-                    replace("\n\n<", "\n<")
+                text = Subtitle.fix_webvtt_separator(data)
                 captions: pycaption.CaptionSet = pycaption.WebVTTReader().read(text)
                 return captions
         except pycaption.exceptions.CaptionReadSyntaxError as e:
@@ -188,6 +182,21 @@ class Subtitle(Track):
             return pycaption.CaptionSet({"en": []})
 
         raise ValueError(f"Unknown Subtitle Format \"{codec}\"...")
+
+    @staticmethod
+    def fix_webvtt_separator(data: Union[str, bytes]):
+        """
+        Segmented VTT when merged may have the WEBVTT headers part of the next caption
+        if they are not separated far enough from the previous caption, hence the \n\n
+        """
+        if isinstance(data, bytes):
+            data = data.decode("utf8")
+        text = data.replace("WEBVTT", "\n\nWEBVTT"). \
+                    replace("\r", ""). \
+                    replace("\n\n\n", "\n \n\n"). \
+                    replace("\n\n<", "\n<")
+
+        return text
 
     @staticmethod
     def merge_same_cues(caption_set: pycaption.CaptionSet):
@@ -437,10 +446,12 @@ class Subtitle(Track):
         else:
             return
 
+        text = Subtitle.fix_webvtt_separator(self.path.read_text("utf8"))
         fixed = fix_webvtt_timestamp(
-            self.path.read_text("utf-8"), segment_duration=segment_duration, timescale=timescale
+            text, segment_duration=segment_duration, timescale=timescale
         )
-        self.path.write_text(fixed, "utf-8")
+
+        self.path.write_text(fixed, "utf8")
 
     def __str__(self) -> str:
         return " | ".join(filter(bool, [
