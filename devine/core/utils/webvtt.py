@@ -15,10 +15,11 @@ class CaptionListExt(CaptionList):
 
 class CaptionExt(Caption):
     @typing.no_type_check
-    def __init__(self, start, end, nodes, style=None, layout_info=None, segment_index=0, mpegts=0):
+    def __init__(self, start, end, nodes, style=None, layout_info=None, segment_index=0, mpegts=0, cue_time=0.0):
         style = style or {}
         self.segment_index: int = segment_index
         self.mpegts: float = mpegts
+        self.cue_time: float = cue_time
         super().__init__(start, end, nodes, style, layout_info)
 
 
@@ -26,17 +27,18 @@ class WebVTTReaderExt(WebVTTReader):
     # HLS extension support <https://datatracker.ietf.org/doc/html/rfc8216#section-3.5>
     RE_TIMESTAMP_MAP = re.compile(r"X-TIMESTAMP-MAP.*")
     RE_MPEGTS = re.compile(r"MPEGTS:(\d+)")
+    RE_LOCAL = re.compile(r"LOCAL:((?:(\d{1,}):)?(\d{2}):(\d{2})\.(\d{3}))")
 
-    @typing.no_type_check
-    def _parse(self, lines):
+    def _parse(self, lines: list[str]) -> CaptionList:
         captions = CaptionListExt()
         start = None
         end = None
-        nodes = []
+        nodes: list[CaptionNode] = []
         layout_info = None
         found_timing = False
         segment_index = -1
         mpegts = 0
+        cue_time = 0.0
 
         # The first segment MPEGTS is needed to calculate the rest. It is possible that
         # the first segment contains no cue and is ignored by pycaption, this acts as a fallback.
@@ -58,7 +60,13 @@ class WebVTTReaderExt(WebVTTReader):
                 if found_timing and nodes:
                     found_timing = False
                     caption = CaptionExt(
-                        start, end, nodes, layout_info=layout_info, segment_index=segment_index, mpegts=mpegts
+                        start,
+                        end,
+                        nodes,
+                        layout_info=layout_info,
+                        segment_index=segment_index,
+                        mpegts=mpegts,
+                        cue_time=cue_time,
                     )
                     captions.append(caption)
                     nodes = []
@@ -67,8 +75,12 @@ class WebVTTReaderExt(WebVTTReader):
                 # Merged segmented VTT doesn't have index information, track manually.
                 segment_index += 1
                 mpegts = 0
+                cue_time = 0.0
             elif m := self.RE_TIMESTAMP_MAP.match(line):
-                mpegts = int(self.RE_MPEGTS.search(m.group()).group(1))
+                if r := self.RE_MPEGTS.search(m.group()):
+                    mpegts = int(r.group(1))
+
+                cue_time = self._parse_local(m.group())
 
                 # Early assignment in case the first segment contains no cue.
                 if segment_index == 0:
@@ -90,10 +102,30 @@ class WebVTTReaderExt(WebVTTReader):
 
         return captions
 
+    @staticmethod
+    def _parse_local(string: str) -> float:
+        """
+        Parse WebVTT LOCAL time and convert it to seconds.
+        """
+        m = WebVTTReaderExt.RE_LOCAL.search(string)
+        if not m:
+            return 0
+
+        parsed = m.groups()
+        if not parsed:
+            return 0
+        hours = int(parsed[1])
+        minutes = int(parsed[2])
+        seconds = int(parsed[3])
+        milliseconds = int(parsed[4])
+        return (milliseconds / 1000) + seconds + (minutes * 60) + (hours * 3600)
+
 
 def fix_webvtt_timestamp(vtt_raw: str, segment_duration: Optional[list[int]] = None, timescale: int = 1) -> str:
     """
-    Ported from N_m3u8DL-RE.
+    Fix relative timestamp from segmented WebVTT to absolute timestamp.
+
+    Algorithm borrowed from N_m3u8DL-RE and shaka-player.
     """
     MPEG_TIMESCALE = 90_000
 
@@ -110,7 +142,6 @@ def fix_webvtt_timestamp(vtt_raw: str, segment_duration: Optional[list[int]] = N
 
         caption: CaptionExt
         for i, caption in enumerate(captions):
-
             # DASH WebVTT doesn't have MPEGTS timestamp like HLS. Instead,
             # calculate the timestamp from SegmentTemplate/SegmentList duration.
             likely_dash = first_segment_mpegts == 0 and caption.mpegts == 0
@@ -121,7 +152,7 @@ def fix_webvtt_timestamp(vtt_raw: str, segment_duration: Optional[list[int]] = N
             if caption.mpegts == 0:
                 continue
 
-            seconds = (caption.mpegts - first_segment_mpegts) / MPEG_TIMESCALE
+            seconds = (caption.mpegts - first_segment_mpegts) / MPEG_TIMESCALE - caption.cue_time
             offset = seconds * 1_000_000  # pycaption use microseconds
 
             if caption.start < offset:
