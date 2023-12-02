@@ -16,7 +16,7 @@ from urllib.parse import urljoin
 
 import m3u8
 import requests
-from langcodes import Language
+from langcodes import Language, tag_is_valid
 from m3u8 import M3U8
 from pywidevine.cdm import Cdm as WidevineCdm
 from pywidevine.pssh import PSSH
@@ -148,12 +148,26 @@ class HLS:
                 track_type = Subtitle
                 codec = Subtitle.Codec.WebVTT  # assuming WebVTT, codec info isn't shown
 
+            track_lang = next((
+                Language.get(option)
+                for x in (media.language, language)
+                for option in [(str(x) or "").strip()]
+                if tag_is_valid(option) and not option.startswith("und")
+            ), None)
+            if not track_lang:
+                msg = "Language information could not be derived for a media."
+                if language is None:
+                    msg += " No fallback language was provided when calling HLS.to_tracks()."
+                elif not tag_is_valid((str(language) or "").strip()) or str(language).startswith("und"):
+                    msg += f" The fallback language provided is also invalid: {language}"
+                raise ValueError(msg)
+
             tracks.add(track_type(
                 id_=md5(str(media).encode()).hexdigest()[0:6],  # 6 chars only for filename length
                 url=urljoin(media.base_uri, media.uri),
                 codec=codec,
-                language=media.language or language,  # HLS media may not have language info, fallback if needed
-                is_original_lang=language and is_close_match(media.language, [language]),
+                language=track_lang,  # HLS media may not have language info, fallback if needed
+                is_original_lang=language and is_close_match(track_lang, [language]),
                 descriptor=Audio.Descriptor.M3U,
                 drm=session_drm if media.type == "AUDIO" else None,
                 extra=media,
