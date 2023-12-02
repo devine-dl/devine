@@ -6,7 +6,7 @@ from typing import Optional
 import click
 import yaml
 from google.protobuf.json_format import MessageToDict
-from pywidevine.device import Device
+from pywidevine.device import Device, DeviceTypes
 from pywidevine.license_protocol_pb2 import FileHashes
 from rich.prompt import Prompt
 from unidecode import UnidecodeError, unidecode
@@ -182,7 +182,7 @@ def dump(wvd_paths: list[Path], out_dir: Path) -> None:
 @click.argument("private_key", type=Path)
 @click.argument("client_id", type=Path)
 @click.argument("file_hashes", type=Path, required=False)
-@click.option("-t", "--type", "type_", type=click.Choice([x.name for x in Device.Types], case_sensitive=False),
+@click.option("-t", "--type", "type_", type=click.Choice([x.name for x in DeviceTypes], case_sensitive=False),
               default="Android", help="Device Type")
 @click.option("-l", "--level", type=click.IntRange(1, 3), default=1, help="Device Security Level")
 @click.option("-o", "--output", type=Path, default=None, help="Output Directory")
@@ -223,7 +223,7 @@ def new(
         raise click.UsageError("file_hashes: Not a path to a file, or it doesn't exist.", ctx)
 
     device = Device(
-        type_=Device.Types[type_.upper()],
+        type_=DeviceTypes[type_.upper()],
         security_level=level,
         flags=None,
         private_key=private_key.read_bytes(),

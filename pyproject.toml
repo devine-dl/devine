@@ -33,7 +33,7 @@ include = [
 "Changelog" = "https://github.com/devine-dl/devine/blob/master/CHANGELOG.md"
 
 [tool.poetry.dependencies]
-python = ">=3.9.0,<3.12"
+python = ">=3.9,<4.0"
 appdirs = "^1.4.4"
 Brotli = "^1.1.0"
 click = "^8.1.7"
@@ -43,34 +43,34 @@ jsonpickle = "^3.0.2"
 langcodes = { extras = ["data"], version = "^3.3.0" }
 lxml = "^4.9.3"
 pproxy = "^2.7.8"
-protobuf = "4.21.6"
-pycaption = "^2.1.1"
+protobuf = "^4.24.4"
+pycaption = "^2.2.0"
 pycryptodomex = "^3.19.0"
 pyjwt = "^2.8.0"
-pymediainfo = "^6.0.1"
+pymediainfo = "^6.1.0"
 pymp4 = "^1.4.0"
 pymysql = "^1.1.0"
-pywidevine = { extras = ["serve"], version = "^1.6.0" }
+pywidevine = { extras = ["serve"], version = "^1.7.0" }
 PyYAML = "^6.0.1"
 requests = { extras = ["socks"], version = "^2.31.0" }
-rich = "^13.5.3"
+rich = "^13.7.0"
 "rlaphoenix.m3u8" = "^3.4.0"
-"ruamel.yaml" = "^0.17.32"
+"ruamel.yaml" = "^0.17.40"
 sortedcontainers = "^2.4.0"
-subtitle-filter = "^1.4.6"
-Unidecode = "^1.3.6"
-urllib3 = "^2.0.4"
+subtitle-filter = "^1.4.8"
+Unidecode = "^1.3.7"
+urllib3 = "^2.1.0"
 chardet = "^5.2.0"
 
 [tool.poetry.dev-dependencies]
-pre-commit = "^3.4.0"
-mypy = "^1.5.1"
-mypy-protobuf = "^3.3.0"
-types-protobuf = "^4.24.0.1"
+pre-commit = "^3.5.0"
+mypy = "^1.7.1"
+mypy-protobuf = "^3.5.0"
+types-protobuf = "^4.24.0.4"
 types-PyMySQL = "^1.1.0.1"
-types-requests = "^2.31.0.2"
+types-requests = "^2.31.0.10"
 isort = "^5.12.0"
-ruff = "^0.0.292"
+ruff = "~0.1.6"
 
 [tool.poetry.scripts]
 devine = "devine.core.__main__:main"
