@@ -173,7 +173,7 @@ class Subtitle(Track):
                 caption_set: pycaption.CaptionSet = pycaption.CaptionSet(caption_lists)
                 return caption_set
             if codec == Subtitle.Codec.WebVTT:
-                text = Subtitle.fix_webvtt_separator(data)
+                text = Subtitle.space_webvtt_headers(data)
                 captions: pycaption.CaptionSet = pycaption.WebVTTReader().read(text)
                 return captions
         except pycaption.exceptions.CaptionReadSyntaxError as e:
@@ -184,10 +184,13 @@ class Subtitle(Track):
         raise ValueError(f"Unknown Subtitle Format \"{codec}\"...")
 
     @staticmethod
-    def fix_webvtt_separator(data: Union[str, bytes]):
+    def space_webvtt_headers(data: Union[str, bytes]):
         """
+        Space out the WEBVTT Headers from Captions.
+
         Segmented VTT when merged may have the WEBVTT headers part of the next caption
-        if they are not separated far enough from the previous caption, hence the \n\n
+        as they were not separated far enough from the previous caption and ended up
+        being considered as caption text rather than the header for the next segment.
         """
         if isinstance(data, bytes):
             data = data.decode("utf8")
@@ -449,7 +452,7 @@ class Subtitle(Track):
         else:
             return
 
-        text = Subtitle.fix_webvtt_separator(self.path.read_text("utf8"))
+        text = Subtitle.space_webvtt_headers(self.path.read_text("utf8"))
         fixed = fix_webvtt_timestamp(
             text, segment_duration=segment_duration, timescale=timescale
         )
