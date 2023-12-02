@@ -102,6 +102,9 @@ class dl:
                   help="Proxy URI to use. If a 2-letter country is provided, it will try get a proxy from the config.")
     @click.option("--group", type=str, default=None,
                   help="Set the Group Tag to be used, overriding the one in config if any.")
+    @click.option("--sub-format", type=click.Choice(Subtitle.Codec, case_sensitive=False),
+                  default=Subtitle.Codec.SubRip,
+                  help="Set Output Subtitle Format, only converting if necessary.")
     @click.option("-V", "--video-only", is_flag=True, default=False,
                   help="Only download video tracks.")
     @click.option("-A", "--audio-only", is_flag=True, default=False,
@@ -261,6 +264,7 @@ class dl:
         lang: list[str],
         v_lang: list[str],
         s_lang: list[str],
+        sub_format: Subtitle.Codec,
         video_only: bool,
         audio_only: bool,
         subs_only: bool,
@@ -575,18 +579,34 @@ class dl:
                             break
                     video_track_n += 1
 
-                with console.status(f"Converting subtitles to {Subtitle.Codec.SubRip}..."):
+                with console.status(f"Converting Subtitles to {sub_format.name}..."):
                     for subtitle in title.tracks.subtitles:
-                        # convert subs to SRT unless it's already SRT, or SSA
-                        if subtitle.codec not in (Subtitle.Codec.SubRip, Subtitle.Codec.SubStationAlphav4):
+                        if subtitle.codec != sub_format:
+                            writer = {
+                                Subtitle.Codec.SubRip: pycaption.SRTWriter,
+                                Subtitle.Codec.SubStationAlpha: None,
+                                Subtitle.Codec.SubStationAlphav4: None,
+                                Subtitle.Codec.TimedTextMarkupLang: pycaption.DFXPWriter,
+                                Subtitle.Codec.WebVTT: pycaption.WebVTTWriter,
+                                # MPEG-DASH box-encapsulated subtitle formats
+                                Subtitle.Codec.fTTML: None,
+                                Subtitle.Codec.fVTT: None,
+                            }[sub_format]
+                            if writer is None:
+                                self.log.error(f"Cannot yet convert {subtitle.codec} to {sub_format.name}...")
+                                sys.exit(1)
+
                             caption_set = subtitle.parse(subtitle.path.read_bytes(), subtitle.codec)
                             subtitle.merge_same_cues(caption_set)
-                            srt = pycaption.SRTWriter().write(caption_set)
-                            # NOW sometimes has this, when it isn't, causing mux problems
-                            srt = srt.replace("MULTI-LANGUAGE SRT\n", "")
-                            subtitle.path.write_text(srt, encoding="utf8")
-                            subtitle.codec = Subtitle.Codec.SubRip
-                            subtitle.move(subtitle.path.with_suffix(".srt"))
+
+                            subtitle_text = writer().write(caption_set)
+                            if sub_format == Subtitle.Codec.SubRip:
+                                # NOW sometimes has this, when it isn't, causing mux problems
+                                subtitle_text = subtitle_text.replace("MULTI-LANGUAGE SRT\n", "")
+
+                            subtitle.path.write_text(subtitle_text, encoding="utf8")
+                            subtitle.codec = sub_format
+                            subtitle.move(subtitle.path.with_suffix(f".{sub_format.value.lower()}"))
 
                 with console.status("Repackaging tracks with FFMPEG..."):
                     has_repacked = False

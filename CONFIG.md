@@ -120,12 +120,18 @@ For example to set the default primary language to download to German,
 lang: de
 ```
 
-or to set `--bitrate=CVBR` for the AMZN service,
+to set `--bitrate=CVBR` for the AMZN service,
 
 ```yaml
 lang: de
 AMZN:
   bitrate: CVBR
+```
+
+or to change the output subtitle format from the default (SubRip SRT) to WebVTT,
+
+```yaml
+sub_format: vtt
 ```
 
 ## downloader (str)
