@@ -237,6 +237,8 @@ def try_ensure_utf8(data: bytes) -> bytes:
             try:
                 # last ditch effort to detect encoding
                 detection_result = chardet.detect(data)
+                if not detection_result["encoding"]:
+                    return data
                 return data.decode(detection_result["encoding"]).encode("utf8")
             except UnicodeDecodeError:
                 return data
