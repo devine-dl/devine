@@ -13,6 +13,7 @@ from types import ModuleType
 from typing import AsyncIterator, Optional, Sequence, Union
 from urllib.parse import urlparse
 
+import chardet
 import pproxy
 import requests
 from construct import ValidationError
@@ -213,6 +214,32 @@ def time_elapsed_since(start: float) -> str:
         time_string = f"{hours:d}h{time_string}"
 
     return time_string
+
+
+def try_ensure_utf8(data: bytes) -> bytes:
+    """
+    Try to ensure that the given data is encoded in UTF-8.
+
+    Parameters:
+        data: Input data that may or may not yet be UTF-8 or another encoding.
+
+    Returns the input data encoded in UTF-8 if successful. If unable to detect the
+    encoding of the input data, then the original data is returned as-received.
+    """
+    try:
+        data.decode("utf8")
+        return data
+    except UnicodeDecodeError:
+        try:
+            # CP-1252 is a superset of latin1
+            return data.decode("cp1252").encode("utf8")
+        except UnicodeDecodeError:
+            try:
+                # last ditch effort to detect encoding
+                detection_result = chardet.detect(data)
+                return data.decode(detection_result["encoding"]).encode("utf8")
+            except UnicodeDecodeError:
+                return data
 
 
 @contextlib.asynccontextmanager

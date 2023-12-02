@@ -52,7 +52,7 @@ from devine.core.services import Services
 from devine.core.titles import Movie, Song, Title_T
 from devine.core.titles.episode import Episode
 from devine.core.tracks import Audio, Subtitle, Tracks, Video
-from devine.core.utilities import get_binary_path, is_close_match, time_elapsed_since
+from devine.core.utilities import get_binary_path, is_close_match, time_elapsed_since, try_ensure_utf8
 from devine.core.utils.click_types import LANGUAGE_RANGE, QUALITY_LIST, SEASON_RANGE, ContextData
 from devine.core.utils.collections import merge_dict
 from devine.core.utils.subprocess import ffprobe
@@ -924,7 +924,7 @@ class dl:
 
                         if isinstance(track, Subtitle):
                             track_data = track.path.read_bytes()
-                            track_data = Subtitle.fix_encoding(track_data)
+                            track_data = try_ensure_utf8(track_data)
                             track.path.write_bytes(track_data)
 
                         progress(downloaded="Downloaded")

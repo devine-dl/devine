@@ -7,7 +7,6 @@ from enum import Enum
 from io import BytesIO
 from typing import Any, Iterable, Optional
 
-import chardet
 import pycaption
 from construct import Container
 from pycaption import Caption, CaptionList, CaptionNode, WebVTTReader
@@ -348,33 +347,6 @@ class Subtitle(Track):
                         captions.append(caption)
 
         return captions, language
-
-    @staticmethod
-    def fix_encoding(data: bytes) -> bytes:
-        """
-        Make sure the caption is UTF-8-encoded.
-
-        The rationale behind this function is that some services use ISO-8859-1 (latin1) or
-        Windows-1252 (CP-1252) instead of UTF-8 encoding, whether intentionally or accidentally.
-        Some services even stream subtitles with malformed/mixed encoding (each segment having a
-        different encoding).
-
-        If all decoding attempts fail, the original data as-received will be returned.
-        """
-        try:
-            data.decode("utf8")
-            return data
-        except UnicodeDecodeError:
-            try:
-                # CP-1252 is a superset of latin1
-                return data.decode("cp1252").encode("utf8")
-            except UnicodeDecodeError:
-                try:
-                    # last ditch effort to detect encoding
-                    detection_result = chardet.detect(data)
-                    return data.decode(detection_result["encoding"]).encode("utf8")
-                except UnicodeDecodeError:
-                    return data
 
     def strip_hearing_impaired(self) -> None:
         """

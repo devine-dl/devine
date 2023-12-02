@@ -28,7 +28,7 @@ from devine.core.downloaders import downloader
 from devine.core.downloaders import requests as requests_downloader
 from devine.core.drm import DRM_T, ClearKey, Widevine
 from devine.core.tracks import Audio, Subtitle, Tracks, Video
-from devine.core.utilities import is_close_match
+from devine.core.utilities import is_close_match, try_ensure_utf8
 
 
 class HLS:
@@ -301,10 +301,10 @@ class HLS:
 
         with open(save_path, "wb") as f:
             for segment_file in sorted(save_dir.iterdir()):
-                data = segment_file.read_bytes()
+                segment_data = segment_file.read_bytes()
                 if isinstance(track, Subtitle):
-                    data = Subtitle.fix_encoding(data)
-                f.write(data)
+                    segment_data = try_ensure_utf8(segment_data)
+                f.write(segment_data)
                 segment_file.unlink()
 
         progress(downloaded="Downloaded")
