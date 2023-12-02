@@ -918,13 +918,14 @@ class dl:
                             progress(downloaded="Decrypting", completed=0, total=100)
                             drm.decrypt(save_path)
                             track.drm = None
-                            if isinstance(track, Subtitle):
-                                data = track.path.read_bytes()
-                                content = Subtitle.fix_encoding(data)
-                                track.path.write_bytes(content)
                             if callable(track.OnDecrypted):
                                 track.OnDecrypted(track)
                             progress(downloaded="Decrypted", completed=100)
+
+                        if isinstance(track, Subtitle):
+                            track_data = track.path.read_bytes()
+                            track_data = Subtitle.fix_encoding(track_data)
+                            track.path.write_bytes(track_data)
 
                         progress(downloaded="Downloaded")
                 except KeyboardInterrupt:
