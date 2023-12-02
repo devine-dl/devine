@@ -31,7 +31,7 @@ from devine.core.downloaders import downloader
 from devine.core.downloaders import requests as requests_downloader
 from devine.core.drm import Widevine
 from devine.core.tracks import Audio, Subtitle, Tracks, Video
-from devine.core.utilities import is_close_match
+from devine.core.utilities import is_close_match, try_ensure_utf8
 from devine.core.utils.xml import load_xml
 
 
@@ -471,7 +471,11 @@ class DASH:
                 if init_data:
                     f.write(init_data)
                 for segment_file in sorted(save_dir.iterdir()):
-                    f.write(segment_file.read_bytes())
+                    segment_data = segment_file.read_bytes()
+                    # TODO: fix encoding after decryption?
+                    if not drm and isinstance(track, Subtitle):
+                        segment_data = try_ensure_utf8(segment_data)
+                    f.write(segment_data)
                     segment_file.unlink()
 
             if drm:
