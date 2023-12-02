@@ -918,7 +918,7 @@ class dl:
                             progress(downloaded="Decrypting", completed=0, total=100)
                             drm.decrypt(save_path)
                             track.drm = None
-                            if isinstance(track, Subtitle) and track.auto_fix_encoding:
+                            if isinstance(track, Subtitle):
                                 data = track.path.read_bytes()
                                 content = Subtitle.fix_encoding(data)
                                 track.path.write_bytes(content)

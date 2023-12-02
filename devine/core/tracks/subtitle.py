@@ -72,7 +72,7 @@ class Subtitle(Track):
             raise ValueError(f"The Content Profile '{profile}' is not a supported Subtitle Codec")
 
     def __init__(self, *args: Any, codec: Subtitle.Codec, cc: bool = False, sdh: bool = False, forced: bool = False,
-                 auto_fix_encoding: bool = False, **kwargs: Any):
+                 **kwargs: Any):
         """
         Information on Subtitle Types:
             https://bit.ly/2Oe4fLC (3PlayMedia Blog on SUB vs CC vs SDH).
@@ -122,8 +122,6 @@ class Subtitle(Track):
                      no other way to reliably work with Forced subtitles where multiple
                      forced subtitles may be in the output file. Just know what to expect
                      with "forced" subtitles.
-            auto_fix_encoding: Try to normalize subtitle character encoding to UTF-8. See
-                                `Subtitle.fix_encoding` docstring for more information.
         """
         super().__init__(*args, **kwargs)
         self.codec = codec
@@ -134,7 +132,6 @@ class Subtitle(Track):
         self.forced = bool(forced)
         if (self.cc or self.sdh) and self.forced:
             raise ValueError("A text track cannot be CC/SDH as well as Forced.")
-        self.auto_fix_encoding = auto_fix_encoding
 
     def get_track_name(self) -> Optional[str]:
         """Return the base Track Name."""
