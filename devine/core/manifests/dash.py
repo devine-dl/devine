@@ -473,7 +473,10 @@ class DASH:
                 for segment_file in sorted(save_dir.iterdir()):
                     segment_data = segment_file.read_bytes()
                     # TODO: fix encoding after decryption?
-                    if not drm and isinstance(track, Subtitle):
+                    if (
+                        not drm and isinstance(track, Subtitle) and
+                        track.codec not in (Subtitle.Codec.fVTT, Subtitle.Codec.fTTML)
+                    ):
                         segment_data = try_ensure_utf8(segment_data)
                     f.write(segment_data)
                     segment_file.unlink()
