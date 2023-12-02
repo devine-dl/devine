@@ -191,10 +191,13 @@ class Subtitle(Track):
         """
         if isinstance(data, bytes):
             data = data.decode("utf8")
-        text = data.replace("WEBVTT", "\n\nWEBVTT"). \
-                    replace("\r", ""). \
-                    replace("\n\n\n", "\n \n\n"). \
-                    replace("\n\n<", "\n<")
+        elif not isinstance(data, str):
+            raise ValueError(f"Expecting data to be a str, not {data!r}")
+
+        text = data.replace("WEBVTT", "\n\nWEBVTT").\
+            replace("\r", "").\
+            replace("\n\n\n", "\n \n\n").\
+            replace("\n\n<", "\n<")
 
         return text
 
