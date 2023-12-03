@@ -376,7 +376,7 @@ class Tracks:
                 random=get_random_bytes(16).hex()
             )
             self.export_chapters(chapters_path)
-            cl.extend(["--chapters", str(chapters_path)])
+            cl.extend(["--chapter-charset", "UTF-8", "--chapters", str(chapters_path)])
         else:
             chapters_path = None
 
