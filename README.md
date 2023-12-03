@@ -197,16 +197,25 @@ Service Code.
 
 If you are collaborating with a team on multiple services then forking the project is the best way to go.
 
-1. [Fork the project](https://github.com/devine-dl/devine/fork) and make sure it is Private.
-2. (optionally) Hard reset to the latest stable version by tag. E.g., `git reset --hard v1.0.0`.
-3. Add all your Services to the `/devine/services` folder and commit them to your fork.
+1. Create a new Private GitHub Repository without README, .gitignore, or LICENSE files.
+   Note: Do NOT use the GitHub Fork button, or you will not be able to make the repository private.
+2. `git clone <your repo url here>` and then `cd` into it.
+3. `git remote add upstream https://github.com/devine-dl/devine`
+4. `git remote set-url --push upstream DISABLE`
+5. `git fetch upstream`
+6. `git pull upstream master`
+7. (optionally) Hard reset to the latest stable version by tag. E.g., `git reset --hard v1.0.0`.
 
-Now commit changes or additions within that services folder to your forked repository.  
+Now commit your Services or other changes to your forked repository.  
 Once committed all your other team members can easily pull changes as well as push new changes.
 
-When a new update comes out you can easily rebase your fork to that commit to update. However, please make sure you
-look at changes between each version before rebasing and resolve any breaking changes and deprecations when rebasing to
-a new version.
+When a new update comes out you can easily rebase your fork to that commit to update.
+
+1. `git fetch upstream`
+2. `git rebase upstream/master`
+
+However, please make sure you look at changes between each version before rebasing and resolve any breaking changes and
+deprecations when rebasing to a new version.
 
 If you are new to `git` then take a look at [GitHub Desktop](https://desktop.github.com).
 
