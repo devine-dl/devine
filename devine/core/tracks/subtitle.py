@@ -145,7 +145,7 @@ class Subtitle(Track):
         return track_name or None
 
     @staticmethod
-    def parse(data: bytes, codec: Subtitle.Codec, fix_sub_timestamp: Optional[bool] = False, extra: Optional[dict] = None) -> pycaption.CaptionSet:
+    def parse(data: bytes, codec: Subtitle.Codec, fix_sub_timestamp: bool = False, extra: Optional[dict] = None) -> pycaption.CaptionSet:
         extra = extra or {}
         # TODO: Use an "enum" for subtitle codecs
         if not isinstance(data, bytes):
