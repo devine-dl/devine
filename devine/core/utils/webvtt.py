@@ -3,7 +3,7 @@ import sys
 import typing
 from typing import Optional
 
-from pycaption import Caption, CaptionList, CaptionNode, CaptionReadError, WebVTTReader, WebVTTWriter
+from pycaption import Caption, CaptionList, CaptionNode, CaptionReadError, CaptionSet, WebVTTReader
 
 
 class CaptionListExt(CaptionList):
@@ -121,7 +121,7 @@ class WebVTTReaderExt(WebVTTReader):
         return (milliseconds / 1000) + seconds + (minutes * 60) + (hours * 3600)
 
 
-def fix_webvtt_timestamp(vtt_raw: str, segment_duration: Optional[list[int]] = None, timescale: int = 1) -> str:
+def fix_webvtt_timestamp(vtt_raw: str, segment_duration: Optional[list[int]] = None, timescale: int = 1) -> CaptionSet:
     """
     Fix relative timestamp from segmented WebVTT to absolute timestamp.
 
@@ -175,4 +175,4 @@ def fix_webvtt_timestamp(vtt_raw: str, segment_duration: Optional[list[int]] = N
         # Remove duplicate
         captions[:] = [c for c_index, c in enumerate(captions) if c_index not in set(duplicate_index)]
 
-    return WebVTTWriter().write(vtt)
+    return vtt

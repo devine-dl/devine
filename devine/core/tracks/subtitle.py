@@ -145,7 +145,8 @@ class Subtitle(Track):
         return track_name or None
 
     @staticmethod
-    def parse(data: bytes, codec: Subtitle.Codec) -> pycaption.CaptionSet:
+    def parse(data: bytes, codec: Subtitle.Codec, fix_sub_timestamp: Optional[bool] = False, extra: Optional[dict] = None) -> pycaption.CaptionSet:
+        extra = extra or {}
         # TODO: Use an "enum" for subtitle codecs
         if not isinstance(data, bytes):
             raise ValueError(f"Subtitle data must be parsed as bytes data, not {type(data).__name__}")
@@ -174,7 +175,13 @@ class Subtitle(Track):
                 return caption_set
             if codec == Subtitle.Codec.WebVTT:
                 text = Subtitle.space_webvtt_headers(data)
-                captions: pycaption.CaptionSet = pycaption.WebVTTReader().read(text)
+                captions: pycaption.CaptionSet
+                if fix_sub_timestamp:
+                    duration = extra.get("_segment_duration")
+                    timescale = extra.get("_timescale", 1)
+                    captions = fix_webvtt_timestamp(text, segment_duration=duration, timescale=timescale)
+                else:
+                    captions = pycaption.WebVTTReader().read(text)
                 return captions
         except pycaption.exceptions.CaptionReadSyntaxError as e:
             raise SyntaxError(f"A syntax error has occurred when reading the \"{codec}\" subtitle: {e}")
@@ -424,40 +431,6 @@ class Subtitle(Track):
             check=True,
             stdout=subprocess.DEVNULL
         )
-
-    def fix_webvtt_timestamp(self) -> None:
-        """
-        Convert segmented WebVTT timestamps where each cue starts at 0 (relative to the segment)
-        to absolute timestamps.
-
-        This function is not called by default; instead, service code should explicitly call
-        this function when needed. Example using a callback::
-
-            if isinstance(track, Subtitle):
-                track.OnDownloaded = lambda track: track.fix_webvtt_timestamp()
-
-        """
-        if not self.path or not self.path.exists():
-            raise ValueError("You must download the subtitle track first.")
-
-        if self.codec is not Subtitle.Codec.WebVTT:
-            raise ValueError(f"Expected subtitle codec to be a {Subtitle.Codec.WebVTT}, not {self.codec}.")
-
-        if self.descriptor is Subtitle.Descriptor.MPD:
-            segment_duration = self.extra[2]["_segment_duration"]
-            timescale = self.extra[2]["_timescale"]
-        elif self.descriptor is Subtitle.Descriptor.M3U:
-            segment_duration = None
-            timescale = 1
-        else:
-            return
-
-        text = Subtitle.space_webvtt_headers(self.path.read_text("utf8"))
-        fixed = fix_webvtt_timestamp(
-            text, segment_duration=segment_duration, timescale=timescale
-        )
-
-        self.path.write_text(fixed, "utf8")
 
     def __str__(self) -> str:
         return " | ".join(filter(bool, [
