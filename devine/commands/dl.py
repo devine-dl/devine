@@ -417,29 +417,27 @@ class dl:
                     title.tracks.select_subtitles(lambda x: not x.forced or is_close_match(x.language, lang))
 
                 # filter audio tracks
-                title.tracks.select_audio(lambda x: not x.descriptive)  # exclude descriptive audio
-                if acodec:
-                    title.tracks.select_audio(lambda x: x.codec == acodec)
-                    if not title.tracks.audio:
-                        self.log.error(f"There's no {acodec.name} Audio Tracks...")
-                        sys.exit(1)
-                if abitrate:
-                    title.tracks.select_audio(lambda x: x.bitrate and x.bitrate // 1000 == abitrate)
-                    if not title.tracks.audio:
-                        self.log.error(f"There's no {abitrate}kbps Audio Track...")
-                        sys.exit(1)
-                if channels:
-                    title.tracks.select_audio(lambda x: math.ceil(x.channels) == math.ceil(channels))
-                    if not title.tracks.audio:
-                        self.log.error(f"There's no {channels} Audio Track...")
-                        sys.exit(1)
-                if lang and "all" not in lang:
-                    title.tracks.audio = title.tracks.by_language(title.tracks.audio, lang, per_language=1)
-                    if not title.tracks.audio:
-                        if all(x.descriptor == Video.Descriptor.M3U for x in title.tracks.videos):
-                            self.log.warning(f"There's no {lang} Audio Tracks, "
-                                             f"likely part of an invariant playlist, continuing...")
-                        else:
+                # might have no audio tracks if part of the video, e.g. transport stream hls
+                if len(title.tracks.audio) > 0:
+                    title.tracks.select_audio(lambda x: not x.descriptive)  # exclude descriptive audio
+                    if acodec:
+                        title.tracks.select_audio(lambda x: x.codec == acodec)
+                        if not title.tracks.audio:
+                            self.log.error(f"There's no {acodec.name} Audio Tracks...")
+                            sys.exit(1)
+                    if abitrate:
+                        title.tracks.select_audio(lambda x: x.bitrate and x.bitrate // 1000 == abitrate)
+                        if not title.tracks.audio:
+                            self.log.error(f"There's no {abitrate}kbps Audio Track...")
+                            sys.exit(1)
+                    if channels:
+                        title.tracks.select_audio(lambda x: math.ceil(x.channels) == math.ceil(channels))
+                        if not title.tracks.audio:
+                            self.log.error(f"There's no {channels} Audio Track...")
+                            sys.exit(1)
+                    if lang and "all" not in lang:
+                        title.tracks.audio = title.tracks.by_language(title.tracks.audio, lang, per_language=1)
+                        if not title.tracks.audio:
                             self.log.error(f"There's no {lang} Audio Track, cannot continue...")
                             sys.exit(1)
 
