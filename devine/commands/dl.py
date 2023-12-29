@@ -831,10 +831,7 @@ class dl:
             progress(downloaded="[yellow]SKIPPED")
             return
 
-        if track.needs_proxy:
-            proxy = next(iter(service.session.proxies.values()), None)
-        else:
-            proxy = None
+        proxy = next(iter(service.session.proxies.values()), None)
 
         save_path = config.directories.temp / f"{track.__class__.__name__}_{track.id}.mp4"
         if isinstance(track, Subtitle):
@@ -925,7 +922,7 @@ class dl:
                             out=save_path,
                             headers=service.session.headers,
                             cookies=service.session.cookies,
-                            proxy=proxy if track.needs_proxy else None,
+                            proxy=proxy,
                             progress=progress
                         )
 
@@ -964,14 +961,7 @@ class dl:
 
         if not self.DL_POOL_SKIP.is_set():
             if track.path.stat().st_size <= 3:  # Empty UTF-8 BOM == 3 bytes
-                raise IOError(
-                    "Download failed, the downloaded file is empty. "
-                    f"This {'was' if track.needs_proxy else 'was not'} downloaded with a proxy." +
-                    (
-                        " Perhaps you need to set `needs_proxy` as True to use the proxy for this track."
-                        if not track.needs_proxy else ""
-                    )
-                )
+                raise IOError("Download failed, the downloaded file is empty.")
 
             if callable(track.OnDownloaded):
                 track.OnDownloaded(track)

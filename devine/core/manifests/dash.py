@@ -237,9 +237,6 @@ class DASH:
         elif not isinstance(session, Session):
             raise TypeError(f"Expected session to be a {Session}, not {session!r}")
 
-        if not track.needs_proxy and proxy:
-            proxy = None
-
         if proxy:
             session.proxies.update({
                 "all": proxy

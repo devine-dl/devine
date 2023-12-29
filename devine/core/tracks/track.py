@@ -32,7 +32,6 @@ class Track:
         language: Union[Language, str],
         is_original_lang: bool = False,
         descriptor: Descriptor = Descriptor.URL,
-        needs_proxy: bool = False,
         needs_repack: bool = False,
         drm: Optional[Iterable[DRM_T]] = None,
         edition: Optional[str] = None,
@@ -45,7 +44,6 @@ class Track:
         self.is_original_lang = bool(is_original_lang)
         # optional io metadata
         self.descriptor = descriptor
-        self.needs_proxy = bool(needs_proxy)
         self.needs_repack = bool(needs_repack)
         # drm
         self.drm = drm
