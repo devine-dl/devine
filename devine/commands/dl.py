@@ -600,11 +600,8 @@ class dl:
                             subtitle.merge_same_cues(caption_set)
 
                             subtitle_text = writer().write(caption_set)
-                            if sub_format == Subtitle.Codec.SubRip:
-                                # NOW sometimes has this, when it isn't, causing mux problems
-                                subtitle_text = subtitle_text.replace("MULTI-LANGUAGE SRT\n", "")
-
                             subtitle.path.write_text(subtitle_text, encoding="utf8")
+
                             subtitle.codec = sub_format
                             subtitle.move(subtitle.path.with_suffix(f".{sub_format.value.lower()}"))
 
