@@ -418,6 +418,27 @@ class Subtitle(Track):
             stdout=subprocess.DEVNULL
         )
 
+    def remove_multi_lang_srt_header(self) -> None:
+        """
+        Remove Multi-Language SRT Header from Subtitle.
+
+        Sometimes a SubRip (SRT) format Subtitle has a "MULTI-LANGUAGE SRT" line,
+        when it shouldn't. This can cause Subtitle format/syntax errors in some
+        programs including mkvmerge/MKVToolNix.
+
+        This should only be used if it truly is a normal SubRip (SRT) subtitle
+        just with this line added by mistake.
+        """
+        if not self.path or not self.path.exists():
+            raise ValueError("You must download the subtitle track first.")
+
+        if self.codec != Subtitle.Codec.SubRip:
+            raise ValueError("Only SubRip (SRT) format Subtitles have the 'MULTI-LANGUAGE SRT' header.")
+
+        srt_text = self.path.read_text("utf8")
+        fixed_srt_text = srt_text.replace("MULTI-LANGUAGE SRT\n", "")
+        self.path.write_text(fixed_srt_text, "utf8")
+
     def __str__(self) -> str:
         return " | ".join(filter(bool, [
             "SUB",
