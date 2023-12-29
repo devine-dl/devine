@@ -362,16 +362,12 @@ class Subtitle(Track):
                 [
                     executable,
                     "/Convert", self.path, "srt",
+                    "/encoding:utf8",
                     "/overwrite",
                     "/RemoveTextForHI"
                 ],
                 check=True,
                 stdout=subprocess.DEVNULL
-            )
-            # Remove UTF-8 Byte Order Marks
-            self.path.write_text(
-                self.path.read_text(encoding="utf-8-sig"),
-                encoding="utf8"
             )
         else:
             sub = Subtitles(self.path)
