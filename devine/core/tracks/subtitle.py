@@ -358,10 +358,16 @@ class Subtitle(Track):
 
         executable = get_binary_path("SubtitleEdit")
         if executable:
+            if self.codec == Subtitle.Codec.SubStationAlphav4:
+                output_format = "AdvancedSubStationAlpha"
+            elif self.codec == Subtitle.Codec.TimedTextMarkupLang:
+                output_format = "TimedText1.0"
+            else:
+                output_format = self.codec.name
             subprocess.run(
                 [
                     executable,
-                    "/Convert", self.path, "srt",
+                    "/Convert", self.path, output_format,
                     "/encoding:utf8",
                     "/overwrite",
                     "/RemoveTextForHI"
@@ -393,10 +399,17 @@ class Subtitle(Track):
         if not executable:
             raise EnvironmentError("SubtitleEdit executable not found...")
 
+        if self.codec == Subtitle.Codec.SubStationAlphav4:
+            output_format = "AdvancedSubStationAlpha"
+        elif self.codec == Subtitle.Codec.TimedTextMarkupLang:
+            output_format = "TimedText1.0"
+        else:
+            output_format = self.codec.name
+
         subprocess.run(
             [
                 executable,
-                "/Convert", self.path, "srt",
+                "/Convert", self.path, output_format,
                 "/ReverseRtlStartEnd",
                 "/encoding:utf8",
                 "/overwrite"
