@@ -117,6 +117,12 @@ class Video(Track):
                 YCbCr_BT_2020_and_2100 = 9  # YCbCr BT.2100 shares the same CP
                 ICtCp_BT_2100 = 14
 
+            if transfer == 5:
+                # While not part of any standard, it is typically used as a PAL variant of Transfer.BT_601=6.
+                # i.e. where Transfer 6 would be for BT.601-NTSC and Transfer 5 would be for BT.601-PAL.
+                # The codebase is currently agnostic to either, so a manual conversion to 6 is done.
+                transfer = 6
+
             primaries = Primaries(primaries)
             transfer = Transfer(transfer)
             matrix = Matrix(matrix)
