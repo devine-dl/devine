@@ -145,6 +145,7 @@ class dl:
     def __init__(
         self,
         ctx: click.Context,
+        no_proxy: bool,
         profile: Optional[str] = None,
         proxy: Optional[str] = None,
         group: Optional[str] = None,
@@ -192,49 +193,52 @@ class dl:
                 self.vaults.load(vault_type, **vault)
             self.log.info(f"Loaded {len(self.vaults)} Vaults")
 
-        with console.status("Loading Proxy Providers...", spinner="dots"):
-            self.proxy_providers = []
-            if config.proxy_providers.get("basic"):
-                self.proxy_providers.append(Basic(**config.proxy_providers["basic"]))
-            if config.proxy_providers.get("nordvpn"):
-                self.proxy_providers.append(NordVPN(**config.proxy_providers["nordvpn"]))
-            if get_binary_path("hola-proxy"):
-                self.proxy_providers.append(Hola())
-            for proxy_provider in self.proxy_providers:
-                self.log.info(f"Loaded {proxy_provider.__class__.__name__}: {proxy_provider}")
+        self.proxy_providers = []
+        if no_proxy:
+            ctx.params["proxy"] = None
+        else:
+            with console.status("Loading Proxy Providers...", spinner="dots"):
+                if config.proxy_providers.get("basic"):
+                    self.proxy_providers.append(Basic(**config.proxy_providers["basic"]))
+                if config.proxy_providers.get("nordvpn"):
+                    self.proxy_providers.append(NordVPN(**config.proxy_providers["nordvpn"]))
+                if get_binary_path("hola-proxy"):
+                    self.proxy_providers.append(Hola())
+                for proxy_provider in self.proxy_providers:
+                    self.log.info(f"Loaded {proxy_provider.__class__.__name__}: {proxy_provider}")
 
-        if proxy:
-            requested_provider = None
-            if re.match(r"^[a-z]+:.+$", proxy, re.IGNORECASE):
-                # requesting proxy from a specific proxy provider
-                requested_provider, proxy = proxy.split(":", maxsplit=1)
-            if re.match(r"^[a-z]{2}(?:\d+)?$", proxy, re.IGNORECASE):
-                proxy = proxy.lower()
-                with console.status(f"Getting a Proxy to {proxy}...", spinner="dots"):
-                    if requested_provider:
-                        proxy_provider = next((
-                            x
-                            for x in self.proxy_providers
-                            if x.__class__.__name__.lower() == requested_provider
-                        ), None)
-                        if not proxy_provider:
-                            self.log.error(f"The proxy provider '{requested_provider}' was not recognised.")
-                            sys.exit(1)
-                        proxy_uri = proxy_provider.get_proxy(proxy)
-                        if not proxy_uri:
-                            self.log.error(f"The proxy provider {requested_provider} had no proxy for {proxy}")
-                            sys.exit(1)
-                        proxy = ctx.params["proxy"] = proxy_uri
-                        self.log.info(f"Using {proxy_provider.__class__.__name__} Proxy: {proxy}")
-                    else:
-                        for proxy_provider in self.proxy_providers:
+            if proxy:
+                requested_provider = None
+                if re.match(r"^[a-z]+:.+$", proxy, re.IGNORECASE):
+                    # requesting proxy from a specific proxy provider
+                    requested_provider, proxy = proxy.split(":", maxsplit=1)
+                if re.match(r"^[a-z]{2}(?:\d+)?$", proxy, re.IGNORECASE):
+                    proxy = proxy.lower()
+                    with console.status(f"Getting a Proxy to {proxy}...", spinner="dots"):
+                        if requested_provider:
+                            proxy_provider = next((
+                                x
+                                for x in self.proxy_providers
+                                if x.__class__.__name__.lower() == requested_provider
+                            ), None)
+                            if not proxy_provider:
+                                self.log.error(f"The proxy provider '{requested_provider}' was not recognised.")
+                                sys.exit(1)
                             proxy_uri = proxy_provider.get_proxy(proxy)
-                            if proxy_uri:
-                                proxy = ctx.params["proxy"] = proxy_uri
-                                self.log.info(f"Using {proxy_provider.__class__.__name__} Proxy: {proxy}")
-                                break
-            else:
-                self.log.info(f"Using explicit Proxy: {proxy}")
+                            if not proxy_uri:
+                                self.log.error(f"The proxy provider {requested_provider} had no proxy for {proxy}")
+                                sys.exit(1)
+                            proxy = ctx.params["proxy"] = proxy_uri
+                            self.log.info(f"Using {proxy_provider.__class__.__name__} Proxy: {proxy}")
+                        else:
+                            for proxy_provider in self.proxy_providers:
+                                proxy_uri = proxy_provider.get_proxy(proxy)
+                                if proxy_uri:
+                                    proxy = ctx.params["proxy"] = proxy_uri
+                                    self.log.info(f"Using {proxy_provider.__class__.__name__} Proxy: {proxy}")
+                                    break
+                else:
+                    self.log.info(f"Using explicit Proxy: {proxy}")
 
         ctx.obj = ContextData(
             config=self.service_config,
@@ -274,6 +278,7 @@ class dl:
         skip_dl: bool,
         export: Optional[Path],
         cdm_only: Optional[bool],
+        no_proxy: bool,
         no_folder: bool,
         no_source: bool,
         workers: int,

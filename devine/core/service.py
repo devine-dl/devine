@@ -41,39 +41,40 @@ class Service(metaclass=ABCMeta):
         self.session = self.get_session()
         self.cache = Cacher(self.__class__.__name__)
 
-        if ctx.parent:
-            self.proxy = ctx.parent.params["proxy"]
-        else:
-            self.proxy = None
+        if not ctx.parent or not ctx.parent.params.get("no_proxy"):
+            if ctx.parent:
+                proxy = ctx.parent.params["proxy"]
+            else:
+                proxy = None
 
-        if not self.proxy:
-            # don't override the explicit proxy set by the user, even if they may be geoblocked
-            with console.status("Checking if current region is Geoblocked...", spinner="dots"):
-                if self.GEOFENCE:
-                    # no explicit proxy, let's get one to GEOFENCE if needed
-                    current_region = get_ip_info(self.session)["country"].lower()
-                    if any(x.lower() == current_region for x in self.GEOFENCE):
-                        self.log.info("Service is not Geoblocked in your region")
+            if not proxy:
+                # don't override the explicit proxy set by the user, even if they may be geoblocked
+                with console.status("Checking if current region is Geoblocked...", spinner="dots"):
+                    if self.GEOFENCE:
+                        # no explicit proxy, let's get one to GEOFENCE if needed
+                        current_region = get_ip_info(self.session)["country"].lower()
+                        if any(x.lower() == current_region for x in self.GEOFENCE):
+                            self.log.info("Service is not Geoblocked in your region")
+                        else:
+                            requested_proxy = self.GEOFENCE[0]  # first is likely main region
+                            self.log.info(f"Service is Geoblocked in your region, getting a Proxy to {requested_proxy}")
+                            for proxy_provider in ctx.obj.proxy_providers:
+                                proxy = proxy_provider.get_proxy(requested_proxy)
+                                if proxy:
+                                    self.log.info(f"Got Proxy from {proxy_provider.__class__.__name__}")
+                                    break
                     else:
-                        requested_proxy = self.GEOFENCE[0]  # first is likely main region
-                        self.log.info(f"Service is Geoblocked in your region, getting a Proxy to {requested_proxy}")
-                        for proxy_provider in ctx.obj.proxy_providers:
-                            self.proxy = proxy_provider.get_proxy(requested_proxy)
-                            if self.proxy:
-                                self.log.info(f"Got Proxy from {proxy_provider.__class__.__name__}")
-                                break
-                else:
-                    self.log.info("Service has no Geofence")
+                        self.log.info("Service has no Geofence")
 
-        if self.proxy:
-            self.session.proxies.update({"all": self.proxy})
-            proxy_parse = urlparse(self.proxy)
-            if proxy_parse.username and proxy_parse.password:
-                self.session.headers.update({
-                    "Proxy-Authorization": base64.b64encode(
-                        f"{proxy_parse.username}:{proxy_parse.password}".encode("utf8")
-                    ).decode()
-                })
+            if proxy:
+                self.session.proxies.update({"all": proxy})
+                proxy_parse = urlparse(proxy)
+                if proxy_parse.username and proxy_parse.password:
+                    self.session.headers.update({
+                        "Proxy-Authorization": base64.b64encode(
+                            f"{proxy_parse.username}:{proxy_parse.password}".encode("utf8")
+                        ).decode()
+                    })
 
     # Optional Abstract functions
     # The following functions may be implemented by the Service.
