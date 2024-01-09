@@ -62,7 +62,6 @@ async def aria2c(
 
     arguments = [
         "-c",  # Continue downloading a partially downloaded file
-        "--remote-time",  # Retrieve timestamp of the remote file from the and apply if available
         "-x", "16",  # The maximum number of connections to one server for each download
         "-j", "16",  # The maximum number of parallel downloads for every static (HTTP/FTP) URL
         "-s", ("1" if segmented else "16"),  # Download a file using N connections
