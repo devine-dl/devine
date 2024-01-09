@@ -105,6 +105,8 @@ class dl:
     @click.option("--sub-format", type=click.Choice(Subtitle.Codec, case_sensitive=False),
                   default=Subtitle.Codec.SubRip,
                   help="Set Output Subtitle Format, only converting if necessary.")
+    @click.option("--no-timestamp-fix", "fix_sub_timestamp", is_flag=True, default=True,
+                  help="Disable subtitle timestamp fix.")
     @click.option("-V", "--video-only", is_flag=True, default=False,
                   help="Only download video tracks.")
     @click.option("-A", "--audio-only", is_flag=True, default=False,
@@ -269,6 +271,7 @@ class dl:
         v_lang: list[str],
         s_lang: list[str],
         sub_format: Subtitle.Codec,
+        fix_sub_timestamp: bool,
         video_only: bool,
         audio_only: bool,
         subs_only: bool,
@@ -599,7 +602,14 @@ class dl:
                                 self.log.error(f"Cannot yet convert {subtitle.codec} to {sub_format.name}...")
                                 sys.exit(1)
 
-                            caption_set = subtitle.parse(subtitle.path.read_bytes(), subtitle.codec)
+                            if subtitle.descriptor == Subtitle.Descriptor.MPD:
+                                # TODO: Populated in DASH.download_track. Perhaps DASH/HLS class should
+                                #       use a dict instead of a tuple?
+                                extra = subtitle.extra[2]
+                            else:
+                                extra = None
+
+                            caption_set = subtitle.parse(subtitle.path.read_bytes(), subtitle.codec, fix_sub_timestamp, extra)
                             subtitle.merge_same_cues(caption_set)
 
                             subtitle_text = writer().write(caption_set)
