@@ -397,7 +397,9 @@ class DASH:
                     try:
                         if not license_widevine:
                             raise ValueError("license_widevine func must be supplied to use Widevine DRM")
+                        progress(downloaded="LICENSING")
                         license_widevine(drm, track_kid=track_kid)
+                        progress(downloaded="[yellow]LICENSED")
                     except Exception:  # noqa
                         stop_event.set()  # skip pending track downloads
                         progress(downloaded="[red]FAILED")

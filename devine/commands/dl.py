@@ -913,7 +913,9 @@ class dl:
                             # license and grab content keys
                             if not prepare_drm:
                                 raise ValueError("prepare_drm func must be supplied to use Widevine DRM")
+                            progress(downloaded="LICENSING")
                             prepare_drm(drm, track_kid=track_kid)
+                            progress(downloaded="[yellow]LICENSED")
                     else:
                         drm = None
 

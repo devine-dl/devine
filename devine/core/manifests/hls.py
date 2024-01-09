@@ -227,7 +227,9 @@ class HLS:
                 try:
                     if not license_widevine:
                         raise ValueError("license_widevine func must be supplied to use Widevine DRM")
+                    progress(downloaded="LICENSING")
                     license_widevine(session_drm)
+                    progress(downloaded="[yellow]LICENSED")
                 except Exception:  # noqa
                     stop_event.set()  # skip pending track downloads
                     progress(downloaded="[red]FAILED")
@@ -260,6 +262,7 @@ class HLS:
                     segment_key=segment_key,
                     range_offset=range_offset,
                     drm_lock=drm_lock,
+                    progress=progress,
                     license_widevine=license_widevine,
                     session=session,
                     proxy=proxy,
@@ -332,6 +335,7 @@ class HLS:
         segment_key: Queue,
         range_offset: Queue,
         drm_lock: Lock,
+        progress: partial,
         license_widevine: Optional[Callable] = None,
         session: Optional[Session] = None,
         proxy: Optional[str] = None,
@@ -356,6 +360,7 @@ class HLS:
             range_offset: Queue for saving and loading the most recent Segment Bytes Range.
             drm_lock: Prevent more than one Download from doing anything DRM-related at the
                 same time. Make sure all calls to download_segment() use the same Lock object.
+            progress: Rich Progress bar to provide progress updates to.
             license_widevine: Function used to license Widevine DRM objects. It must be passed
                 if the Segment's DRM uses Widevine.
             proxy: Proxy URI to use when downloading the Segment file.
@@ -418,7 +423,9 @@ class HLS:
                             track_kid = track.get_key_id(newest_init_data)
                             if not license_widevine:
                                 raise ValueError("license_widevine func must be supplied to use Widevine DRM")
+                            progress(downloaded="LICENSING")
                             license_widevine(drm, track_kid=track_kid)
+                            progress(downloaded="[yellow]LICENSED")
                         newest_segment_key = (drm, segment.keys)
             finally:
                 segment_key.put(newest_segment_key)
