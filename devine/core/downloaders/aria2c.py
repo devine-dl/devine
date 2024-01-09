@@ -100,6 +100,12 @@ async def aria2c(
             # we cannot set an allowed encoding, or it will return compressed
             # and the code is not set up to uncompress the data
             continue
+        if header.lower() == "referer":
+            arguments.extend(["--referer", value])
+            continue
+        if header.lower() == "user-agent":
+            arguments.extend(["--user-agent", value])
+            continue
         arguments.extend(["--header", f"{header}: {value}"])
 
     try:
