@@ -150,7 +150,6 @@ Options:
 
 - `aria2c` (default) - https://github.com/aria2/aria2
 - `requests` - https://github.com/psf/requests
-- `saldl` - https://github.com/saldl/saldl
 
 Note that aria2c can reach the highest speeds as it utilizes threading and more connections than the other
 downloaders. However, aria2c can also be one of the more unstable downloaders. It will work one day, then
