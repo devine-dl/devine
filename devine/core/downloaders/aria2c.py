@@ -60,7 +60,6 @@ async def aria2c(
         "-x", "16",  # The maximum number of connections to one server for each download
         "-j", "16",  # The maximum number of parallel downloads for every static (HTTP/FTP) URL
         "-s", ("1" if segmented else "16"),  # Download a file using N connections
-        "--min-split-size", ("1024M" if segmented else "20M"),  # effectively disable split if segmented
         "--allow-overwrite=true",
         "--auto-file-renaming=false",
         "--retry-wait", "2",  # Set the seconds to wait between retries.
