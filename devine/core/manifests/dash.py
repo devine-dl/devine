@@ -436,9 +436,9 @@ class DASH:
                         download_size = download.result()
                     except KeyboardInterrupt:
                         stop_event.set()  # skip pending track downloads
-                        progress(downloaded="[yellow]STOPPING")
+                        progress(downloaded="[yellow]CANCELLING")
                         pool.shutdown(wait=True, cancel_futures=True)
-                        progress(downloaded="[yellow]STOPPED")
+                        progress(downloaded="[yellow]CANCELLED")
                         # tell dl that it was cancelled
                         # the pool is already shut down, so exiting loop is fine
                         raise

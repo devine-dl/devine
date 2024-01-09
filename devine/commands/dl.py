@@ -949,7 +949,7 @@ class dl:
                         progress(downloaded="Downloaded")
                 except KeyboardInterrupt:
                     self.DL_POOL_STOP.set()
-                    progress(downloaded="[yellow]STOPPED")
+                    progress(downloaded="[yellow]CANCELLED")
                     raise
                 except Exception:
                     self.DL_POOL_STOP.set()
