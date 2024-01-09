@@ -12,7 +12,6 @@ from copy import copy
 from functools import partial
 from hashlib import md5
 from pathlib import Path
-from threading import Event
 from typing import Any, Callable, MutableMapping, Optional, Union
 from urllib.parse import urljoin, urlparse
 from uuid import UUID
@@ -26,7 +25,7 @@ from requests import Session
 from requests.cookies import RequestsCookieJar
 from rich import filesize
 
-from devine.core.constants import AnyTrack
+from devine.core.constants import DOWNLOAD_CANCELLED, DOWNLOAD_LICENCE_ONLY, AnyTrack
 from devine.core.downloaders import downloader
 from devine.core.downloaders import requests as requests_downloader
 from devine.core.drm import Widevine
@@ -225,8 +224,6 @@ class DASH:
         track: AnyTrack,
         save_path: Path,
         save_dir: Path,
-        stop_event: Event,
-        skip_event: Event,
         progress: partial,
         session: Optional[Session] = None,
         proxy: Optional[str] = None,
@@ -401,13 +398,13 @@ class DASH:
                         license_widevine(drm, track_kid=track_kid)
                         progress(downloaded="[yellow]LICENSED")
                     except Exception:  # noqa
-                        stop_event.set()  # skip pending track downloads
+                        DOWNLOAD_CANCELLED.set()  # skip pending track downloads
                         progress(downloaded="[red]FAILED")
                         raise
             else:
                 drm = None
 
-            if skip_event.is_set():
+            if DOWNLOAD_LICENCE_ONLY.is_set():
                 progress(downloaded="[yellow]SKIPPED")
                 return
 
@@ -427,15 +424,14 @@ class DASH:
                         proxy=proxy,
                         headers=session.headers,
                         cookies=session.cookies,
-                        bytes_range=bytes_range,
-                        stop_event=stop_event
+                        bytes_range=bytes_range
                     )
                     for n, (url, bytes_range) in enumerate(segments)
                 ))):
                     try:
                         download_size = download.result()
                     except KeyboardInterrupt:
-                        stop_event.set()  # skip pending track downloads
+                        DOWNLOAD_CANCELLED.set()  # skip pending track downloads
                         progress(downloaded="[yellow]CANCELLING")
                         pool.shutdown(wait=True, cancel_futures=True)
                         progress(downloaded="[yellow]CANCELLED")
@@ -443,7 +439,7 @@ class DASH:
                         # the pool is already shut down, so exiting loop is fine
                         raise
                     except Exception:
-                        stop_event.set()  # skip pending track downloads
+                        DOWNLOAD_CANCELLED.set()  # skip pending track downloads
                         progress(downloaded="[red]FAILING")
                         pool.shutdown(wait=True, cancel_futures=True)
                         progress(downloaded="[red]FAILED")
@@ -501,8 +497,7 @@ class DASH:
         proxy: Optional[str] = None,
         headers: Optional[MutableMapping[str, str | bytes]] = None,
         cookies: Optional[Union[MutableMapping[str, str], RequestsCookieJar]] = None,
-        bytes_range: Optional[str] = None,
-        stop_event: Optional[Event] = None
+        bytes_range: Optional[str] = None
     ) -> int:
         """
         Download a DASH Media Segment.
@@ -518,12 +513,10 @@ class DASH:
                 will be resolved based on the URI among other parameters. Multiple cookies with
                 the same name but a different domain/path are resolved.
             bytes_range: Download only specific bytes of the Segment file using the Range header.
-            stop_event: Prematurely stop the Download from beginning. Useful if ran from
-                a Thread Pool. It will raise a KeyboardInterrupt if set.
 
         Returns the file size of the downloaded Segment in bytes.
         """
-        if stop_event and stop_event.is_set():
+        if DOWNLOAD_CANCELLED.is_set():
             raise KeyboardInterrupt()
 
         attempts = 1
@@ -546,9 +539,9 @@ class DASH:
                     segmented=True
                 )
                 break
-            except Exception as ee:
-                if (stop_event and stop_event.is_set()) or attempts == 5:
-                    raise ee
+            except Exception as e:
+                if DOWNLOAD_CANCELLED.is_set() or attempts == 5:
+                    raise e
                 time.sleep(2)
                 attempts += 1
 

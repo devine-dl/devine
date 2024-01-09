@@ -1,4 +1,8 @@
+from threading import Event
 from typing import TypeVar, Union
+
+DOWNLOAD_CANCELLED = Event()
+DOWNLOAD_LICENCE_ONLY = Event()
 
 DRM_SORT_MAP = ["ClearKey", "Widevine"]
 LANGUAGE_MUX_MAP = {

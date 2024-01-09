@@ -10,7 +10,7 @@ from functools import partial
 from hashlib import md5
 from pathlib import Path
 from queue import Queue
-from threading import Event, Lock
+from threading import Lock
 from typing import Any, Callable, Optional, Union
 from urllib.parse import urljoin
 
@@ -23,7 +23,7 @@ from pywidevine.pssh import PSSH
 from requests import Session
 from rich import filesize
 
-from devine.core.constants import AnyTrack
+from devine.core.constants import DOWNLOAD_CANCELLED, DOWNLOAD_LICENCE_ONLY, AnyTrack
 from devine.core.downloaders import downloader
 from devine.core.downloaders import requests as requests_downloader
 from devine.core.drm import DRM_T, ClearKey, Widevine
@@ -190,8 +190,6 @@ class HLS:
         track: AnyTrack,
         save_path: Path,
         save_dir: Path,
-        stop_event: Event,
-        skip_event: Event,
         progress: partial,
         session: Optional[Session] = None,
         proxy: Optional[str] = None,
@@ -231,7 +229,7 @@ class HLS:
                     license_widevine(session_drm)
                     progress(downloaded="[yellow]LICENSED")
                 except Exception:  # noqa
-                    stop_event.set()  # skip pending track downloads
+                    DOWNLOAD_CANCELLED.set()  # skip pending track downloads
                     progress(downloaded="[red]FAILED")
                     raise
         else:
@@ -265,16 +263,14 @@ class HLS:
                     progress=progress,
                     license_widevine=license_widevine,
                     session=session,
-                    proxy=proxy,
-                    stop_event=stop_event,
-                    skip_event=skip_event
+                    proxy=proxy
                 )
                 for n, segment in enumerate(master.segments)
             ))):
                 try:
                     download_size = download.result()
                 except KeyboardInterrupt:
-                    stop_event.set()  # skip pending track downloads
+                    DOWNLOAD_CANCELLED.set()  # skip pending track downloads
                     progress(downloaded="[yellow]CANCELLING")
                     pool.shutdown(wait=True, cancel_futures=True)
                     progress(downloaded="[yellow]CANCELLED")
@@ -282,7 +278,7 @@ class HLS:
                     # the pool is already shut down, so exiting loop is fine
                     raise
                 except Exception as e:
-                    stop_event.set()  # skip pending track downloads
+                    DOWNLOAD_CANCELLED.set()  # skip pending track downloads
                     progress(downloaded="[red]FAILING")
                     pool.shutdown(wait=True, cancel_futures=True)
                     progress(downloaded="[red]FAILED")
@@ -310,7 +306,7 @@ class HLS:
                         last_speed_refresh = now
                         download_sizes.clear()
 
-        if skip_event.is_set():
+        if DOWNLOAD_LICENCE_ONLY.is_set():
             return
 
         with open(save_path, "wb") as f:
@@ -338,9 +334,7 @@ class HLS:
         progress: partial,
         license_widevine: Optional[Callable] = None,
         session: Optional[Session] = None,
-        proxy: Optional[str] = None,
-        stop_event: Optional[Event] = None,
-        skip_event: Optional[Event] = None
+        proxy: Optional[str] = None
     ) -> int:
         """
         Download (and Decrypt) an HLS Media Segment.
@@ -365,15 +359,10 @@ class HLS:
                 if the Segment's DRM uses Widevine.
             proxy: Proxy URI to use when downloading the Segment file.
             session: Python-Requests Session used when requesting init data.
-            stop_event: Prematurely stop the Download from beginning. Useful if ran from
-                a Thread Pool. It will raise a KeyboardInterrupt if set.
-            skip_event: Prematurely stop the Download from beginning. It returns with a
-                file size of -1 directly after DRM licensing occurs, even if it's DRM-free.
-                This is mainly for `--skip-dl` to allow licensing without downloading.
 
         Returns the file size of the downloaded Segment in bytes.
         """
-        if stop_event.is_set():
+        if DOWNLOAD_CANCELLED.is_set():
             raise KeyboardInterrupt()
 
         if callable(track.OnSegmentFilter) and track.OnSegmentFilter(segment):
@@ -430,7 +419,7 @@ class HLS:
             finally:
                 segment_key.put(newest_segment_key)
 
-            if skip_event.is_set():
+            if DOWNLOAD_LICENCE_ONLY.is_set():
                 return -1
 
         attempts = 1
@@ -456,9 +445,9 @@ class HLS:
                     segmented=True
                 )
                 break
-            except Exception as ee:
-                if stop_event.is_set() or attempts == 5:
-                    raise ee
+            except Exception as e:
+                if DOWNLOAD_CANCELLED.is_set() or attempts == 5:
+                    raise e
                 time.sleep(2)
                 attempts += 1
 

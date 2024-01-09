@@ -16,7 +16,7 @@ from functools import partial
 from http.cookiejar import MozillaCookieJar
 from itertools import zip_longest
 from pathlib import Path
-from threading import Event, Lock
+from threading import Lock
 from typing import Any, Callable, Optional
 from uuid import UUID
 
@@ -41,7 +41,7 @@ from rich.tree import Tree
 
 from devine.core.config import config
 from devine.core.console import console
-from devine.core.constants import AnyTrack, context_settings
+from devine.core.constants import DOWNLOAD_CANCELLED, DOWNLOAD_LICENCE_ONLY, AnyTrack, context_settings
 from devine.core.credential import Credential
 from devine.core.downloaders import downloader
 from devine.core.drm import DRM_T, Widevine
@@ -138,8 +138,6 @@ class dl:
     def cli(ctx: click.Context, **kwargs: Any) -> dl:
         return dl(ctx, **kwargs)
 
-    DL_POOL_STOP = Event()
-    DL_POOL_SKIP = Event()
     DRM_TABLE_LOCK = Lock()
 
     def __init__(
@@ -466,7 +464,7 @@ class dl:
             dl_start_time = time.time()
 
             if skip_dl:
-                self.DL_POOL_SKIP.set()
+                DOWNLOAD_LICENCE_ONLY.set()
 
             try:
                 with Live(
@@ -827,11 +825,11 @@ class dl:
         prepare_drm: Callable,
         progress: partial
     ):
-        if self.DL_POOL_SKIP.is_set():
+        if DOWNLOAD_LICENCE_ONLY.is_set():
             progress(downloaded="[yellow]SKIPPING")
 
-        if self.DL_POOL_STOP.is_set():
-            progress(downloaded="[yellow]SKIPPED")
+        if DOWNLOAD_CANCELLED.is_set():
+            progress(downloaded="[yellow]CANCELLED")
             return
 
         proxy = next(iter(service.session.proxies.values()), None)
@@ -856,7 +854,7 @@ class dl:
             if save_dir.exists() and save_dir.name.endswith("_segments"):
                 shutil.rmtree(save_dir)
 
-        if not self.DL_POOL_SKIP.is_set():
+        if not DOWNLOAD_LICENCE_ONLY.is_set():
             if config.directories.temp.is_file():
                 self.log.error(f"Temp Directory '{config.directories.temp}' must be a Directory, not a file")
                 sys.exit(1)
@@ -875,8 +873,6 @@ class dl:
                     track=track,
                     save_path=save_path,
                     save_dir=save_dir,
-                    stop_event=self.DL_POOL_STOP,
-                    skip_event=self.DL_POOL_SKIP,
                     progress=progress,
                     session=service.session,
                     proxy=proxy,
@@ -887,8 +883,6 @@ class dl:
                     track=track,
                     save_path=save_path,
                     save_dir=save_dir,
-                    stop_event=self.DL_POOL_STOP,
-                    skip_event=self.DL_POOL_SKIP,
                     progress=progress,
                     session=service.session,
                     proxy=proxy,
@@ -919,7 +913,7 @@ class dl:
                     else:
                         drm = None
 
-                    if self.DL_POOL_SKIP.is_set():
+                    if DOWNLOAD_LICENCE_ONLY.is_set():
                         progress(downloaded="[yellow]SKIPPED")
                     else:
                         downloader(
@@ -948,23 +942,23 @@ class dl:
 
                         progress(downloaded="Downloaded")
                 except KeyboardInterrupt:
-                    self.DL_POOL_STOP.set()
+                    DOWNLOAD_CANCELLED.set()
                     progress(downloaded="[yellow]CANCELLED")
                     raise
                 except Exception:
-                    self.DL_POOL_STOP.set()
+                    DOWNLOAD_CANCELLED.set()
                     progress(downloaded="[red]FAILED")
                     raise
         except (Exception, KeyboardInterrupt):
-            if not self.DL_POOL_SKIP.is_set():
+            if not DOWNLOAD_LICENCE_ONLY.is_set():
                 cleanup()
             raise
 
-        if self.DL_POOL_STOP.is_set():
+        if DOWNLOAD_CANCELLED.is_set():
             # we stopped during the download, let's exit
             return
 
-        if not self.DL_POOL_SKIP.is_set():
+        if not DOWNLOAD_LICENCE_ONLY.is_set():
             if track.path.stat().st_size <= 3:  # Empty UTF-8 BOM == 3 bytes
                 raise IOError("Download failed, the downloaded file is empty.")
 
