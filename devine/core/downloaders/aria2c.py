@@ -60,9 +60,9 @@ async def aria2c(
         async with start_pproxy(proxy) as pproxy_:
             return await aria2c(uri, out, headers, cookies, pproxy_, silent, segmented, progress, *args)
 
-    max_concurrent_downloads = int(config.aria2c.get("max_concurrent_downloads", 16))
-    max_connection_per_server = int(config.aria2c.get("max_connection_per_server", 16))
-    split = int(config.aria2c.get("split", 16))
+    max_concurrent_downloads = int(config.aria2c.get("max_concurrent_downloads", 5))
+    max_connection_per_server = int(config.aria2c.get("max_connection_per_server", 1))
+    split = int(config.aria2c.get("split", 5))
     file_allocation = config.aria2c.get("file_allocation", "prealloc")
     if segmented:
         split = 1
