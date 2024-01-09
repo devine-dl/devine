@@ -60,26 +60,32 @@ async def aria2c(
         async with start_pproxy(proxy) as pproxy_:
             return await aria2c(uri, out, headers, cookies, pproxy_, silent, segmented, progress, *args)
 
+    file_allocation = config.aria2c.get("file_allocation", "prealloc")
+    if segmented:
+        file_allocation = "none"
+
     arguments = [
-        "-c",  # Continue downloading a partially downloaded file
-        "-x", "16",  # The maximum number of connections to one server for each download
-        "-j", "16",  # The maximum number of parallel downloads for every static (HTTP/FTP) URL
-        "-s", ("1" if segmented else "16"),  # Download a file using N connections
+        # [Basic Options]
+        "--input-file", "-",
+        "--out", out.name,
         "--all-proxy", proxy or "",
+        "--continue=true",
+        # [Connection Options]
+        "--max-concurrent-downloads=16",
+        "--max-connection-per-server=16",
+        f"--split={1 if segmented else 16}",  # each split uses their own connection
+        "--max-file-not-found=5",  # counted towards --max-tries
+        "--max-tries=5",
+        "--retry-wait=2",
+        # [Advanced Options]
         "--allow-overwrite=true",
         "--auto-file-renaming=false",
-        "--retry-wait", "2",  # Set the seconds to wait between retries.
-        "--max-tries", "5",
-        "--max-file-not-found", "5",
-        "--summary-interval", "0",
-        "--file-allocation", [
-            config.aria2c.get("file_allocation", "prealloc"),
-            "none"
-        ][segmented],
-        "--console-log-level", "warn",
-        "--download-result", ["hide", "default"][bool(progress)],
-        *args,
-        "-i", "-"
+        "--console-log-level=warn",
+        f"--download-result={'default' if progress else 'hide'}",
+        f"--file-allocation={file_allocation}",
+        "--summary-interval=0",
+        # [Extra Options]
+        *args
     ]
 
     if cookies:
