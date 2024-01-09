@@ -441,7 +441,6 @@ class HLS:
                     headers=headers_,
                     cookies=session.cookies,
                     proxy=proxy,
-                    silent=attempts != 5,
                     segmented=True
                 )
                 break

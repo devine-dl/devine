@@ -535,7 +535,6 @@ class DASH:
                     headers=headers_,
                     cookies=cookies,
                     proxy=proxy,
-                    silent=attempts != 5,
                     segmented=True
                 )
                 break
