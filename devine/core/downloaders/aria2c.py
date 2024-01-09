@@ -54,12 +54,19 @@ async def aria2c(
     if not executable:
         raise EnvironmentError("Aria2c executable not found...")
 
+    if proxy and proxy.lower().split(":")[0] != "http":
+        # HTTPS proxies are not supported by aria2(c).
+        # Proxy the proxy via pproxy to access it as an HTTP proxy.
+        async with start_pproxy(proxy) as pproxy_:
+            return await aria2c(uri, out, headers, cookies, pproxy_, silent, segmented, progress, *args)
+
     arguments = [
         "-c",  # Continue downloading a partially downloaded file
         "--remote-time",  # Retrieve timestamp of the remote file from the and apply if available
         "-x", "16",  # The maximum number of connections to one server for each download
         "-j", "16",  # The maximum number of parallel downloads for every static (HTTP/FTP) URL
         "-s", ("1" if segmented else "16"),  # Download a file using N connections
+        "--all-proxy", proxy or "",
         "--allow-overwrite=true",
         "--auto-file-renaming=false",
         "--retry-wait", "2",  # Set the seconds to wait between retries.
@@ -95,14 +102,6 @@ async def aria2c(
             # and the code is not set up to uncompress the data
             continue
         arguments.extend(["--header", f"{header}: {value}"])
-
-    if proxy:
-        if proxy.lower().split(":")[0] != "http":
-            # HTTPS proxies are not supported by aria2(c).
-            # Proxy the proxy via pproxy to access it as an HTTP proxy.
-            async with start_pproxy(proxy) as pproxy_:
-                return await aria2c(uri, out, headers, cookies, pproxy_, silent, segmented, progress, *args)
-        arguments += ["--all-proxy", proxy]
 
     try:
         p = await asyncio.create_subprocess_exec(
