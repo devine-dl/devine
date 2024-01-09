@@ -186,9 +186,10 @@ class Track:
         else:
             size_test = session.head(url)
             if "Content-Length" in size_test.headers:
-                content_length = int(size_test.headers["Content-Length"])
-                # use whichever is smaller in case this is a full file
-                content_length = min(content_length, maximum_size)
+                content_length_header = int(size_test.headers["Content-Length"])
+                if content_length_header > 0:
+                    # use whichever is smaller in case this is a large file
+                    content_length = min(content_length_header, maximum_size)
             range_test = session.head(url, headers={"Range": "bytes=0-1"})
             if range_test.status_code == 206:
                 byte_range = f"0-{content_length-1}"
