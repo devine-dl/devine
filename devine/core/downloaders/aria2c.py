@@ -33,22 +33,11 @@ async def aria2c(
     If multiple URLs are provided they will be downloaded in the provided order
     to the output directory. They will not be merged together.
     """
-    if isinstance(uri, list) and len(uri) == 1:
-        uri = uri[0]
-    if isinstance(uri, list):
-        segmented = True
-        uri = "\n".join([
-            f"{url}\n"
-            f"\tdir={out}\n"
-            f"\tout={i:08}.mp4"
-            for i, url in enumerate(uri)
-        ])
-        if out.is_file():
-            raise ValueError("Provided multiple segments to download, expecting directory path")
-    elif "\t" not in uri:
-        uri = f"{uri}\n" \
-              f"\tdir={out.parent}\n" \
-              f"\tout={out.name}"
+    if not isinstance(uri, list):
+        uri = [uri]
+
+    if cookies and not isinstance(cookies, CookieJar):
+        cookies = cookiejar_from_dict(cookies)
 
     executable = get_binary_path("aria2c", "aria2")
     if not executable:
@@ -59,6 +48,24 @@ async def aria2c(
         # Proxy the proxy via pproxy to access it as an HTTP proxy.
         async with start_pproxy(proxy) as pproxy_:
             return await aria2c(uri, out, headers, cookies, pproxy_, silent, segmented, progress, *args)
+
+    multiple_urls = len(uri) > 1
+    url_files = []
+    for i, url in enumerate(uri):
+        url_text = url
+        if multiple_urls:
+            url_text += f"\n\tdir={out.parent}"
+            url_text += f"\n\tout={out.name}"
+        else:
+            url_text += f"\n\tdir={out}"
+            url_text += f"\n\tout={i:08}.mp4"
+        if cookies:
+            mock_request = requests.Request(url=url)
+            cookie_header = get_cookie_header(cookies, mock_request)
+            if cookie_header:
+                url_text += f"\n\theader=Cookie: {cookie_header}"
+        url_files.append(url_text)
+    url_file = "\n".join(url_files)
 
     max_concurrent_downloads = int(config.aria2c.get("max_concurrent_downloads", 5))
     max_connection_per_server = int(config.aria2c.get("max_connection_per_server", 1))
@@ -92,17 +99,6 @@ async def aria2c(
         *args
     ]
 
-    if cookies:
-        # use python-requests pre-existing code to convert a Jar/Dict to a header while
-        # also supporting multiple cookies of the same name with different domain/paths.
-        if isinstance(cookies, CookieJar):
-            cookiejar = cookies
-        else:
-            cookiejar = cookiejar_from_dict(cookies)
-        mock_request = requests.Request(url=uri)
-        cookie_header = get_cookie_header(cookiejar, mock_request)
-        arguments.extend(["--header", f"Cookie: {cookie_header}"])
-
     for header, value in (headers or {}).items():
         if header.lower() == "cookie":
             raise ValueError("You cannot set Cookies as a header manually, please use the `cookies` param.")
@@ -126,7 +122,7 @@ async def aria2c(
             stdout=[subprocess.PIPE, subprocess.DEVNULL][silent]
         )
 
-        p.stdin.write(uri.encode())
+        p.stdin.write(url_file.encode())
         await p.stdin.drain()
         p.stdin.close()
 
