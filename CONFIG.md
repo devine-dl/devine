@@ -10,6 +10,14 @@ which does not keep comments.
 
 ## aria2c (dict)
 
+- `max_concurrent_downloads`
+  Maximum number of parallel downloads. Default: `5`  
+  Note: Currently unused as downloads are multi-threaded by Devine rather than Aria2c.
+  Devine internally has a constant set value of 16 for it's parallel downloads.
+- `max_connection_per_server`
+  Maximum number of connections to one server for each download. Default: `1`
+- `split`
+  Split a file into N chunks and download each chunk on it's own connection. Default: `5`
 - `file_allocation`
   Specify file allocation method. Default: `"prealloc"`
 
