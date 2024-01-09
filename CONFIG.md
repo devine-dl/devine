@@ -88,6 +88,11 @@ NF:
 Credentials must be specified per-profile. You cannot specify a fallback or default credential.
 Please be aware that this information is sensitive and to keep it safe. Do not share your config.
 
+## curl_impersonate (dict)
+
+- `browser` - The Browser to impersonate as. A list of available Browsers and Versions are listed here:
+  <https://github.com/yifeikong/curl_cffi#sessions>
+
 ## directories (dict)
 
 Override the default directories used across devine.  
@@ -150,6 +155,7 @@ Options:
 
 - `aria2c` (default) - https://github.com/aria2/aria2
 - `requests` - https://github.com/psf/requests
+- `curl_impersonate` - https://github.com/yifeikong/curl-impersonate (via https://github.com/yifeikong/curl_cffi)
 
 Note that aria2c can reach the highest speeds as it utilizes threading and more connections than the other
 downloaders. However, aria2c can also be one of the more unstable downloaders. It will work one day, then
