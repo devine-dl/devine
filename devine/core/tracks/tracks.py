@@ -410,4 +410,4 @@ class Tracks:
                     track.delete()
 
 
-__ALL__ = (Tracks,)
+__all__ = ("Tracks",)

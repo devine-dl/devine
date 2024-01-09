@@ -288,4 +288,4 @@ class Track:
         return self.move(target)
 
 
-__ALL__ = (Track,)
+__all__ = ("Track",)

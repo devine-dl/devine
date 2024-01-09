@@ -207,4 +207,4 @@ class Series(SortedKeyList, ABC):
         return tree
 
 
-__ALL__ = (Episode, Series)
+__all__ = ("Episode", "Series")

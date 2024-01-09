@@ -74,4 +74,4 @@ class Vaults:
         return success
 
 
-__ALL__ = (Vaults,)
+__all__ = ("Vaults",)

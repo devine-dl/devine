@@ -92,4 +92,4 @@ class Services(click.MultiCommand):
         return module
 
 
-__ALL__ = (Services,)
+__all__ = ("Services",)

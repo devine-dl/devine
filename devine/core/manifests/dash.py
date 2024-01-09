@@ -783,4 +783,4 @@ class DASH:
         return url
 
 
-__ALL__ = (DASH,)
+__all__ = ("DASH",)

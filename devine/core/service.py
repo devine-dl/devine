@@ -227,4 +227,4 @@ class Service(metaclass=ABCMeta):
         """
 
 
-__ALL__ = (Service,)
+__all__ = ("Service",)

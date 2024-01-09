@@ -82,4 +82,4 @@ if not config_path.is_file():
     config_path.write_text("")
 config = Config.from_yaml(config_path)
 
-__ALL__ = (config,)
+__all__ = ("config",)

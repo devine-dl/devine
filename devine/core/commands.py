@@ -40,4 +40,4 @@ class Commands(click.MultiCommand):
 
 
 # Hide direct access to commands from quick import form, they shouldn't be accessed directly
-__ALL__ = (Commands,)
+__all__ = ("Commands",)

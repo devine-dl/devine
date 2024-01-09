@@ -549,4 +549,4 @@ class HLS:
         return f"{offset}-{offset + length - 1}"
 
 
-__ALL__ = (HLS,)
+__all__ = ("HLS",)

@@ -182,4 +182,4 @@ async def aria2c(
     return p.returncode
 
 
-__ALL__ = (aria2c,)
+__all__ = ("aria2c",)

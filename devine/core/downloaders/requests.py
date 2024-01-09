@@ -83,4 +83,4 @@ def requests(
     return 0
 
 
-__ALL__ = (requests,)
+__all__ = ("requests",)

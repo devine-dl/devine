@@ -448,4 +448,4 @@ class Subtitle(Track):
         ]))
 
 
-__ALL__ = (Subtitle,)
+__all__ = ("Subtitle",)

@@ -314,4 +314,4 @@ class Widevine:
             """License returned no Content Encryption Keys."""
 
 
-__ALL__ = (Widevine,)
+__all__ = ("Widevine",)

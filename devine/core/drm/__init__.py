@@ -6,4 +6,4 @@ from devine.core.drm.widevine import Widevine
 DRM_T = Union[ClearKey, Widevine]
 
 
-__ALL__ = (ClearKey, Widevine, DRM_T)
+__all__ = ("ClearKey", "Widevine", "DRM_T")

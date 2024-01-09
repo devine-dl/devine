@@ -337,4 +337,4 @@ class Video(Track):
         return True
 
 
-__ALL__ = (Video,)
+__all__ = ("Video",)

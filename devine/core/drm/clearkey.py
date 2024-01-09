@@ -96,4 +96,4 @@ class ClearKey:
         return cls(key=key, iv=iv)
 
 
-__ALL__ = (ClearKey,)
+__all__ = ("ClearKey",)

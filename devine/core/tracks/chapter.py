@@ -92,4 +92,4 @@ class Chapter:
         return path.write_text(self.dumps(), encoding="utf8")
 
 
-__ALL__ = (Chapter,)
+__all__ = ("Chapter",)

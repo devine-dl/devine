@@ -45,4 +45,4 @@ class Vault(metaclass=ABCMeta):
         """Get a list of Service Tags from Vault."""
 
 
-__ALL__ = (Vault,)
+__all__ = ("Vault",)

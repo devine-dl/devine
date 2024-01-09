@@ -148,4 +148,4 @@ class Album(SortedKeyList, ABC):
         return tree
 
 
-__ALL__ = (Song, Album)
+__all__ = ("Song", "Album")

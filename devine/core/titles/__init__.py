@@ -8,4 +8,4 @@ Title_T = Union[Movie, Episode, Song]
 Titles_T = Union[Movies, Series, Album]
 
 
-__ALL__ = (Episode, Series, Movie, Movies, Album, Song, Title_T, Titles_T)
+__all__ = ("Episode", "Series", "Movie", "Movies", "Album", "Song", "Title_T", "Titles_T")

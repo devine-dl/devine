@@ -362,4 +362,4 @@ console = ComfyConsole(
 )
 
 
-__ALL__ = (ComfyLogRenderer, ComfyRichHandler, ComfyConsole, console)
+__all__ = ("ComfyLogRenderer", "ComfyRichHandler", "ComfyConsole", "console")

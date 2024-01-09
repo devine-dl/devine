@@ -153,4 +153,4 @@ class Movies(SortedKeyList, ABC):
         return tree
 
 
-__ALL__ = (Movie, Movies)
+__all__ = ("Movie", "Movies")

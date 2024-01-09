@@ -1,4 +1,4 @@
 from .dash import DASH
 from .hls import HLS
 
-__ALL__ = (DASH, HLS)
+__all__ = ("DASH", "HLS")

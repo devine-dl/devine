@@ -10,4 +10,4 @@ downloader = {
 }[config.downloader]
 
 
-__ALL__ = (downloader, aria2c, requests)
+__all__ = ("downloader", "aria2c", "requests")

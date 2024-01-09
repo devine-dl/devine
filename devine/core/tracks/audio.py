@@ -121,4 +121,4 @@ class Audio(Track):
         ]))
 
 
-__ALL__ = (Audio,)
+__all__ = ("Audio",)

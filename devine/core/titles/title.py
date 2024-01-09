@@ -69,4 +69,4 @@ class Title:
         """
 
 
-__ALL__ = (Title,)
+__all__ = ("Title",)

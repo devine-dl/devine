@@ -5,4 +5,4 @@ from .track import Track
 from .tracks import Tracks
 from .video import Video
 
-__ALL__ = (Audio, Chapter, Subtitle, Track, Tracks, Video)
+__all__ = ("Audio", "Chapter", "Subtitle", "Track", "Tracks", "Video")
