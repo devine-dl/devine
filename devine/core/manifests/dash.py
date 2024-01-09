@@ -519,30 +519,22 @@ class DASH:
         if DOWNLOAD_CANCELLED.is_set():
             raise KeyboardInterrupt()
 
-        attempts = 1
-        while True:
-            try:
-                if bytes_range:
-                    # aria2(c) doesn't support byte ranges, use python-requests
-                    downloader_ = requests_downloader
-                    headers_ = dict(**headers, Range=f"bytes={bytes_range}")
-                else:
-                    downloader_ = downloader
-                    headers_ = headers
-                downloader_(
-                    uri=url,
-                    out=out_path,
-                    headers=headers_,
-                    cookies=cookies,
-                    proxy=proxy,
-                    segmented=True
-                )
-                break
-            except Exception as e:
-                if DOWNLOAD_CANCELLED.is_set() or attempts == 5:
-                    raise e
-                time.sleep(2)
-                attempts += 1
+        if bytes_range:
+            # aria2(c) doesn't support byte ranges, use python-requests
+            downloader_ = requests_downloader
+            headers_ = dict(**headers, Range=f"bytes={bytes_range}")
+        else:
+            downloader_ = downloader
+            headers_ = headers
+
+        downloader_(
+            uri=url,
+            out=out_path,
+            headers=headers_,
+            cookies=cookies,
+            proxy=proxy,
+            segmented=True
+        )
 
         # fix audio decryption on ATVP by fixing the sample description index
         # TODO: Should this be done in the video data or the init data?

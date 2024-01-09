@@ -422,33 +422,25 @@ class HLS:
             if DOWNLOAD_LICENCE_ONLY.is_set():
                 return -1
 
-        attempts = 1
-        while True:
-            try:
-                headers_ = session.headers
-                if segment.byterange:
-                    # aria2(c) doesn't support byte ranges, use python-requests
-                    downloader_ = requests_downloader
-                    previous_range_offset = range_offset.get()
-                    byte_range = HLS.calculate_byte_range(segment.byterange, previous_range_offset)
-                    range_offset.put(byte_range.split("-")[0])
-                    headers_["Range"] = f"bytes={byte_range}"
-                else:
-                    downloader_ = downloader
-                downloader_(
-                    uri=urljoin(segment.base_uri, segment.uri),
-                    out=out_path,
-                    headers=headers_,
-                    cookies=session.cookies,
-                    proxy=proxy,
-                    segmented=True
-                )
-                break
-            except Exception as e:
-                if DOWNLOAD_CANCELLED.is_set() or attempts == 5:
-                    raise e
-                time.sleep(2)
-                attempts += 1
+        headers_ = session.headers
+        if segment.byterange:
+            # aria2(c) doesn't support byte ranges, use python-requests
+            downloader_ = requests_downloader
+            previous_range_offset = range_offset.get()
+            byte_range = HLS.calculate_byte_range(segment.byterange, previous_range_offset)
+            range_offset.put(byte_range.split("-")[0])
+            headers_["Range"] = f"bytes={byte_range}"
+        else:
+            downloader_ = downloader
+
+        downloader_(
+            uri=urljoin(segment.base_uri, segment.uri),
+            out=out_path,
+            headers=headers_,
+            cookies=session.cookies,
+            proxy=proxy,
+            segmented=True
+        )
 
         download_size = out_path.stat().st_size
 
