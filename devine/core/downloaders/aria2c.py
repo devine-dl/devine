@@ -119,7 +119,7 @@ async def aria2c(
             executable,
             *arguments,
             stdin=subprocess.PIPE,
-            stdout=[subprocess.PIPE, subprocess.DEVNULL][silent]
+            stdout=subprocess.PIPE
         )
 
         p.stdin.write(url_file.encode())
@@ -165,7 +165,7 @@ async def aria2c(
                             continue
                         log_buffer += f"{line.strip()}\n"
 
-            if log_buffer:
+            if log_buffer and not silent:
                 # wrap to console width - padding - '[Aria2c]: '
                 log_buffer = "\n          ".join(textwrap.wrap(
                     log_buffer.rstrip(),
