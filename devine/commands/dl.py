@@ -22,7 +22,6 @@ from uuid import UUID
 
 import click
 import jsonpickle
-import pycaption
 import yaml
 from construct import ConstError
 from pymediainfo import MediaInfo
@@ -583,28 +582,7 @@ class dl:
                 with console.status(f"Converting Subtitles to {sub_format.name}..."):
                     for subtitle in title.tracks.subtitles:
                         if subtitle.codec != sub_format:
-                            writer = {
-                                Subtitle.Codec.SubRip: pycaption.SRTWriter,
-                                Subtitle.Codec.SubStationAlpha: None,
-                                Subtitle.Codec.SubStationAlphav4: None,
-                                Subtitle.Codec.TimedTextMarkupLang: pycaption.DFXPWriter,
-                                Subtitle.Codec.WebVTT: pycaption.WebVTTWriter,
-                                # MPEG-DASH box-encapsulated subtitle formats
-                                Subtitle.Codec.fTTML: None,
-                                Subtitle.Codec.fVTT: None,
-                            }[sub_format]
-                            if writer is None:
-                                self.log.error(f"Cannot yet convert {subtitle.codec} to {sub_format.name}...")
-                                sys.exit(1)
-
-                            caption_set = subtitle.parse(subtitle.path.read_bytes(), subtitle.codec)
-                            subtitle.merge_same_cues(caption_set)
-
-                            subtitle_text = writer().write(caption_set)
-                            subtitle.path.write_text(subtitle_text, encoding="utf8")
-
-                            subtitle.codec = sub_format
-                            subtitle.move(subtitle.path.with_suffix(f".{sub_format.value.lower()}"))
+                            subtitle.convert(sub_format)
 
                 with console.status("Repackaging tracks with FFMPEG..."):
                     has_repacked = False
