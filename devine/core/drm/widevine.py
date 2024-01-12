@@ -235,7 +235,7 @@ class Widevine:
 
         try:
             arguments = [
-                f"input={path},stream=0,output={output_path}",
+                f"input={path},stream=0,output={output_path},output_format=MP4",
                 "--enable_raw_key_decryption", "--keys",
                 ",".join([
                     *[
