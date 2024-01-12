@@ -149,7 +149,10 @@ class Subtitle(Track):
             raise ValueError(f"Subtitle data must be parsed as bytes data, not {type(data).__name__}")
 
         try:
-            if codec == Subtitle.Codec.fTTML:
+            if codec == Subtitle.Codec.SubRip:
+                text = try_ensure_utf8(data).decode("utf8")
+                caption_set = pycaption.SRTReader().read(text)
+            elif codec == Subtitle.Codec.fTTML:
                 caption_lists: dict[str, pycaption.CaptionList] = defaultdict(pycaption.CaptionList)
                 for segment in (
                     Subtitle.parse(box.data, Subtitle.Codec.TimedTextMarkupLang)
