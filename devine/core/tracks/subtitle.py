@@ -15,7 +15,7 @@ from pymp4.parser import MP4
 from subtitle_filter import Subtitles
 
 from devine.core.tracks.track import Track
-from devine.core.utilities import get_binary_path
+from devine.core.utilities import get_binary_path, try_ensure_utf8
 
 
 class Subtitle(Track):
@@ -160,7 +160,7 @@ class Subtitle(Track):
                         caption_lists[lang].extend(segment.get_captions(lang))
                 caption_set: pycaption.CaptionSet = pycaption.CaptionSet(caption_lists)
             elif codec == Subtitle.Codec.TimedTextMarkupLang:
-                text = data.decode("utf8")
+                text = try_ensure_utf8(data).decode("utf8")
                 text = text.replace("tt:", "")
                 # negative size values aren't allowed in TTML/DFXP spec, replace with 0
                 text = re.sub(r'"(-\d+(\.\d+)?(px|em|%|c|pt))"', '"0"', text)
@@ -171,7 +171,7 @@ class Subtitle(Track):
                 caption_lists[language] = caption_list
                 caption_set: pycaption.CaptionSet = pycaption.CaptionSet(caption_lists)
             elif codec == Subtitle.Codec.WebVTT:
-                text = data.decode("utf8")
+                text = try_ensure_utf8(data).decode("utf8")
                 # Segmented VTT when merged may have the WEBVTT headers part of the next caption
                 # if they are not separated far enough from the previous caption, hence the \n\n
                 text = text. \
