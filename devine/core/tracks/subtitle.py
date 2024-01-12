@@ -145,48 +145,49 @@ class Subtitle(Track):
 
     @staticmethod
     def parse(data: bytes, codec: Subtitle.Codec) -> pycaption.CaptionSet:
-        # TODO: Use an "enum" for subtitle codecs
         if not isinstance(data, bytes):
             raise ValueError(f"Subtitle data must be parsed as bytes data, not {type(data).__name__}")
+
         try:
             if codec == Subtitle.Codec.fTTML:
-                captions: dict[str, pycaption.CaptionList] = defaultdict(pycaption.CaptionList)
+                caption_lists: dict[str, pycaption.CaptionList] = defaultdict(pycaption.CaptionList)
                 for segment in (
                     Subtitle.parse(box.data, Subtitle.Codec.TimedTextMarkupLang)
                     for box in MP4.parse_stream(BytesIO(data))
                     if box.type == b"mdat"
                 ):
                     for lang in segment.get_languages():
-                        captions[lang].extend(segment.get_captions(lang))
-                captions: pycaption.CaptionSet = pycaption.CaptionSet(captions)
-                return captions
-            if codec == Subtitle.Codec.TimedTextMarkupLang:
-                text = data.decode("utf8").replace("tt:", "")
+                        caption_lists[lang].extend(segment.get_captions(lang))
+                caption_set: pycaption.CaptionSet = pycaption.CaptionSet(caption_lists)
+            elif codec == Subtitle.Codec.TimedTextMarkupLang:
+                text = data.decode("utf8")
+                text = text.replace("tt:", "")
                 # negative size values aren't allowed in TTML/DFXP spec, replace with 0
                 text = re.sub(r'"(-\d+(\.\d+)?(px|em|%|c|pt))"', '"0"', text)
-                return pycaption.DFXPReader().read(text)
-            if codec == Subtitle.Codec.fVTT:
+                caption_set = pycaption.DFXPReader().read(text)
+            elif codec == Subtitle.Codec.fVTT:
                 caption_lists: dict[str, pycaption.CaptionList] = defaultdict(pycaption.CaptionList)
                 caption_list, language = Subtitle.merge_segmented_wvtt(data)
                 caption_lists[language] = caption_list
                 caption_set: pycaption.CaptionSet = pycaption.CaptionSet(caption_lists)
-                return caption_set
-            if codec == Subtitle.Codec.WebVTT:
+            elif codec == Subtitle.Codec.WebVTT:
+                text = data.decode("utf8")
                 # Segmented VTT when merged may have the WEBVTT headers part of the next caption
                 # if they are not separated far enough from the previous caption, hence the \n\n
-                text = data.decode("utf8"). \
+                text = text. \
                     replace("WEBVTT", "\n\nWEBVTT"). \
                     replace("\r", ""). \
                     replace("\n\n\n", "\n \n\n"). \
                     replace("\n\n<", "\n<")
-                captions: pycaption.CaptionSet = pycaption.WebVTTReader().read(text)
-                return captions
+                caption_set = pycaption.WebVTTReader().read(text)
+            else:
+                raise ValueError(f"Unknown Subtitle format \"{codec}\"...")
         except pycaption.exceptions.CaptionReadSyntaxError as e:
             raise SyntaxError(f"A syntax error has occurred when reading the \"{codec}\" subtitle: {e}")
         except pycaption.exceptions.CaptionReadNoCaptions:
             return pycaption.CaptionSet({"en": []})
 
-        raise ValueError(f"Unknown Subtitle Format \"{codec}\"...")
+        return caption_set
 
     @staticmethod
     def merge_same_cues(caption_set: pycaption.CaptionSet):
