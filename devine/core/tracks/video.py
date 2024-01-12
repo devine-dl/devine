@@ -188,17 +188,20 @@ class Video(Track):
             Video.Codec.HEVC: "hevc_metadata"
         }[self.codec]
 
-        changed_path = self.path.with_suffix(f".range{range_}{self.path.suffix}")
+        original_path = self.path
+        output_path = original_path.with_stem(f"{original_path.stem}_{['limited', 'full'][range_]}_range")
+
         subprocess.run([
             executable, "-hide_banner",
             "-loglevel", "panic",
-            "-i", self.path,
+            "-i", original_path,
             "-codec", "copy",
             "-bsf:v", f"{filter_key}=video_full_range_flag={range_}",
-            str(changed_path)
+            str(output_path)
         ], check=True)
 
-        self.swap(changed_path)
+        self.swap(output_path)
+        self.move(original_path)
 
     def ccextractor(
         self, track_id: Any, out_path: Union[Path, str], language: Language, original: bool = False

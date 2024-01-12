@@ -822,13 +822,10 @@ class dl:
             save_dir = save_path.parent
 
         def cleanup():
-            # e.g., foo.mp4
+            # track file (e.g., "foo.mp4")
             save_path.unlink(missing_ok=True)
-            # e.g., foo.mp4.aria2
+            # aria2c control file (e.g., "foo.mp4.aria2")
             save_path.with_suffix(f"{save_path.suffix}.aria2").unlink(missing_ok=True)
-            for file in config.directories.temp.glob(f"{save_path.stem}.*{save_path.suffix}"):
-                # e.g., foo.decrypted.mp4, foo.repack.mp4, and such
-                file.unlink()
             if save_dir.exists() and save_dir.name.endswith("_segments"):
                 shutil.rmtree(save_dir)
 

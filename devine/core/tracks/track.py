@@ -229,20 +229,21 @@ class Track:
         if not executable:
             raise EnvironmentError("FFmpeg executable \"ffmpeg\" was not found but is required for this call.")
 
-        repacked_path = self.path.with_suffix(f".repack{self.path.suffix}")
+        original_path = self.path
+        output_path = original_path.with_stem(f"{original_path.stem}_repack")
 
         def _ffmpeg(extra_args: list[str] = None):
             subprocess.run(
                 [
                     executable, "-hide_banner",
                     "-loglevel", "error",
-                    "-i", self.path,
+                    "-i", original_path,
                     *(extra_args or []),
                     # Following are very important!
                     "-map_metadata", "-1",  # don't transfer metadata to output file
                     "-fflags", "bitexact",  # only have minimal tag data, reproducible mux
                     "-codec", "copy",
-                    str(repacked_path)
+                    str(output_path)
                 ],
                 check=True,
                 stdout=subprocess.PIPE,
@@ -258,7 +259,8 @@ class Track:
             else:
                 raise
 
-        self.swap(repacked_path)
+        self.swap(output_path)
+        self.move(original_path)
 
     def move(self, target: Union[str, Path]) -> bool:
         """

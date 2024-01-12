@@ -230,12 +230,12 @@ class Widevine:
         if not path or not path.exists():
             raise ValueError("Tried to decrypt a file that does not exist.")
 
-        decrypted_path = path.with_suffix(f".decrypted{path.suffix}")
+        output_path = path.with_stem(f"{path.stem}_decrypted")
         config.directories.temp.mkdir(parents=True, exist_ok=True)
 
         try:
             arguments = [
-                f"input={path},stream=0,output={decrypted_path}",
+                f"input={path},stream=0,output={output_path}",
                 "--enable_raw_key_decryption", "--keys",
                 ",".join([
                     *[
@@ -294,7 +294,7 @@ class Widevine:
 
             path.unlink()
             if not stream_skipped:
-                shutil.move(decrypted_path, path)
+                shutil.move(output_path, path)
         except subprocess.CalledProcessError as e:
             if e.returncode == 0xC000013A:  # STATUS_CONTROL_C_EXIT
                 raise KeyboardInterrupt()
