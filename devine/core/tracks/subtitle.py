@@ -187,6 +187,12 @@ class Subtitle(Track):
         except pycaption.exceptions.CaptionReadNoCaptions:
             return pycaption.CaptionSet({"en": []})
 
+        # remove empty caption lists or some code breaks, especially if it's the first list
+        for language in caption_set.get_languages():
+            if not caption_set.get_captions(language):
+                # noinspection PyProtectedMember
+                del caption_set._captions[language]
+
         return caption_set
 
     @staticmethod
