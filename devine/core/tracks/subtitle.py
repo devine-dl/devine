@@ -5,6 +5,7 @@ import subprocess
 from collections import defaultdict
 from enum import Enum
 from io import BytesIO
+from pathlib import Path
 from typing import Any, Iterable, Optional
 
 import pycaption
@@ -142,6 +143,76 @@ class Subtitle(Track):
                 flag = f" ({flag})"
             track_name += flag
         return track_name or None
+
+    def convert(self, codec: Subtitle.Codec) -> Path:
+        """
+        Convert this Subtitle to another Format.
+
+        The file path location of the Subtitle data will be kept at the same
+        location but the file extension will be changed appropriately.
+
+        Supported formats:
+        - SubRip - SubtitleEdit or pycaption.SRTWriter
+        - TimedTextMarkupLang - SubtitleEdit or pycaption.DFXPWriter
+        - WebVTT - SubtitleEdit or pycaption.WebVTTWriter
+        - SubStationAlphav4 - SubtitleEdit
+        - fTTML* - custom code using some pycaption functions
+        - fVTT* - custom code using some pycaption functions
+        *: Can read from format, but cannot convert to format
+
+        Note: It currently prioritizes using SubtitleEdit over PyCaption as
+        I have personally noticed more oddities with PyCaption parsing over
+        SubtitleEdit. Especially when working with TTML/DFXP where it would
+        often have timecodes and stuff mixed in/duplicated.
+
+        Returns the new file path of the Subtitle.
+        """
+        if not self.path or not self.path.exists():
+            raise ValueError("You must download the subtitle track first.")
+
+        if self.codec == codec:
+            return self.path
+
+        output_path = self.path.with_suffix(f".{codec.value.lower()}")
+
+        sub_edit_executable = get_binary_path("SubtitleEdit")
+        if sub_edit_executable and self.codec not in (Subtitle.Codec.fTTML, Subtitle.Codec.fVTT):
+            sub_edit_format = {
+                Subtitle.Codec.SubStationAlphav4: "AdvancedSubStationAlpha",
+                Subtitle.Codec.TimedTextMarkupLang: "TimedText1.0"
+            }.get(codec, codec.name)
+            subprocess.run(
+                [
+                    sub_edit_executable,
+                    "/Convert", self.path, sub_edit_format,
+                    f"/outputfilename:{output_path.name}",
+                    f"/outputfolder:{output_path.parent}",
+                    "/encoding:utf8"
+                ],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+        else:
+            writer = {
+                # pycaption generally only supports these subtitle formats
+                Subtitle.Codec.SubRip: pycaption.SRTWriter,
+                Subtitle.Codec.TimedTextMarkupLang: pycaption.DFXPWriter,
+                Subtitle.Codec.WebVTT: pycaption.WebVTTWriter,
+            }.get(codec)
+            if writer is None:
+                raise NotImplementedError(f"Cannot yet convert {self.codec.name} to {codec.name}.")
+
+            caption_set = self.parse(self.path.read_bytes(), self.codec)
+            Subtitle.merge_same_cues(caption_set)
+            subtitle_text = writer().write(caption_set)
+
+            output_path.write_text(subtitle_text, encoding="utf8")
+
+        self.swap(output_path)
+        self.codec = codec
+
+        return output_path
 
     @staticmethod
     def parse(data: bytes, codec: Subtitle.Codec) -> pycaption.CaptionSet:
