@@ -1,3 +1,4 @@
+import math
 import time
 from functools import partial
 from pathlib import Path
@@ -65,9 +66,16 @@ def requests(
     for url, out_path in uri:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         attempts = 1
+
         try:
             stream = session.get(url, stream=True)
             stream.raise_for_status()
+
+            if len(uri) == 1 and progress:
+                content_length = int(stream.headers.get("Content-Length", "0"))
+                if content_length > 0:
+                    progress(total=math.ceil(content_length / 1024))
+
             with open(out_path, "wb") as f:
                 written = 0
                 for chunk in stream.iter_content(chunk_size=1024):
