@@ -54,11 +54,11 @@ async def aria2c(
     for i, url in enumerate(uri):
         url_text = url
         if multiple_urls:
-            url_text += f"\n\tdir={out.parent}"
-            url_text += f"\n\tout={out.name}"
-        else:
             url_text += f"\n\tdir={out}"
             url_text += f"\n\tout={i:08}.mp4"
+        else:
+            url_text += f"\n\tdir={out.parent}"
+            url_text += f"\n\tout={out.name}"
         if cookies:
             mock_request = requests.Request(url=url)
             cookie_header = get_cookie_header(cookies, mock_request)
