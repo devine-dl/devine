@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import logging
 import re
 import sys
@@ -314,6 +315,8 @@ class HLS:
                 segment_data = segment_file.read_bytes()
                 if isinstance(track, Subtitle):
                     segment_data = try_ensure_utf8(segment_data)
+                    if track.codec not in (Subtitle.Codec.fVTT, Subtitle.Codec.fTTML):
+                        segment_data = html.unescape(segment_data.decode("utf8")).encode("utf8")
                 f.write(segment_data)
                 segment_file.unlink()
 

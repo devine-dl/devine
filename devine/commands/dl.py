@@ -913,6 +913,7 @@ class dl:
                         if isinstance(track, Subtitle):
                             track_data = track.path.read_bytes()
                             track_data = try_ensure_utf8(track_data)
+                            track_data = html.unescape(track_data.decode("utf8")).encode("utf8")
                             track.path.write_bytes(track_data)
 
                         progress(downloaded="Downloaded")

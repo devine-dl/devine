@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import html
 import logging
 import math
 import re
@@ -473,6 +474,7 @@ class DASH:
                         track.codec not in (Subtitle.Codec.fVTT, Subtitle.Codec.fTTML)
                     ):
                         segment_data = try_ensure_utf8(segment_data)
+                        segment_data = html.unescape(segment_data.decode("utf8")).encode("utf8")
                     f.write(segment_data)
                     segment_file.unlink()
 
