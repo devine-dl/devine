@@ -98,6 +98,7 @@ def requests(
                                 download_sizes.clear()
                 break
             except Exception as e:
+                out_path.unlink(missing_ok=True)
                 if DOWNLOAD_CANCELLED.is_set() or attempts == MAX_ATTEMPTS:
                     raise e
                 time.sleep(RETRY_WAIT)
