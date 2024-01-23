@@ -59,9 +59,7 @@ A command-line interface is now available, try `devine --help`.
 
 ### Dependencies
 
-The following is a list of programs that need to be installed manually. I recommend installing these with [winget],
-[chocolatey] or such where possible as it automatically adds them to your `PATH` environment variable and will be
-easier to update in the future.
+The following is a list of programs that need to be installed by you manually.
 
 - [CCExtractor] for extracting Closed Caption data like EIA-608 from video streams and converting as SRT.
 - [FFmpeg] (and ffprobe) for repacking/remuxing streams on specific services, and evaluating stream data.
@@ -69,9 +67,15 @@ easier to update in the future.
 - [shaka-packager] for decrypting CENC-CTR and CENC-CBCS video and audio streams.
 - (optional) [aria2(c)] to use as a [downloader](CONFIG.md#downloader-str).
 
-For portable downloads, make sure you put them in your current working directory, in the installation directory,
-or put the directory path in your `PATH` environment variable. If you do not do this then their binaries will not be
-able to be found.
+> [!TIP]
+> You should install these from a Package Repository if you can; including winget/chocolatey on Windows. They will
+> automatically add the binary's path to your `PATH` environment variable and will be easier to update in the future.
+
+> [!IMPORTANT]
+> Most of these dependencies are portable utilities and therefore do not use installers. If you do not install them
+> from a package repository like winget/choco/pacman then make sure you put them in your current working directory, in
+> Devine's installation directory, or the binary's path into your `PATH` environment variable. If you do not do this
+> then Devine will not be able to find the binaries.
 
   [winget]: <https://winget.run>
   [chocolatey]: <https://chocolatey.org>
