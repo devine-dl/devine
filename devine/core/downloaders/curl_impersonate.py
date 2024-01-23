@@ -69,38 +69,51 @@ def curl_impersonate(
 
     for url, out_path in uri:
         out_path.parent.mkdir(parents=True, exist_ok=True)
+
+        control_file = out_path.with_name(f"{out_path.name}.!dev")
+        if control_file.exists():
+            # consider the file corrupt if the control file exists
+            # TODO: Design a control file format so we know how much of the file is missing
+            out_path.unlink(missing_ok=True)
+            control_file.unlink()
+        elif out_path.exists():
+            continue
+        control_file.write_bytes(b"")
+
         attempts = 1
+        try:
+            while True:
+                try:
+                    stream = session.get(url, stream=True)
+                    stream.raise_for_status()
+                    with open(out_path, "wb") as f:
+                        written = 0
+                        for chunk in stream.iter_content(chunk_size=1024):
+                            download_size = len(chunk)
+                            f.write(chunk)
+                            written += download_size
+                            if progress:
+                                progress(advance=1)
 
-        while True:
-            try:
-                stream = session.get(url, stream=True)
-                stream.raise_for_status()
-                with open(out_path, "wb") as f:
-                    written = 0
-                    for chunk in stream.iter_content(chunk_size=1024):
-                        download_size = len(chunk)
-                        f.write(chunk)
-                        written += download_size
-                        if progress:
-                            progress(advance=1)
+                                now = time.time()
+                                time_since = now - last_speed_refresh
 
-                            now = time.time()
-                            time_since = now - last_speed_refresh
-
-                            download_sizes.append(download_size)
-                            if time_since > 5 or download_size < 1024:
-                                data_size = sum(download_sizes)
-                                download_speed = data_size / (time_since or 1)
-                                progress(downloaded=f"{filesize.decimal(download_speed)}/s")
-                                last_speed_refresh = now
-                                download_sizes.clear()
-                break
-            except Exception as e:
-                out_path.unlink(missing_ok=True)
-                if DOWNLOAD_CANCELLED.is_set() or attempts == MAX_ATTEMPTS:
-                    raise e
-                time.sleep(RETRY_WAIT)
-                attempts += 1
+                                download_sizes.append(download_size)
+                                if time_since > 5 or download_size < 1024:
+                                    data_size = sum(download_sizes)
+                                    download_speed = data_size / (time_since or 1)
+                                    progress(downloaded=f"{filesize.decimal(download_speed)}/s")
+                                    last_speed_refresh = now
+                                    download_sizes.clear()
+                    break
+                except Exception as e:
+                    out_path.unlink(missing_ok=True)
+                    if DOWNLOAD_CANCELLED.is_set() or attempts == MAX_ATTEMPTS:
+                        raise e
+                    time.sleep(RETRY_WAIT)
+                    attempts += 1
+        finally:
+            control_file.unlink()
 
     return 0
 
