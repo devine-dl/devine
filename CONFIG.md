@@ -153,8 +153,8 @@ Choose what software to use to download data throughout Devine where needed.
 
 Options:
 
-- `aria2c` (default) - https://github.com/aria2/aria2
-- `requests` - https://github.com/psf/requests
+- `requests` (default) - https://github.com/psf/requests
+- `aria2c` - https://github.com/aria2/aria2
 - `curl_impersonate` - https://github.com/yifeikong/curl-impersonate (via https://github.com/yifeikong/curl_cffi)
 
 Note that aria2c can reach the highest speeds as it utilizes threading and more connections than the other

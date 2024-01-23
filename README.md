@@ -63,11 +63,11 @@ The following is a list of programs that need to be installed manually. I recomm
 [chocolatey] or such where possible as it automatically adds them to your `PATH` environment variable and will be
 easier to update in the future.
 
-- [aria2(c)] for downloading streams and large manifests.
 - [CCExtractor] for extracting Closed Caption data like EIA-608 from video streams and converting as SRT.
 - [FFmpeg] (and ffprobe) for repacking/remuxing streams on specific services, and evaluating stream data.
 - [MKVToolNix] v54+ for muxing individual streams to an `.mkv` file.
 - [shaka-packager] for decrypting CENC-CTR and CENC-CBCS video and audio streams.
+- (optional) [aria2(c)] to use as a [downloader](CONFIG.md#downloader-str).
 
 For portable downloads, make sure you put them in your current working directory, in the installation directory,
 or put the directory path in your `PATH` environment variable. If you do not do this then their binaries will not be
