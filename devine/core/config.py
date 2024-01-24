@@ -82,20 +82,20 @@ def get_config_path() -> Optional[Path]:
 
     Looks for a config file in the following folders in order:
 
-    1. The AppDirs User Config Folder (e.g., %localappdata%/devine)
-    2. The Devine Namespace Folder (e.g., %appdata%/Python/Python311/site-packages/devine)
-    3. The Parent Folder to the Devine Namespace Folder (e.g., %appdata%/Python/Python311/site-packages)
+    1. The Devine Namespace Folder (e.g., %appdata%/Python/Python311/site-packages/devine)
+    2. The Parent Folder to the Devine Namespace Folder (e.g., %appdata%/Python/Python311/site-packages)
+    3. The AppDirs User Config Folder (e.g., %localappdata%/devine)
 
     Returns None if no config file could be found.
     """
     # noinspection PyProtectedMember
-    path = Config._Directories.user_configs / Config._Filenames.root_config
-    if not path.exists():
-        # noinspection PyProtectedMember
-        path = Config._Directories.namespace_dir / Config._Filenames.root_config
+    path = Config._Directories.namespace_dir / Config._Filenames.root_config
     if not path.exists():
         # noinspection PyProtectedMember
         path = Config._Directories.namespace_dir.parent / Config._Filenames.root_config
+    if not path.exists():
+        # noinspection PyProtectedMember
+        path = Config._Directories.user_configs / Config._Filenames.root_config
     if not path.exists():
         path = None
     return path
