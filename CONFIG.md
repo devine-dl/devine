@@ -188,12 +188,28 @@ provide the same Key ID and CEK for both Video and Audio, as well as for multipl
 You can have as many Key Vaults as you would like. It's nice to share Key Vaults or use a unified Vault on
 Teams as sharing CEKs immediately can help reduce License calls drastically.
 
-Two types of Vaults are in the Core codebase, SQLite and MySQL Vaults. Both directly connect to an SQLite or MySQL
-Server. It has to connect directly to the Host/IP. It cannot be in front of a PHP API or such. Beware that some Hosts
-do not let you access the MySQL server outside their intranet (aka Don't port forward or use permissive network
-interfaces).
+Three types of Vaults are in the Core codebase, API, SQLite and MySQL. API makes HTTP requests to a RESTful API,
+whereas SQLite and MySQL directly connect to an SQLite or MySQL Database.
 
-### Connecting to a MySQL Vault
+Note: SQLite and MySQL vaults have to connect directly to the Host/IP. It cannot be in front of a PHP API or such.
+Beware that some Hosting Providers do not let you access the MySQL server outside their intranet and may not be
+accessible outside their hosting platform.
+
+### Using an API Vault
+
+API vaults use a specific HTTP request format, therefore API or HTTP Key Vault APIs from other projects or services may
+not work in Devine. The API format can be seen in the [API Vault Code](devine/vaults/API.py).
+
+```yaml
+- type: API
+  name: "John#0001's Vault"             # arbitrary vault name
+  uri: "https://key-vault.example.com"  # api base uri (can also be an IP or IP:Port)
+  # uri: "127.0.0.1:80/key-vault"
+  # uri: "https://api.example.com/key-vault"
+  token: "random secret key"            # authorization token
+```
+
+### Using a MySQL Vault
 
 MySQL vaults can be either MySQL or MariaDB servers. I recommend MariaDB.  
 A MySQL Vault can be on a local or remote network, but I recommend SQLite for local Vaults.
@@ -219,7 +235,7 @@ make tables yourself.
 - You may give trusted users CREATE permission so devine can create tables if needed.
 - Other uses should only be given SELECT and INSERT permissions.
 
-### Connecting to an SQLite Vault
+### Using an SQLite Vault
 
 SQLite Vaults are usually only used for locally stored vaults. This vault may be stored on a mounted Cloud storage
 drive, but I recommend using SQLite exclusively as an offline-only vault. Effectively this is your backup vault in
