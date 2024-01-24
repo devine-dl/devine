@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import yaml
 from appdirs import AppDirs
@@ -76,9 +76,33 @@ class Config:
         return cls(**yaml.safe_load(path.read_text(encoding="utf8")) or {})
 
 
-# noinspection PyProtectedMember
-config_path = Config._Directories.user_configs / Config._Filenames.root_config
-if config_path.exists():
+def get_config_path() -> Optional[Path]:
+    """
+    Get Path to Config from various locations.
+
+    Looks for a config file in the following folders in order:
+
+    1. The AppDirs User Config Folder (e.g., %localappdata%/devine)
+    2. The Devine Namespace Folder (e.g., %appdata%/Python/Python311/site-packages/devine)
+    3. The Parent Folder to the Devine Namespace Folder (e.g., %appdata%/Python/Python311/site-packages)
+
+    Returns None if no config file could be found.
+    """
+    # noinspection PyProtectedMember
+    path = Config._Directories.user_configs / Config._Filenames.root_config
+    if not path.exists():
+        # noinspection PyProtectedMember
+        path = Config._Directories.namespace_dir / Config._Filenames.root_config
+    if not path.exists():
+        # noinspection PyProtectedMember
+        path = Config._Directories.namespace_dir.parent / Config._Filenames.root_config
+    if not path.exists():
+        path = None
+    return path
+
+
+config_path = get_config_path()
+if config_path:
     config = Config.from_yaml(config_path)
 else:
     config = Config()
