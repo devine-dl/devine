@@ -78,9 +78,9 @@ class Config:
 
 # noinspection PyProtectedMember
 config_path = Config._Directories.user_configs / Config._Filenames.root_config
-if not config_path.is_file():
-    Config._Directories.user_configs.mkdir(parents=True, exist_ok=True)
-    config_path.write_text("")
-config = Config.from_yaml(config_path)
+if config_path.exists():
+    config = Config.from_yaml(config_path)
+else:
+    config = Config()
 
 __all__ = ("config",)
