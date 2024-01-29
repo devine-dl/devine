@@ -99,7 +99,7 @@ class dl:
                   help="Language wanted for Subtitles.")
     @click.option("--proxy", type=str, default=None,
                   help="Proxy URI to use. If a 2-letter country is provided, it will try get a proxy from the config.")
-    @click.option("--group", type=str, default=None,
+    @click.option("--tag", type=str, default=None,
                   help="Set the Group Tag to be used, overriding the one in config if any.")
     @click.option("--sub-format", type=click.Choice(Subtitle.Codec, case_sensitive=False),
                   default=Subtitle.Codec.SubRip,
@@ -145,7 +145,7 @@ class dl:
         no_proxy: bool,
         profile: Optional[str] = None,
         proxy: Optional[str] = None,
-        group: Optional[str] = None,
+        tag: Optional[str] = None,
         *_: Any,
         **__: Any
     ):
@@ -244,8 +244,8 @@ class dl:
             profile=self.profile
         )
 
-        if group:
-            config.tag = group
+        if tag:
+            config.tag = tag
 
         # needs to be added this way instead of @cli.result_callback to be
         # able to keep `self` as the first positional
