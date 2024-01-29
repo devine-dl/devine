@@ -253,7 +253,7 @@ class DASH:
 
         manifest_base_url = manifest.findtext("BaseURL")
         if not manifest_base_url or not re.match("^https?://", manifest_base_url, re.IGNORECASE):
-            manifest_base_url = urljoin(manifest_url, "./", manifest_base_url)
+            manifest_base_url = urljoin(manifest_url, f"./{manifest_base_url}")
         period_base_url = urljoin(manifest_base_url, period.findtext("BaseURL"))
         rep_base_url = urljoin(period_base_url, representation.findtext("BaseURL"))
 
