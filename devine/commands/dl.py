@@ -28,6 +28,7 @@ from pymediainfo import MediaInfo
 from pywidevine.cdm import Cdm as WidevineCdm
 from pywidevine.device import Device
 from pywidevine.remotecdm import RemoteCdm
+from requests.cookies import RequestsCookieJar
 from rich.console import Group
 from rich.live import Live
 from rich.padding import Padding
@@ -68,7 +69,7 @@ class dl:
             token_normalize_func=Services.get_tag
         ))
     @click.option("-p", "--profile", type=str, default=None,
-                  help="Profile to use for Credentials and Cookies (if available). Overrides profile set by config.")
+                  help="Profile to use for Credentials and Cookies (if available).")
     @click.option("-q", "--quality", type=QUALITY_LIST, default=[],
                   help="Download Resolution(s), defaults to the best available resolution.")
     @click.option("-v", "--vcodec", type=click.Choice(Video.Codec, case_sensitive=False),
@@ -155,17 +156,14 @@ class dl:
         self.log = logging.getLogger("download")
 
         self.service = Services.get_tag(ctx.invoked_subcommand)
+        self.profile = profile
 
-        with console.status("Preparing Service and Profile Authentication...", spinner="dots"):
-            if profile:
-                self.profile = profile
-                self.log.info(f"Profile: '{self.profile}' from the --profile argument")
-            else:
-                self.profile = self.get_profile(self.service)
-                self.log.info(f"Profile: '{self.profile}' from the config")
+        if self.profile:
+            self.log.info(f"Using profile: '{self.profile}'")
 
+        with console.status("Loading Service Config...", spinner="dots"):
             service_config_path = Services.get_path(self.service) / config.filenames.config
-            if service_config_path.is_file():
+            if service_config_path.exists():
                 self.service_config = yaml.safe_load(service_config_path.read_text(encoding="utf8"))
                 self.log.info("Service Config loaded")
             else:
@@ -289,14 +287,11 @@ class dl:
         else:
             vaults_only = not cdm_only
 
-        if self.profile:
-            with console.status("Authenticating with Service...", spinner="dots"):
-                cookies = self.get_cookie_jar(self.service, self.profile)
-                credential = self.get_credentials(self.service, self.profile)
-                if not cookies and not credential:
-                    self.log.error(f"The Profile '{self.profile}' has no Cookies or Credentials, Check for typos")
-                    sys.exit(1)
-                service.authenticate(cookies, credential)
+        with console.status("Authenticating with Service...", spinner="dots"):
+            cookies = self.get_cookie_jar(self.service, self.profile)
+            credential = self.get_credentials(self.service, self.profile)
+            service.authenticate(cookies, credential)
+            if cookies or credential:
                 self.log.info("Authenticated with Service")
 
         with console.status("Fetching Title Metadata...", spinner="dots"):
@@ -663,13 +658,9 @@ class dl:
                 ))
 
             # update cookies
-            cookie_file = config.directories.cookies / service.__class__.__name__ / f"{self.profile}.txt"
+            cookie_file = self.get_cookie_path(self.service, self.profile)
             if cookie_file.exists():
-                cookie_jar = MozillaCookieJar(cookie_file)
-                cookie_jar.load()
-                for cookie in service.session.cookies:
-                    cookie_jar.set_cookie(cookie)
-                cookie_jar.save(ignore_discard=True)
+                self.save_cookies(cookie_file, service.session.cookies)
 
         dl_time = time_elapsed_since(start_time)
 
@@ -954,10 +945,24 @@ class dl:
         return profile
 
     @staticmethod
-    def get_cookie_jar(service: str, profile: str) -> Optional[MozillaCookieJar]:
-        """Get Profile's Cookies as Mozilla Cookie Jar if available."""
-        cookie_file = config.directories.cookies / service / f"{profile}.txt"
-        if cookie_file.is_file():
+    def get_cookie_path(service: str, profile: Optional[str]) -> Optional[Path]:
+        """Get Service Cookie File Path for Profile."""
+        direct_cookie_file = config.directories.cookies / f"{service}.txt"
+        profile_cookie_file = config.directories.cookies / service / f"{profile}.txt"
+        default_cookie_file = config.directories.cookies / service / "default.txt"
+
+        if direct_cookie_file.exists():
+            return direct_cookie_file
+        elif profile_cookie_file.exists():
+            return profile_cookie_file
+        elif default_cookie_file.exists():
+            return default_cookie_file
+
+    @staticmethod
+    def get_cookie_jar(service: str, profile: Optional[str]) -> Optional[MozillaCookieJar]:
+        """Get Service Cookies for Profile."""
+        cookie_file = dl.get_cookie_path(service, profile)
+        if cookie_file:
             cookie_jar = MozillaCookieJar(cookie_file)
             cookie_data = html.unescape(cookie_file.read_text("utf8")).splitlines(keepends=False)
             for i, line in enumerate(cookie_data):
@@ -972,17 +977,29 @@ class dl:
             cookie_file.write_text(cookie_data, "utf8")
             cookie_jar.load(ignore_discard=True, ignore_expires=True)
             return cookie_jar
-        return None
 
     @staticmethod
-    def get_credentials(service: str, profile: str) -> Optional[Credential]:
-        """Get Profile's Credential if available."""
-        cred = config.credentials.get(service, {}).get(profile)
-        if cred:
-            if isinstance(cred, list):
-                return Credential(*cred)
-            return Credential.loads(cred)
-        return None
+    def save_cookies(path: Path, cookies: RequestsCookieJar):
+        cookie_jar = MozillaCookieJar(path)
+        cookie_jar.load()
+        for cookie in cookies:
+            cookie_jar.set_cookie(cookie)
+        cookie_jar.save(ignore_discard=True)
+
+    @staticmethod
+    def get_credentials(service: str, profile: Optional[str]) -> Optional[Credential]:
+        """Get Service Credentials for Profile."""
+        credentials = config.credentials.get(service)
+        if credentials:
+            if isinstance(credentials, dict):
+                if profile:
+                    credentials = credentials.get(profile) or credentials.get("default")
+                else:
+                    credentials = credentials.get("default")
+            if credentials:
+                if isinstance(credentials, list):
+                    return Credential(*credentials)
+                return Credential.loads(credentials)  # type: ignore
 
     @staticmethod
     def get_cdm(service: str, profile: Optional[str] = None) -> WidevineCdm:

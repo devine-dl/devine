@@ -67,25 +67,30 @@ DSNP:
 default: chromecdm_903_l3
 ```
 
-## credentials (dict)
+## credentials (dict[str, str|list|dict])
 
-Specify login credentials to use for each Service by Profile as Key (case-sensitive).
-
-The value should be `email:password` or `username:password` (with some exceptions).  
-The first section does not have to be an email or username. It may also be a Phone number.
+Specify login credentials to use for each Service, and optionally per-profile.
 
 For example,
 
 ```yaml
-AMZN:
+ALL4: jane@gmail.com:LoremIpsum100  # directly
+AMZN:  # or per-profile, optionally with a default
+  default: jane@example.tld:LoremIpsum99  # <-- used by default if -p/--profile is not used
   james: james@gmail.com:TheFriend97
-  jane: jane@example.tld:LoremIpsum99
   john: john@example.tld:LoremIpsum98
-NF:
+NF:  # the `default` key is not necessary, but no credential will be used by default
   john: john@gmail.com:TheGuyWhoPaysForTheNetflix69420
 ```
 
-Credentials must be specified per-profile. You cannot specify a fallback or default credential.
+The value should be in string form, i.e. `john@gmail.com:password123` or `john:password123`.  
+Any arbitrary values can be used on the left (username/password/phone) and right (password/secret).  
+You can also specify these in list form, i.e., `["john@gmail.com", ":PasswordWithAColon"]`.
+
+If you specify multiple credentials with keys like the `AMZN` and `NF` example above, then you should
+use a `default` key or no credential will be loaded automatically unless you use `-p/--profile`. You
+do not have to use a `default` key at all.
+
 Please be aware that this information is sensitive and to keep it safe. Do not share your config.
 
 ## curl_impersonate (dict)
@@ -259,34 +264,6 @@ together.
 
 - `set_title`
   Set the container title to `Show SXXEXX Episode Name` or `Movie (Year)`. Default: `true`
-
-## profiles (dict)
-
-Pre-define Profiles to use Per-Service.
-
-For example,
-
-```yaml
-AMZN: jane
-DSNP: john
-```
-
-You can also specify a fallback value to pre-define if a match was not made.  
-This can be done using `default` key. This can help reduce redundancy in your specifications.
-
-```yaml
-AMZN: jane
-DSNP: john
-default: james
-```
-
-If a Service doesn't require a profile (as it does not require Credentials or Authorization of any kind), you can
-disable the profile checks by specifying `false` as the profile for the Service.
-
-```yaml
-ALL4: false
-CTV: false
-```
 
 ## proxy_providers (dict)
 

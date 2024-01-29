@@ -252,22 +252,33 @@ sure that the version of devine you have locally is supported by the Service cod
 > automatically download. Python importing the files triggers the download to begin. However, it may cause a delay on
 > startup.
 
-## Profiles (Cookies & Credentials)
+## Cookies & Credentials
 
-Just like a streaming service, devine associates both a cookie and/or credential as a Profile. You can associate up to
-one cookie and one credential per-profile, depending on which (or both) are needed by the Service. This system allows
-you to configure multiple accounts per-service and choose which to use at any time.
+Devine can authenticate with Services using Cookies and/or Credentials. Credentials are stored in the config, and
+Cookies are stored in the data directory which can be found by running `devine env info`.
 
-Credentials are stored in the config, and Cookies are stored in the data directory. You can find the location of these
-by running `devine env info`. However, you can manage profiles with `devine auth --help`. E.g. to add a new John
-profile to Netflix with a Cookie and Credential, take a look at the following CLI call,
-`devine auth add John NF --cookie "C:\Users\John\Downloads\netflix.com.txt --credential "john@gmail.com:pass123"`
+To add a Credential to a Service, take a look at the [Credentials Config](CONFIG.md#credentials-dictstr-strlistdict)
+for information on setting up one or more credentials per-service. You can add one or more Credential per-service and
+use `-p/--profile` to choose which Credential to use.
 
-You can also delete a credential with `devine auth delete`. E.g., to delete the cookie for John that we just added, run
-`devine auth delete John --cookie`. Take a look at `devine auth delete --help` for more information.
+To add a Cookie to a Service, use a Cookie file extension to make a `cookies.txt` file and move it into the Cookies
+directory. You must rename the `cookies.txt` file to that of the Service tag (case-sensitive), e.g., `NF.txt`. You can
+also place it in a Service Cookie folder, e.g., `/Cookies/NF/default.txt` or `/Cookies/NF/.txt`.
 
-> __Note__ Profile names are case-sensitive and unique per-service. They also have no arbitrary character or length
-> limit, but for convenience I don't recommend using any special characters as your terminal may get confused.
+You can add multiple Cookies to the `/Cookies/NF/` folder with their own unique name and then use `-p/--profile` to
+choose which one to use. E.g., `/Cookies/NF/sam.txt` and then use it with `--profile sam`. If you make a Service Cookie
+folder without a `.txt` or `default.txt`, but with another file, then no Cookies will be loaded unless you use
+`-p/--profile` like shown. This allows you to opt in to authentication at whim.
+
+> [!TIP]
+> - If your Service does not require Authentication, then do not define any Credential or Cookie for that Service.
+> - You can use both Cookies and Credentials at the same time, so long as your Service takes and uses both.
+> - If you are using profiles, then make sure you use the same name on the Credential name and Cookie file name when
+>   using `-p/--profile`.
+
+> [!WARNING]
+> Profile names are case-sensitive and unique per-service. They have no arbitrary character or length limit, but for
+> convenience sake I don't recommend using any special characters as your terminal may get confused.
 
 ### Cookie file format and Extensions
 
