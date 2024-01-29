@@ -761,8 +761,11 @@ class dl:
                         # So we re-add the keys from vaults earlier overwriting blanks or removed KIDs data.
                         drm.content_keys.update(from_vaults)
 
-                        cached_keys = self.vaults.add_keys(drm.content_keys)
-                        self.log.info(f" + Newly added to {cached_keys}/{len(drm.content_keys)} Vaults")
+                        successful_caches = self.vaults.add_keys(drm.content_keys)
+                        self.log.info(
+                            f"Cached {len(drm.content_keys)} Key{'' if len(drm.content_keys) == 1 else 's'} to "
+                            f"{successful_caches}/{len(self.vaults)} Vaults"
+                        )
                         break  # licensing twice will be unnecessary
 
                 if track_kid and track_kid not in drm.content_keys:
