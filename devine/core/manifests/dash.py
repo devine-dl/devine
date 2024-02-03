@@ -350,8 +350,8 @@ class DASH:
                 initialization = segment_list.find("Initialization")
                 if initialization is not None:
                     source_url = initialization.get("sourceURL")
-                    if source_url is None:
-                        source_url = rep_base_url
+                    if not source_url or not re.match("^https?://", source_url, re.IGNORECASE):
+                        source_url = urljoin(rep_base_url, f"./{source_url}")
 
                     if initialization.get("range"):
                         init_range_header = {"Range": f"bytes={initialization.get('range')}"}
@@ -366,8 +366,8 @@ class DASH:
                 segment_urls = segment_list.findall("SegmentURL")
                 for segment_url in segment_urls:
                     media_url = segment_url.get("media")
-                    if media_url is None:
-                        media_url = rep_base_url
+                    if not media_url or not re.match("^https?://", media_url, re.IGNORECASE):
+                        media_url = urljoin(rep_base_url, f"./{media_url}")
 
                     segments.append((
                         media_url,
