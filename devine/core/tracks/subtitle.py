@@ -181,14 +181,16 @@ class Subtitle(Track):
                 Subtitle.Codec.SubStationAlphav4: "AdvancedSubStationAlpha",
                 Subtitle.Codec.TimedTextMarkupLang: "TimedText1.0"
             }.get(codec, codec.name)
+            sub_edit_args = [
+                sub_edit_executable,
+                "/Convert", self.path, sub_edit_format,
+                f"/outputfilename:{output_path.name}",
+                "/encoding:utf8"
+            ]
+            if codec == Subtitle.Codec.SubRip:
+                sub_edit_args.append("/ConvertColorsToDialog")
             subprocess.run(
-                [
-                    sub_edit_executable,
-                    "/Convert", self.path, sub_edit_format,
-                    f"/outputfilename:{output_path.name}",
-                    f"/outputfolder:{output_path.parent}",
-                    "/encoding:utf8"
-                ],
+                sub_edit_args,
                 check=True,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
