@@ -316,7 +316,11 @@ class HLS:
                 if isinstance(track, Subtitle):
                     segment_data = try_ensure_utf8(segment_data)
                     if track.codec not in (Subtitle.Codec.fVTT, Subtitle.Codec.fTTML):
-                        segment_data = html.unescape(segment_data.decode("utf8")).encode("utf8")
+                        # decode text direction entities or SubtitleEdit's /ReverseRtlStartEnd won't work
+                        segment_data = segment_data.decode("utf8"). \
+                            replace("&lrm;", html.unescape("&lrm;")). \
+                            replace("&rlm;", html.unescape("&rlm;")). \
+                            encode("utf8")
                 f.write(segment_data)
                 segment_file.unlink()
 
