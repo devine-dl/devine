@@ -268,228 +268,252 @@ class DASH:
         if segment_list is None:
             segment_list = adaptation_set.find("SegmentList")
 
-        if segment_template is None and segment_list is None and rep_base_url:
-            # If there's no SegmentTemplate and no SegmentList, then SegmentBase is used or just BaseURL
-            # Regardless which of the two is used, we can just directly grab the BaseURL
-            # Players would normally calculate segments via Byte-Ranges, but we don't care
-            track.url = rep_base_url
-            track.descriptor = track.Descriptor.URL
-        else:
-            segments: list[tuple[str, Optional[str]]] = []
-            track_kid: Optional[UUID] = None
+        segment_base = representation.find("SegmentBase")
+        if segment_base is None:
+            segment_base = adaptation_set.find("SegmentBase")
 
-            if segment_template is not None:
-                segment_template = copy(segment_template)
-                start_number = int(segment_template.get("startNumber") or 1)
-                segment_timeline = segment_template.find("SegmentTimeline")
+        segments: list[tuple[str, Optional[str]]] = []
+        track_kid: Optional[UUID] = None
 
-                for item in ("initialization", "media"):
-                    value = segment_template.get(item)
-                    if not value:
-                        continue
-                    if not re.match("^https?://", value, re.IGNORECASE):
-                        if not rep_base_url:
-                            raise ValueError("Resolved Segment URL is not absolute, and no Base URL is available.")
-                        value = urljoin(rep_base_url, value)
-                    if not urlparse(value).query and manifest_url_query:
-                        value += f"?{manifest_url_query}"
-                    segment_template.set(item, value)
+        if segment_template is not None:
+            segment_template = copy(segment_template)
+            start_number = int(segment_template.get("startNumber") or 1)
+            segment_timeline = segment_template.find("SegmentTimeline")
 
-                init_url = segment_template.get("initialization")
-                if init_url:
-                    res = session.get(DASH.replace_fields(
-                        init_url,
-                        Bandwidth=representation.get("bandwidth"),
-                        RepresentationID=representation.get("id")
-                    ))
-                    res.raise_for_status()
-                    init_data = res.content
-                    track_kid = track.get_key_id(init_data)
+            for item in ("initialization", "media"):
+                value = segment_template.get(item)
+                if not value:
+                    continue
+                if not re.match("^https?://", value, re.IGNORECASE):
+                    if not rep_base_url:
+                        raise ValueError("Resolved Segment URL is not absolute, and no Base URL is available.")
+                    value = urljoin(rep_base_url, value)
+                if not urlparse(value).query and manifest_url_query:
+                    value += f"?{manifest_url_query}"
+                segment_template.set(item, value)
 
-                if segment_timeline is not None:
-                    seg_time_list = []
-                    current_time = 0
-                    for s in segment_timeline.findall("S"):
-                        if s.get("t"):
-                            current_time = int(s.get("t"))
-                        for _ in range(1 + (int(s.get("r") or 0))):
-                            seg_time_list.append(current_time)
-                            current_time += int(s.get("d"))
-                    seg_num_list = list(range(start_number, len(seg_time_list) + start_number))
+            init_url = segment_template.get("initialization")
+            if init_url:
+                res = session.get(DASH.replace_fields(
+                    init_url,
+                    Bandwidth=representation.get("bandwidth"),
+                    RepresentationID=representation.get("id")
+                ))
+                res.raise_for_status()
+                init_data = res.content
+                track_kid = track.get_key_id(init_data)
 
-                    for t, n in zip(seg_time_list, seg_num_list):
-                        segments.append((
-                            DASH.replace_fields(
-                                segment_template.get("media"),
-                                Bandwidth=representation.get("bandwidth"),
-                                Number=n,
-                                RepresentationID=representation.get("id"),
-                                Time=t
-                            ), None
-                        ))
-                else:
-                    if not period_duration:
-                        raise ValueError("Duration of the Period was unable to be determined.")
-                    period_duration = DASH.pt_to_sec(period_duration)
-                    segment_duration = float(segment_template.get("duration"))
-                    segment_timescale = float(segment_template.get("timescale") or 1)
-                    total_segments = math.ceil(period_duration / (segment_duration / segment_timescale))
+            if segment_timeline is not None:
+                seg_time_list = []
+                current_time = 0
+                for s in segment_timeline.findall("S"):
+                    if s.get("t"):
+                        current_time = int(s.get("t"))
+                    for _ in range(1 + (int(s.get("r") or 0))):
+                        seg_time_list.append(current_time)
+                        current_time += int(s.get("d"))
+                seg_num_list = list(range(start_number, len(seg_time_list) + start_number))
 
-                    for s in range(start_number, start_number + total_segments):
-                        segments.append((
-                            DASH.replace_fields(
-                                segment_template.get("media"),
-                                Bandwidth=representation.get("bandwidth"),
-                                Number=s,
-                                RepresentationID=representation.get("id"),
-                                Time=s
-                            ), None
-                        ))
-            elif segment_list is not None:
-                init_data = None
-                initialization = segment_list.find("Initialization")
-                if initialization is not None:
-                    source_url = initialization.get("sourceURL")
-                    if not source_url or not re.match("^https?://", source_url, re.IGNORECASE):
-                        source_url = urljoin(rep_base_url, f"./{source_url}")
-
-                    if initialization.get("range"):
-                        init_range_header = {"Range": f"bytes={initialization.get('range')}"}
-                    else:
-                        init_range_header = None
-
-                    res = session.get(url=source_url, headers=init_range_header)
-                    res.raise_for_status()
-                    init_data = res.content
-                    track_kid = track.get_key_id(init_data)
-
-                segment_urls = segment_list.findall("SegmentURL")
-                for segment_url in segment_urls:
-                    media_url = segment_url.get("media")
-                    if not media_url or not re.match("^https?://", media_url, re.IGNORECASE):
-                        media_url = urljoin(rep_base_url, f"./{media_url}")
-
+                for t, n in zip(seg_time_list, seg_num_list):
                     segments.append((
-                        media_url,
-                        segment_url.get("mediaRange")
+                        DASH.replace_fields(
+                            segment_template.get("media"),
+                            Bandwidth=representation.get("bandwidth"),
+                            Number=n,
+                            RepresentationID=representation.get("id"),
+                            Time=t
+                        ), None
                     ))
             else:
-                log.error("Could not find a way to get segments from this MPD manifest.")
-                log.debug(manifest_url)
-                sys.exit(1)
+                if not period_duration:
+                    raise ValueError("Duration of the Period was unable to be determined.")
+                period_duration = DASH.pt_to_sec(period_duration)
+                segment_duration = float(segment_template.get("duration"))
+                segment_timescale = float(segment_template.get("timescale") or 1)
+                total_segments = math.ceil(period_duration / (segment_duration / segment_timescale))
 
-            if not track.drm and isinstance(track, (Video, Audio)):
+                for s in range(start_number, start_number + total_segments):
+                    segments.append((
+                        DASH.replace_fields(
+                            segment_template.get("media"),
+                            Bandwidth=representation.get("bandwidth"),
+                            Number=s,
+                            RepresentationID=representation.get("id"),
+                            Time=s
+                        ), None
+                    ))
+        elif segment_list is not None:
+            init_data = None
+            initialization = segment_list.find("Initialization")
+            if initialization is not None:
+                source_url = initialization.get("sourceURL")
+                if not source_url or not re.match("^https?://", source_url, re.IGNORECASE):
+                    source_url = urljoin(rep_base_url, f"./{source_url}")
+
+                if initialization.get("range"):
+                    init_range_header = {"Range": f"bytes={initialization.get('range')}"}
+                else:
+                    init_range_header = None
+
+                res = session.get(url=source_url, headers=init_range_header)
+                res.raise_for_status()
+                init_data = res.content
+                track_kid = track.get_key_id(init_data)
+
+            segment_urls = segment_list.findall("SegmentURL")
+            for segment_url in segment_urls:
+                media_url = segment_url.get("media")
+                if not media_url or not re.match("^https?://", media_url, re.IGNORECASE):
+                    media_url = urljoin(rep_base_url, f"./{media_url}")
+
+                segments.append((
+                    media_url,
+                    segment_url.get("mediaRange")
+                ))
+        elif segment_base is not None:
+            media_range = None
+            init_data = None
+            initialization = segment_base.find("Initialization")
+            if initialization is not None:
+                if initialization.get("range"):
+                    init_range_header = {"Range": f"bytes={initialization.get('range')}"}
+                else:
+                    init_range_header = None
+
+                res = session.get(url=rep_base_url, headers=init_range_header)
+                res.raise_for_status()
+                init_data = res.content
+                track_kid = track.get_key_id(init_data)
+                total_size = res.headers.get("Content-Range", "").split("/")[-1]
+                if total_size:
+                    media_range = f"{len(init_data)}-{total_size}"
+
+            segments.append((
+                rep_base_url,
+                media_range
+            ))
+        elif rep_base_url:
+            segments.append((
+                rep_base_url,
+                None
+            ))
+        else:
+            log.error("Could not find a way to get segments from this MPD manifest.")
+            log.debug(manifest_url)
+            sys.exit(1)
+
+        if not track.drm and isinstance(track, (Video, Audio)):
+            try:
+                track.drm = [Widevine.from_init_data(init_data)]
+            except Widevine.Exceptions.PSSHNotFound:
+                # it might not have Widevine DRM, or might not have found the PSSH
+                log.warning("No Widevine PSSH was found for this track, is it DRM free?")
+
+        if track.drm:
+            # last chance to find the KID, assumes first segment will hold the init data
+            track_kid = track_kid or track.get_key_id(url=segments[0][0], session=session)
+            # TODO: What if we don't want to use the first DRM system?
+            drm = track.drm[0]
+            if isinstance(drm, Widevine):
+                # license and grab content keys
                 try:
-                    track.drm = [Widevine.from_init_data(init_data)]
-                except Widevine.Exceptions.PSSHNotFound:
-                    # it might not have Widevine DRM, or might not have found the PSSH
-                    log.warning("No Widevine PSSH was found for this track, is it DRM free?")
+                    if not license_widevine:
+                        raise ValueError("license_widevine func must be supplied to use Widevine DRM")
+                    progress(downloaded="LICENSING")
+                    license_widevine(drm, track_kid=track_kid)
+                    progress(downloaded="[yellow]LICENSED")
+                except Exception:  # noqa
+                    DOWNLOAD_CANCELLED.set()  # skip pending track downloads
+                    progress(downloaded="[red]FAILED")
+                    raise
+        else:
+            drm = None
 
-            if track.drm:
-                # last chance to find the KID, assumes first segment will hold the init data
-                track_kid = track_kid or track.get_key_id(url=segments[0][0], session=session)
-                # TODO: What if we don't want to use the first DRM system?
-                drm = track.drm[0]
-                if isinstance(drm, Widevine):
-                    # license and grab content keys
-                    try:
-                        if not license_widevine:
-                            raise ValueError("license_widevine func must be supplied to use Widevine DRM")
-                        progress(downloaded="LICENSING")
-                        license_widevine(drm, track_kid=track_kid)
-                        progress(downloaded="[yellow]LICENSED")
-                    except Exception:  # noqa
-                        DOWNLOAD_CANCELLED.set()  # skip pending track downloads
-                        progress(downloaded="[red]FAILED")
-                        raise
-            else:
-                drm = None
+        if DOWNLOAD_LICENCE_ONLY.is_set():
+            progress(downloaded="[yellow]SKIPPED")
+            return
 
-            if DOWNLOAD_LICENCE_ONLY.is_set():
-                progress(downloaded="[yellow]SKIPPED")
-                return
+        progress(total=len(segments))
 
-            progress(total=len(segments))
+        download_sizes = []
+        download_speed_window = 5
+        last_speed_refresh = time.time()
 
-            download_sizes = []
-            download_speed_window = 5
-            last_speed_refresh = time.time()
+        with ThreadPoolExecutor(max_workers=16) as pool:
+            for i, download in enumerate(futures.as_completed((
+                pool.submit(
+                    DASH.download_segment,
+                    url=url,
+                    out_path=(save_dir / str(n).zfill(len(str(len(segments))))).with_suffix(".mp4"),
+                    track=track,
+                    proxy=proxy,
+                    headers=session.headers,
+                    cookies=session.cookies,
+                    bytes_range=bytes_range
+                )
+                for n, (url, bytes_range) in enumerate(segments)
+            ))):
+                try:
+                    download_size = download.result()
+                except KeyboardInterrupt:
+                    DOWNLOAD_CANCELLED.set()  # skip pending track downloads
+                    progress(downloaded="[yellow]CANCELLING")
+                    pool.shutdown(wait=True, cancel_futures=True)
+                    progress(downloaded="[yellow]CANCELLED")
+                    # tell dl that it was cancelled
+                    # the pool is already shut down, so exiting loop is fine
+                    raise
+                except Exception:
+                    DOWNLOAD_CANCELLED.set()  # skip pending track downloads
+                    progress(downloaded="[red]FAILING")
+                    pool.shutdown(wait=True, cancel_futures=True)
+                    progress(downloaded="[red]FAILED")
+                    # tell dl that it failed
+                    # the pool is already shut down, so exiting loop is fine
+                    raise
+                else:
+                    progress(advance=1)
 
-            with ThreadPoolExecutor(max_workers=16) as pool:
-                for i, download in enumerate(futures.as_completed((
-                    pool.submit(
-                        DASH.download_segment,
-                        url=url,
-                        out_path=(save_dir / str(n).zfill(len(str(len(segments))))).with_suffix(".mp4"),
-                        track=track,
-                        proxy=proxy,
-                        headers=session.headers,
-                        cookies=session.cookies,
-                        bytes_range=bytes_range
-                    )
-                    for n, (url, bytes_range) in enumerate(segments)
-                ))):
-                    try:
-                        download_size = download.result()
-                    except KeyboardInterrupt:
-                        DOWNLOAD_CANCELLED.set()  # skip pending track downloads
-                        progress(downloaded="[yellow]CANCELLING")
-                        pool.shutdown(wait=True, cancel_futures=True)
-                        progress(downloaded="[yellow]CANCELLED")
-                        # tell dl that it was cancelled
-                        # the pool is already shut down, so exiting loop is fine
-                        raise
-                    except Exception:
-                        DOWNLOAD_CANCELLED.set()  # skip pending track downloads
-                        progress(downloaded="[red]FAILING")
-                        pool.shutdown(wait=True, cancel_futures=True)
-                        progress(downloaded="[red]FAILED")
-                        # tell dl that it failed
-                        # the pool is already shut down, so exiting loop is fine
-                        raise
-                    else:
-                        progress(advance=1)
+                    now = time.time()
+                    time_since = now - last_speed_refresh
 
-                        now = time.time()
-                        time_since = now - last_speed_refresh
+                    if download_size:  # no size == skipped dl
+                        download_sizes.append(download_size)
 
-                        if download_size:  # no size == skipped dl
-                            download_sizes.append(download_size)
+                    if download_sizes and (time_since > download_speed_window or i == len(segments)):
+                        data_size = sum(download_sizes)
+                        download_speed = data_size / (time_since or 1)
+                        progress(downloaded=f"DASH {filesize.decimal(download_speed)}/s")
+                        last_speed_refresh = now
+                        download_sizes.clear()
 
-                        if download_sizes and (time_since > download_speed_window or i == len(segments)):
-                            data_size = sum(download_sizes)
-                            download_speed = data_size / (time_since or 1)
-                            progress(downloaded=f"DASH {filesize.decimal(download_speed)}/s")
-                            last_speed_refresh = now
-                            download_sizes.clear()
+        with open(save_path, "wb") as f:
+            if init_data:
+                f.write(init_data)
+            for segment_file in sorted(save_dir.iterdir()):
+                segment_data = segment_file.read_bytes()
+                # TODO: fix encoding after decryption?
+                if (
+                    not drm and isinstance(track, Subtitle) and
+                    track.codec not in (Subtitle.Codec.fVTT, Subtitle.Codec.fTTML)
+                ):
+                    segment_data = try_ensure_utf8(segment_data)
+                    segment_data = html.unescape(segment_data.decode("utf8")).encode("utf8")
+                f.write(segment_data)
+                segment_file.unlink()
 
-            with open(save_path, "wb") as f:
-                if init_data:
-                    f.write(init_data)
-                for segment_file in sorted(save_dir.iterdir()):
-                    segment_data = segment_file.read_bytes()
-                    # TODO: fix encoding after decryption?
-                    if (
-                        not drm and isinstance(track, Subtitle) and
-                        track.codec not in (Subtitle.Codec.fVTT, Subtitle.Codec.fTTML)
-                    ):
-                        segment_data = try_ensure_utf8(segment_data)
-                        segment_data = html.unescape(segment_data.decode("utf8")).encode("utf8")
-                    f.write(segment_data)
-                    segment_file.unlink()
+        if drm:
+            progress(downloaded="Decrypting", completed=0, total=100)
+            drm.decrypt(save_path)
+            track.drm = None
+            if callable(track.OnDecrypted):
+                track.OnDecrypted(track)
+            progress(downloaded="Decrypted", completed=100)
 
-            if drm:
-                progress(downloaded="Decrypting", completed=0, total=100)
-                drm.decrypt(save_path)
-                track.drm = None
-                if callable(track.OnDecrypted):
-                    track.OnDecrypted(track)
-                progress(downloaded="Decrypted", completed=100)
+        track.path = save_path
+        save_dir.rmdir()
 
-            track.path = save_path
-            save_dir.rmdir()
-
-            progress(downloaded="Downloaded")
+        progress(downloaded="Downloaded")
 
     @staticmethod
     def download_segment(

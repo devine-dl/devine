@@ -856,8 +856,7 @@ class dl:
                     proxy=proxy,
                     license_widevine=prepare_drm
                 )
-            # no else-if as DASH may convert the track to URL descriptor
-            if track.descriptor == track.Descriptor.URL:
+            elif track.descriptor == track.Descriptor.URL:
                 try:
                     if not track.drm and isinstance(track, (Video, Audio)):
                         # the service might not have explicitly defined the `drm` property
