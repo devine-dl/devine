@@ -39,6 +39,7 @@ class Config:
         self.dl: dict = kwargs.get("dl") or {}
         self.aria2c: dict = kwargs.get("aria2c") or {}
         self.cdm: dict = kwargs.get("cdm") or {}
+        self.chapter_fallback_name: str = kwargs.get("chapter_fallback_name") or ""
         self.curl_impersonate: dict = kwargs.get("curl_impersonate") or {}
         self.remote_cdm: list[dict] = kwargs.get("remote_cdm") or []
         self.credentials: dict = kwargs.get("credentials") or {}

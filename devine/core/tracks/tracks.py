@@ -6,7 +6,6 @@ from functools import partial
 from pathlib import Path
 from typing import Callable, Iterator, Optional, Sequence, Union
 
-from Cryptodome.Random import get_random_bytes
 from langcodes import Language, closest_supported_match
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeRemainingColumn
 from rich.table import Table
@@ -16,7 +15,7 @@ from devine.core.config import config
 from devine.core.console import console
 from devine.core.constants import LANGUAGE_MAX_DISTANCE, LANGUAGE_MUX_MAP, AnyTrack, TrackT
 from devine.core.tracks.audio import Audio
-from devine.core.tracks.chapter import Chapter
+from devine.core.tracks.chapters import Chapter, Chapters
 from devine.core.tracks.subtitle import Subtitle
 from devine.core.tracks.track import Track
 from devine.core.tracks.video import Video
@@ -41,7 +40,7 @@ class Tracks:
         self.videos: list[Video] = []
         self.audio: list[Audio] = []
         self.subtitles: list[Subtitle] = []
-        self.chapters: list[Chapter] = []
+        self.chapters = Chapters()
 
         if args:
             self.add(args)
@@ -137,7 +136,7 @@ class Tracks:
 
     def add(
         self,
-        tracks: Union[Tracks, Sequence[Union[AnyTrack, Chapter]], Track, Chapter],
+        tracks: Union[Tracks, Sequence[Union[AnyTrack, Chapter, Chapters]], Track, Chapter, Chapters],
         warn_only: bool = False
     ) -> None:
         """Add a provided track to its appropriate array and ensuring it's not a duplicate."""
@@ -166,7 +165,7 @@ class Tracks:
             elif isinstance(track, Subtitle):
                 self.subtitles.append(track)
             elif isinstance(track, Chapter):
-                self.chapters.append(track)
+                self.chapters.add(track)
             else:
                 raise ValueError("Track type was not set or is invalid.")
 
@@ -243,13 +242,6 @@ class Tracks:
                 continue
             self.subtitles.sort(key=lambda x: is_close_match(language, [x.language]), reverse=True)
 
-    def sort_chapters(self) -> None:
-        """Sort chapter tracks by chapter number."""
-        if not self.chapters:
-            return
-        # number
-        self.chapters.sort(key=lambda x: x.number)
-
     def select_video(self, x: Callable[[Video], bool]) -> None:
         self.videos = list(filter(x, self.videos))
 
@@ -288,16 +280,6 @@ class Tracks:
                 if closest_supported_match(x.language, [language], LANGUAGE_MAX_DISTANCE)
             ][:per_language or None])
         return selected
-
-    def export_chapters(self, to_file: Optional[Union[Path, str]] = None) -> str:
-        """Export all chapters in order to a string or file."""
-        self.sort_chapters()
-        data = "\n".join(map(repr, self.chapters))
-        if to_file:
-            to_file = Path(to_file)
-            to_file.parent.mkdir(parents=True, exist_ok=True)
-            to_file.write_text(data, encoding="utf8")
-        return data
 
     def mux(self, title: str, delete: bool = True, progress: Optional[partial] = None) -> tuple[Path, int]:
         """
@@ -373,9 +355,9 @@ class Tracks:
         if self.chapters:
             chapters_path = config.directories.temp / config.filenames.chapters.format(
                 title=sanitize_filename(title),
-                random=get_random_bytes(16).hex()
+                random=self.chapters.id
             )
-            self.export_chapters(chapters_path)
+            self.chapters.dump(chapters_path, fallback_name=config.chapter_fallback_name)
             cl.extend(["--chapter-charset", "UTF-8", "--chapters", str(chapters_path)])
         else:
             chapters_path = None

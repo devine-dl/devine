@@ -67,6 +67,21 @@ DSNP:
 default: chromecdm_903_l3
 ```
 
+## chapter_fallback_name (str)
+
+The Chapter Name to use when exporting a Chapter without a Name.
+The default is no fallback name at all and no Chapter name will be set.
+
+The fallback name can use the following variables in f-string style:
+
+- `{i}`: The Chapter number starting at 1.
+         E.g., `"Chapter {i}"`: "Chapter 1", "Intro", "Chapter 3".
+- `{j}`: A number starting at 1 that increments any time a Chapter has no title.
+         E.g., `"Chapter {j}"`: "Chapter 1", "Intro", "Chapter 2".
+
+These are formatted with f-strings, directives are supported.
+For example, `"Chapter {i:02}"` will result in `"Chapter 01"`.
+
 ## credentials (dict[str, str|list|dict])
 
 Specify login credentials to use for each Service, and optionally per-profile.

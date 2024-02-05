@@ -328,7 +328,7 @@ class dl:
 
             with console.status("Getting tracks...", spinner="dots"):
                 title.tracks.add(service.get_tracks(title), warn_only=True)
-                title.tracks.add(service.get_chapters(title))
+                title.tracks.chapters = service.get_chapters(title)
 
             # strip SDH subs to non-SDH if no equivalent same-lang non-SDH is available
             # uses a loose check, e.g, wont strip en-US SDH sub if a non-SDH en-GB is available
@@ -348,7 +348,6 @@ class dl:
                 title.tracks.sort_videos(by_language=v_lang or lang)
                 title.tracks.sort_audio(by_language=lang)
                 title.tracks.sort_subtitles(by_language=s_lang)
-                title.tracks.sort_chapters()
 
             if list_:
                 available_tracks, _ = title.tracks.tree()

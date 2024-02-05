@@ -17,7 +17,7 @@ from devine.core.console import console
 from devine.core.constants import AnyTrack
 from devine.core.credential import Credential
 from devine.core.titles import Title_T, Titles_T
-from devine.core.tracks import Chapter, Tracks
+from devine.core.tracks import Chapters, Tracks
 from devine.core.utilities import get_ip_info
 
 
@@ -207,24 +207,22 @@ class Service(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def get_chapters(self, title: Title_T) -> list[Chapter]:
+    def get_chapters(self, title: Title_T) -> Chapters:
         """
-        Get Chapter objects of the Title.
+        Get Chapters for the Title.
 
-        Return a list of Chapter objects. This will be run after get_tracks. If there's anything
-        from the get_tracks that may be needed, e.g. "device_id" or a-like, store it in the class
-        via `self` and re-use the value in get_chapters.
+        Parameters:
+            title: The current Title from `get_titles` that is being processed.
 
-        How it's used is generally the same as get_titles. These are only separated as to reduce
-        function complexity and keep them focused on simple tasks.
+        You must return a Chapters object containing 0 or more Chapter objects.
 
-        You do not need to sort or order the chapters in any way. However, you do need to filter
-        and alter them as needed by the service. No modification is made after get_chapters is
-        ran. So that means ensure that the Chapter objects returned have consistent Chapter Titles
-        and Chapter Numbers.
+        You do not need to set a Chapter number or sort/order the chapters in any way as
+        the Chapters class automatically handles all of that for you. If there's no
+        descriptive name for a Chapter then do not set a name at all.
 
-        :param title: The current `Title` from get_titles that is being executed.
-        :return: List of Chapter objects, if available, empty list otherwise.
+        You must not set Chapter names to "Chapter {n}" or such. If you (or the user)
+        wants "Chapter {n}" style Chapter names (or similar) then they can use the config
+        option `chapter_fallback_name`. For example, `"Chapter {i:02}"` for "Chapter 01".
         """
 
 
