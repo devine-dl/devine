@@ -565,6 +565,9 @@ class DASH:
             segmented=True
         )
 
+        if callable(track.OnSegmentDownloaded):
+            track.OnSegmentDownloaded(out_path)
+
         # fix audio decryption on ATVP by fixing the sample description index
         # TODO: Should this be done in the video data or the init data?
         if isinstance(track, Audio):

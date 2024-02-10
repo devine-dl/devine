@@ -484,6 +484,9 @@ class HLS:
             segmented=True
         )
 
+        if callable(track.OnSegmentDownloaded):
+            track.OnSegmentDownloaded(out_path)
+
         download_size = out_path.stat().st_size
 
         # fix audio decryption on ATVP by fixing the sample description index

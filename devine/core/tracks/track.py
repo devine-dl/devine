@@ -55,6 +55,8 @@ class Track:
         # TODO: Currently using OnFoo event naming, change to just segment_filter
         self.OnSegmentFilter: Optional[Callable] = None
 
+        # Called after one of the Track's segments have downloaded
+        self.OnSegmentDownloaded: Optional[Callable[[Path], None]] = None
         # Called after the Track has downloaded
         self.OnDownloaded: Optional[Callable] = None
         # Called after the Track or one of its segments have been decrypted
