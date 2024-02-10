@@ -341,7 +341,7 @@ class dl:
                     non_sdh_sub = deepcopy(subtitle)
                     non_sdh_sub.id += "_stripped"
                     non_sdh_sub.sdh = False
-                    non_sdh_sub.OnMultiplex = lambda x: x.strip_hearing_impaired()
+                    non_sdh_sub.OnMultiplex = lambda: non_sdh_sub.strip_hearing_impaired()
                     title.tracks.add(non_sdh_sub)
 
             with console.status("Sorting tracks by language and bitrate...", spinner="dots"):
@@ -585,7 +585,7 @@ class dl:
                             track.repackage()
                             has_repacked = True
                             if callable(track.OnRepacked):
-                                track.OnRepacked(track)
+                                track.OnRepacked()
                     if has_repacked:
                         # we don't want to fill up the log with "Repacked x track"
                         self.log.info("Repacked one or more tracks with FFMPEG")
@@ -899,7 +899,7 @@ class dl:
                             drm.decrypt(save_path)
                             track.drm = None
                             if callable(track.OnDecrypted):
-                                track.OnDecrypted(track)
+                                track.OnDecrypted()
                             progress(downloaded="Decrypted", completed=100)
 
                         if isinstance(track, Subtitle):
@@ -931,7 +931,7 @@ class dl:
                 raise IOError("Download failed, the downloaded file is empty.")
 
             if callable(track.OnDownloaded):
-                track.OnDownloaded(track)
+                track.OnDownloaded()
 
     @staticmethod
     def get_profile(service: str) -> Optional[str]:

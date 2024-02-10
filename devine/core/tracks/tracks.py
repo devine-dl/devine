@@ -304,7 +304,7 @@ class Tracks:
             if not vt.path or not vt.path.exists():
                 raise ValueError("Video Track must be downloaded before muxing...")
             if callable(vt.OnMultiplex):
-                vt.OnMultiplex(vt)
+                vt.OnMultiplex()
             cl.extend([
                 "--language", "0:{}".format(LANGUAGE_MUX_MAP.get(
                     str(vt.language), str(vt.language)
@@ -319,7 +319,7 @@ class Tracks:
             if not at.path or not at.path.exists():
                 raise ValueError("Audio Track must be downloaded before muxing...")
             if callable(at.OnMultiplex):
-                at.OnMultiplex(at)
+                at.OnMultiplex()
             cl.extend([
                 "--track-name", f"0:{at.get_track_name() or ''}",
                 "--language", "0:{}".format(LANGUAGE_MUX_MAP.get(
@@ -336,7 +336,7 @@ class Tracks:
             if not st.path or not st.path.exists():
                 raise ValueError("Text Track must be downloaded before muxing...")
             if callable(st.OnMultiplex):
-                st.OnMultiplex(st)
+                st.OnMultiplex()
             default = bool(self.audio and is_close_match(st.language, [self.audio[0].language]) and st.forced)
             cl.extend([
                 "--track-name", f"0:{st.get_track_name() or ''}",
