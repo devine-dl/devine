@@ -361,6 +361,8 @@ class HLS:
         progress(downloaded="Downloaded")
 
         track.path = save_path
+        if callable(track.OnDownloaded):
+            track.OnDownloaded()
 
     @staticmethod
     def download_segment(

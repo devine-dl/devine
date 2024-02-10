@@ -893,6 +893,8 @@ class dl:
                         )
 
                         track.path = save_path
+                        if callable(track.OnDownloaded):
+                            track.OnDownloaded()
 
                         if drm:
                             progress(downloaded="Decrypting", completed=0, total=100)
@@ -929,9 +931,6 @@ class dl:
         if not DOWNLOAD_LICENCE_ONLY.is_set():
             if track.path.stat().st_size <= 3:  # Empty UTF-8 BOM == 3 bytes
                 raise IOError("Download failed, the downloaded file is empty.")
-
-            if callable(track.OnDownloaded):
-                track.OnDownloaded()
 
     @staticmethod
     def get_profile(service: str) -> Optional[str]:

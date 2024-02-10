@@ -55,8 +55,7 @@ class Track:
         # TODO: Currently using OnFoo event naming, change to just segment_filter
         self.OnSegmentFilter: Optional[Callable] = None
 
-        # TODO: This should realistically be before decryption
-        # Called after the Track has been fully downloaded and decrypted
+        # Called after the Track has downloaded
         self.OnDownloaded: Optional[Callable] = None
         # Called after the Track or one of its segments have been decrypted
         self.OnDecrypted: Optional[Callable[[DRM_T, Optional[m3u8.Segment]], None]] = None

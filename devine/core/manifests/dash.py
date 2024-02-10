@@ -502,6 +502,10 @@ class DASH:
                 f.write(segment_data)
                 segment_file.unlink()
 
+        track.path = save_path
+        if callable(track.OnDownloaded):
+            track.OnDownloaded()
+
         if drm:
             progress(downloaded="Decrypting", completed=0, total=100)
             drm.decrypt(save_path)
@@ -510,7 +514,6 @@ class DASH:
                 track.OnDecrypted(drm)
             progress(downloaded="Decrypted", completed=100)
 
-        track.path = save_path
         save_dir.rmdir()
 
         progress(downloaded="Downloaded")
