@@ -8,7 +8,7 @@ TIMESTAMP_FORMAT = re.compile(r"^(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d
 
 
 class Chapter:
-    def __init__(self, timestamp: Union[str, int], name: Optional[str] = None):
+    def __init__(self, timestamp: Union[str, int, float], name: Optional[str] = None):
         """
         Create a new Chapter with a Timestamp and optional name.
 
@@ -25,8 +25,8 @@ class Chapter:
         if timestamp is None:
             raise ValueError("The timestamp must be provided.")
 
-        if not isinstance(timestamp, (str, int)):
-            raise TypeError(f"Expected timestamp to be {str} or {int}, not {type(timestamp)}")
+        if not isinstance(timestamp, (str, int, float)):
+            raise TypeError(f"Expected timestamp to be {str}, {int} or {float}, not {type(timestamp)}")
         if not isinstance(name, (str, type(None))):
             raise TypeError(f"Expected name to be {str}, not {type(name)}")
 
