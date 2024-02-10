@@ -6,7 +6,7 @@ from collections import defaultdict
 from enum import Enum
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Iterable, Optional
+from typing import Any, Callable, Iterable, Optional
 
 import pycaption
 from construct import Container
@@ -134,6 +134,9 @@ class Subtitle(Track):
         if (self.cc or self.sdh) and self.forced:
             raise ValueError("A text track cannot be CC/SDH as well as Forced.")
 
+        # Called after Track has been converted to another format
+        self.OnConverted: Optional[Callable[[Subtitle.Codec], None]] = None
+
     def get_track_name(self) -> Optional[str]:
         """Return the base Track Name."""
         track_name = super().get_track_name() or ""
@@ -213,6 +216,9 @@ class Subtitle(Track):
 
         self.swap(output_path)
         self.codec = codec
+
+        if callable(self.OnConverted):
+            self.OnConverted(codec)
 
         return output_path
 
