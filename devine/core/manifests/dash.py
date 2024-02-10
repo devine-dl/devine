@@ -507,7 +507,7 @@ class DASH:
             drm.decrypt(save_path)
             track.drm = None
             if callable(track.OnDecrypted):
-                track.OnDecrypted()
+                track.OnDecrypted(drm)
             progress(downloaded="Decrypted", completed=100)
 
         track.path = save_path

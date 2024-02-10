@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, Optional, Union
 from uuid import UUID
 
+import m3u8
 import requests
 from langcodes import Language
 
@@ -57,8 +58,8 @@ class Track:
         # TODO: This should realistically be before decryption
         # Called after the Track has been fully downloaded and decrypted
         self.OnDownloaded: Optional[Callable] = None
-        # Called after the Track or a Segment has been decrypted
-        self.OnDecrypted: Optional[Callable] = None
+        # Called after the Track or one of its segments have been decrypted
+        self.OnDecrypted: Optional[Callable[[DRM_T, Optional[m3u8.Segment]], None]] = None
         # Called after the Track has been repackaged
         self.OnRepacked: Optional[Callable] = None
         # Called before the Track is multiplexed

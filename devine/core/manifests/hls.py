@@ -511,7 +511,7 @@ class HLS:
             newest_segment_key[0].decrypt(out_path)
             track.drm = None
             if callable(track.OnDecrypted):
-                track.OnDecrypted()
+                track.OnDecrypted(newest_segment_key[0], segment)
 
         return download_size
 
