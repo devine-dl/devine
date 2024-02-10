@@ -51,11 +51,17 @@ class Track:
         self.edition: str = edition
         self.extra: Any = extra or {}  # allow anything for extra, but default to a dict
 
-        # events
+        # TODO: Currently using OnFoo event naming, change to just segment_filter
         self.OnSegmentFilter: Optional[Callable] = None
+
+        # TODO: This should realistically be before decryption
+        # Called after the Track has been fully downloaded and decrypted
         self.OnDownloaded: Optional[Callable] = None
+        # Called after the Track or a Segment has been decrypted
         self.OnDecrypted: Optional[Callable] = None
+        # Called after the Track has been repackaged
         self.OnRepacked: Optional[Callable] = None
+        # Called before the Track is multiplexed
         self.OnMultiplex: Optional[Callable] = None
 
         # should only be set internally
