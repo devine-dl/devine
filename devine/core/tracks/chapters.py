@@ -15,7 +15,7 @@ OGM_SIMPLE_LINE_2_FORMAT = re.compile(r"^CHAPTER(?P<number>\d+)NAME=(?P<name>.*)
 
 
 class Chapters(SortedKeyList, ABC):
-    def __init__(self, iterable: Optional[Iterable] = None):
+    def __init__(self, iterable: Optional[Iterable[Chapter]] = None):
         super().__init__(key=lambda x: x.timestamp or 0)
         for chapter in iterable or []:
             self.add(chapter)
