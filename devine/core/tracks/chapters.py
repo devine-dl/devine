@@ -10,8 +10,8 @@ from sortedcontainers import SortedKeyList
 
 from devine.core.tracks import Chapter
 
-OGM_SIMPLE_LINE_1_FORMAT = re.compile(r"^CHAPTER(?P<number>\d+)=(?P<timestamp>[\d\\.]+)$")
-OGM_SIMPLE_LINE_2_FORMAT = re.compile(r"^CHAPTER(?P<number>\d+)NAME=(?P<name>[\d\\.]+)$")
+OGM_SIMPLE_LINE_1_FORMAT = re.compile(r"^CHAPTER(?P<number>\d+)=(?P<timestamp>\d{2,}:\d{2}:\d{2}\.\d{3})$")
+OGM_SIMPLE_LINE_2_FORMAT = re.compile(r"^CHAPTER(?P<number>\d+)NAME=(?P<name>.*)$")
 
 
 class Chapters(SortedKeyList, ABC):
