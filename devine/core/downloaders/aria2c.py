@@ -212,8 +212,8 @@ def download(
                 secret=rpc_secret,
                 method="aria2.tellStopped",
                 params=[0, 999999]
-            )
-            for dl in stopped_downloads or []:
+            ) or []
+            for dl in stopped_downloads:
                 if dl["status"] == "complete":
                     yield dict(advance=1)
                 elif dl["status"] == "error":
