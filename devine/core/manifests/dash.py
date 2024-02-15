@@ -441,7 +441,7 @@ class DASH:
                     "url": url,
                     "headers": {
                         "Range": f"bytes={bytes_range}"
-                    }
+                    } if bytes_range else {}
                 }
                 for url, bytes_range in segments
             ],
