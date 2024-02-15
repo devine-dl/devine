@@ -11,11 +11,11 @@ from concurrent import futures
 from concurrent.futures import ThreadPoolExecutor
 from copy import copy
 from functools import partial
-from hashlib import md5
 from pathlib import Path
 from typing import Any, Callable, MutableMapping, Optional, Union
 from urllib.parse import urljoin, urlparse
 from uuid import UUID
+from zlib import crc32
 
 import requests
 from langcodes import Language, tag_is_valid
@@ -195,14 +195,14 @@ class DASH:
                     # a good and actually unique track ID, sometimes because of the lang
                     # dialect not being represented in the id, or the bitrate, or such.
                     # this combines all of them as one and hashes it to keep it small(ish).
-                    track_id = md5("{codec}-{lang}-{bitrate}-{base_url}-{ids}-{track_args}".format(
+                    track_id = hex(crc32("{codec}-{lang}-{bitrate}-{base_url}-{ids}-{track_args}".format(
                         codec=codecs,
                         lang=track_lang,
                         bitrate=get("bitrate"),
                         base_url=(rep.findtext("BaseURL") or "").split("?")[0],
                         ids=[get("audioTrackId"), get("id"), period.get("id")],
                         track_args=track_args
-                    ).encode()).hexdigest()
+                    ).encode()))[2:]
 
                     tracks.add(track_type(
                         id_=track_id,

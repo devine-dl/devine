@@ -10,12 +10,12 @@ import time
 from concurrent import futures
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
-from hashlib import md5
 from pathlib import Path
 from queue import Queue
 from threading import Lock
 from typing import Any, Callable, Optional, Union
 from urllib.parse import urljoin
+from zlib import crc32
 
 import m3u8
 import requests
@@ -115,7 +115,7 @@ class HLS:
                 primary_track_type = Video
 
             tracks.add(primary_track_type(
-                id_=md5(str(playlist).encode()).hexdigest()[0:7],  # 7 chars only for filename length
+                id_=hex(crc32(str(playlist).encode()))[2:],
                 url=urljoin(playlist.base_uri, playlist.uri),
                 codec=primary_track_type.Codec.from_codecs(playlist.stream_info.codecs),
                 language=language,  # HLS manifests do not seem to have language info
@@ -166,7 +166,7 @@ class HLS:
                 raise ValueError(msg)
 
             tracks.add(track_type(
-                id_=md5(str(media).encode()).hexdigest()[0:6],  # 6 chars only for filename length
+                id_=hex(crc32(str(media).encode()))[2:],
                 url=urljoin(media.base_uri, media.uri),
                 codec=codec,
                 language=track_lang,  # HLS media may not have language info, fallback if needed
