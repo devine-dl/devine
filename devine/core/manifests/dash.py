@@ -461,10 +461,13 @@ class DASH:
                     status_update["downloaded"] = f"DASH {downloaded}"
                 progress(**status_update)
 
+        segments_to_merge = sorted(save_dir.iterdir())
+        progress(downloaded="Merging", completed=0, total=len(segments_to_merge))
+
         with open(save_path, "wb") as f:
             if init_data:
                 f.write(init_data)
-            for segment_file in sorted(save_dir.iterdir()):
+            for segment_file in segments_to_merge:
                 segment_data = segment_file.read_bytes()
                 # TODO: fix encoding after decryption?
                 if (
@@ -475,6 +478,7 @@ class DASH:
                     segment_data = html.unescape(segment_data.decode("utf8")).encode("utf8")
                 f.write(segment_data)
                 segment_file.unlink()
+                progress(advance=1)
 
         track.path = save_path
         if callable(track.OnDownloaded):
@@ -486,7 +490,7 @@ class DASH:
             track.drm = None
             if callable(track.OnDecrypted):
                 track.OnDecrypted(drm)
-            progress(downloaded="Decrypted", completed=100)
+            progress(downloaded="Decrypting", advance=100)
 
         save_dir.rmdir()
 
