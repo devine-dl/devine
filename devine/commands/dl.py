@@ -883,14 +883,17 @@ class dl:
                     if DOWNLOAD_LICENCE_ONLY.is_set():
                         progress(downloaded="[yellow]SKIPPED")
                     else:
-                        downloader(
-                            uri=track.url,
-                            out=save_path,
+                        for status_update in downloader(
+                            urls=track.url,
+                            output_dir=save_path.parent,
+                            filename=save_path.name,
                             headers=service.session.headers,
                             cookies=service.session.cookies,
-                            proxy=proxy,
-                            progress=progress
-                        )
+                            proxy=proxy
+                        ):
+                            file_downloaded = status_update.get("file_downloaded")
+                            if not file_downloaded:
+                                progress(**status_update)
 
                         track.path = save_path
                         if callable(track.OnDownloaded):
