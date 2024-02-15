@@ -202,8 +202,10 @@ def download(
                 secret=rpc_secret,
                 method="aria2.getGlobalStat"
             )
+            number_stopped = int(global_stats["numStoppedTotal"])
             if global_stats:
                 yield dict(
+                    completed=number_stopped,
                     downloaded=f"{filesize.decimal(int(global_stats['downloadSpeed']))}/s"
                 )
 
@@ -214,9 +216,7 @@ def download(
                 params=[0, 999999]
             ) or []
             for dl in stopped_downloads:
-                if dl["status"] == "complete":
-                    yield dict(advance=1)
-                elif dl["status"] == "error":
+                if dl["status"] == "error":
                     used_uri = next(
                         uri["uri"]
                         for file in dl["files"]
