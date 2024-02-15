@@ -332,7 +332,7 @@ class HLS:
                 """
                 drm = encryption_data[2]
                 first_segment_i = encryption_data[0]
-                last_segment_i = i - int(not include_this_segment)
+                last_segment_i = max(0, i - int(not include_this_segment))
 
                 segment_range = f"{str(first_segment_i).zfill(name_len)}-{str(last_segment_i).zfill(name_len)}"
                 merged_path = segment_save_dir / f"{segment_range}{Path(segments[last_segment_i].uri).suffix}"
