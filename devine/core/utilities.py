@@ -3,6 +3,7 @@ import contextlib
 import importlib.util
 import re
 import shutil
+import socket
 import sys
 import time
 import unicodedata
@@ -10,11 +11,9 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from types import ModuleType
-from typing import AsyncIterator, Optional, Sequence, Union
-from urllib.parse import urlparse
+from typing import Optional, Sequence, Union
 
 import chardet
-import pproxy
 import requests
 from construct import ValidationError
 from langcodes import Language, closest_match
@@ -244,35 +243,17 @@ def try_ensure_utf8(data: bytes) -> bytes:
                 return data
 
 
-@contextlib.asynccontextmanager
-async def start_pproxy(proxy: str) -> AsyncIterator[str]:
-    proxy = urlparse(proxy)
+def get_free_port() -> int:
+    """
+    Get an available port to use between a-b (inclusive).
 
-    scheme = {
-        "https": "http+ssl",
-        "socks5h": "socks"
-    }.get(proxy.scheme, proxy.scheme)
-
-    remote_server = f"{scheme}://{proxy.hostname}"
-    if proxy.port:
-        remote_server += f":{proxy.port}"
-    if proxy.username or proxy.password:
-        remote_server += "#"
-    if proxy.username:
-        remote_server += proxy.username
-    if proxy.password:
-        remote_server += f":{proxy.password}"
-
-    server = pproxy.Server("http://localhost:0")  # random port
-    remote = pproxy.Connection(remote_server)
-    handler = await server.start_server({"rserver": [remote]})
-
-    try:
-        port = handler.sockets[0].getsockname()[1]
-        yield f"http://localhost:{port}"
-    finally:
-        handler.close()
-        await handler.wait_closed()
+    The port is freed as soon as this has returned, therefore, it
+    is possible for the port to be taken before you try to use it.
+    """
+    with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        s.bind(("", 0))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return s.getsockname()[1]
 
 
 class FPS(ast.NodeVisitor):
