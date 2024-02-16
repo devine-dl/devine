@@ -414,7 +414,7 @@ class HLS:
 
             if segment.keys:
                 key = HLS.get_supported_key(segment.keys)
-                if encryption_data and encryption_data[1] != key:
+                if encryption_data and encryption_data[1] != key and i != 0:
                     decrypt(include_this_segment=False)
 
                 if key is None:
