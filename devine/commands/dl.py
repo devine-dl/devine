@@ -13,7 +13,7 @@ from concurrent import futures
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from functools import partial
-from http.cookiejar import MozillaCookieJar
+from http.cookiejar import CookieJar, MozillaCookieJar
 from itertools import zip_longest
 from pathlib import Path
 from threading import Lock
@@ -28,7 +28,6 @@ from pymediainfo import MediaInfo
 from pywidevine.cdm import Cdm as WidevineCdm
 from pywidevine.device import Device
 from pywidevine.remotecdm import RemoteCdm
-from requests.cookies import RequestsCookieJar
 from rich.console import Group
 from rich.live import Live
 from rich.padding import Padding
@@ -982,7 +981,7 @@ class dl:
             return cookie_jar
 
     @staticmethod
-    def save_cookies(path: Path, cookies: RequestsCookieJar):
+    def save_cookies(path: Path, cookies: CookieJar):
         cookie_jar = MozillaCookieJar(path)
         cookie_jar.load()
         for cookie in cookies:

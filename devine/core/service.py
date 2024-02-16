@@ -1,7 +1,7 @@
 import base64
 import logging
 from abc import ABCMeta, abstractmethod
-from http.cookiejar import CookieJar, MozillaCookieJar
+from http.cookiejar import CookieJar
 from typing import Optional, Union
 from urllib.parse import urlparse
 
@@ -104,7 +104,7 @@ class Service(metaclass=ABCMeta):
         session.mount("http://", session.adapters["https://"])
         return session
 
-    def authenticate(self, cookies: Optional[MozillaCookieJar] = None, credential: Optional[Credential] = None) -> None:
+    def authenticate(self, cookies: Optional[CookieJar] = None, credential: Optional[Credential] = None) -> None:
         """
         Authenticate the Service with Cookies and/or Credentials (Email/Username and Password).
 
@@ -120,7 +120,7 @@ class Service(metaclass=ABCMeta):
         """
         if cookies is not None:
             if not isinstance(cookies, CookieJar):
-                raise TypeError(f"Expected cookies to be a {MozillaCookieJar}, not {cookies!r}.")
+                raise TypeError(f"Expected cookies to be a {CookieJar}, not {cookies!r}.")
             self.session.cookies.update(cookies)
 
     def get_widevine_service_certificate(self, *, challenge: bytes, title: Title_T, track: AnyTrack) \

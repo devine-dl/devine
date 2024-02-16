@@ -2,11 +2,11 @@ import math
 import time
 from concurrent import futures
 from concurrent.futures.thread import ThreadPoolExecutor
+from http.cookiejar import CookieJar
 from pathlib import Path
 from typing import Any, Generator, MutableMapping, Optional, Union
 
 from requests import Session
-from requests.cookies import RequestsCookieJar
 from rich import filesize
 
 from devine.core.constants import DOWNLOAD_CANCELLED
@@ -131,7 +131,7 @@ def requests(
     output_dir: Path,
     filename: str,
     headers: Optional[MutableMapping[str, Union[str, bytes]]] = None,
-    cookies: Optional[Union[MutableMapping[str, str], RequestsCookieJar]] = None,
+    cookies: Optional[Union[MutableMapping[str, str], CookieJar]] = None,
     proxy: Optional[str] = None,
     max_workers: Optional[int] = None
 ) -> Generator[dict[str, Any], None, None]:
@@ -182,8 +182,8 @@ def requests(
     if not isinstance(headers, (MutableMapping, type(None))):
         raise TypeError(f"Expected headers to be {MutableMapping}, not {type(headers)}")
 
-    if not isinstance(cookies, (MutableMapping, RequestsCookieJar, type(None))):
-        raise TypeError(f"Expected cookies to be {MutableMapping} or {RequestsCookieJar}, not {type(cookies)}")
+    if not isinstance(cookies, (MutableMapping, CookieJar, type(None))):
+        raise TypeError(f"Expected cookies to be {MutableMapping} or {CookieJar}, not {type(cookies)}")
 
     if not isinstance(proxy, (str, type(None))):
         raise TypeError(f"Expected proxy to be {str}, not {type(proxy)}")
