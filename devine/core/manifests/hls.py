@@ -333,18 +333,25 @@ class HLS:
                 drm = encryption_data[2]
                 first_segment_i = encryption_data[0]
                 last_segment_i = max(0, i - int(not include_this_segment))
+                range_len = (last_segment_i - first_segment_i) + 1
 
                 segment_range = f"{str(first_segment_i).zfill(name_len)}-{str(last_segment_i).zfill(name_len)}"
                 merged_path = segment_save_dir / f"{segment_range}{Path(segments[last_segment_i].uri).suffix}"
                 decrypted_path = segment_save_dir / f"{merged_path.stem}_decrypted{merged_path.suffix}"
 
+                files = [
+                    file
+                    for file in sorted(segment_save_dir.iterdir())
+                    if file.stem.isdigit() and first_segment_i <= int(file.stem) <= last_segment_i
+                ]
+                if not files:
+                    raise ValueError(f"None of the segment files for {segment_range} exist...")
+                elif len(files) != range_len:
+                    raise ValueError(f"Missing {range_len - len(files)} segment files for {segment_range}...")
+
                 merge(
                     to=merged_path,
-                    via=[
-                        file
-                        for file in sorted(segment_save_dir.iterdir())
-                        if file.stem.isdigit() and first_segment_i <= int(file.stem) <= last_segment_i
-                    ],
+                    via=files,
                     delete=True,
                     include_map_data=True
                 )
