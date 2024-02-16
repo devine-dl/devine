@@ -412,7 +412,6 @@ class HLS:
                 discon_i += 1
                 range_offset = 0  # TODO: Should this be reset or not?
                 map_data = None
-                encryption_data = None  # TODO: Should this be reset or not?
 
             if segment.init_section and (not map_data or segment.init_section != map_data[0]):
                 if segment.init_section.byterange:
