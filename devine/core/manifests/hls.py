@@ -481,10 +481,11 @@ class HLS:
         else:
             with open(save_path, "wb") as f:
                 for discontinuity_file in sorted(save_dir.iterdir()):
+                    if discontinuity_file.is_dir():
+                        continue
                     discontinuity_data = discontinuity_file.read_bytes()
                     f.write(discontinuity_data)
-                    discontinuity_file.unlink()
-            save_dir.rmdir()
+            shutil.rmtree(save_dir)
 
         progress(downloaded="Downloaded")
 
