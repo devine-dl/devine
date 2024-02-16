@@ -382,7 +382,7 @@ class HLS:
                         encode("utf8")
                 segment_file_path.write_bytes(segment_data)
 
-            if segment.discontinuity:
+            if segment.discontinuity and i != 0:
                 if encryption_data:
                     decrypt(include_this_segment=False)
                 merge_discontinuity()
