@@ -364,20 +364,35 @@ class HLS:
 
                 return decrypted_path
 
-            def merge_discontinuity():
-                """Merge all files in the segment save directory so far."""
-                files = list(sorted(segment_save_dir.iterdir()))
+            def merge_discontinuity(include_this_segment: bool):
+                """
+                Merge all segments of the discontinuity.
 
-                to_dir = segment_save_dir.parent
-                to_path = to_dir / f"{str(discon_i).zfill(name_len)}{files[-1].suffix}"
+                All segment files for this discontinuity must already be downloaded and
+                already decrypted (if it needs to be decrypted).
 
-                merge(
-                    to=to_path,
-                    via=files,
-                    delete=True,
-                    include_map_data=True
-                )
-                segment_save_dir.rmdir()
+                Parameters:
+                    include_this_segment: Whether to include the current segment in the
+                        list of segments to merge and decrypt. This should be False if
+                        decrypting on EXT-X-KEY changes, or True when decrypting on the
+                        last segment.
+                """
+                last_segment_i = max(0, i - int(not include_this_segment))
+
+                files = [
+                    file
+                    for file in sorted(segment_save_dir.iterdir())
+                    if int(file.stem.replace("_decrypted", "").split("-")[-1]) <= last_segment_i
+                ]
+                if files:
+                    to_dir = segment_save_dir.parent
+                    to_path = to_dir / f"{str(discon_i).zfill(name_len)}{files[-1].suffix}"
+                    merge(
+                        to=to_path,
+                        via=files,
+                        delete=True,
+                        include_map_data=True
+                    )
 
             if isinstance(track, Subtitle):
                 segment_data = try_ensure_utf8(segment_file_path.read_bytes())
@@ -392,7 +407,7 @@ class HLS:
             if segment.discontinuity and i != 0:
                 if encryption_data:
                     decrypt(include_this_segment=False)
-                merge_discontinuity()
+                merge_discontinuity(include_this_segment=False)
 
                 discon_i += 1
                 range_offset = 0  # TODO: Should this be reset or not?
@@ -446,7 +461,7 @@ class HLS:
                 # required as it won't end with EXT-X-DISCONTINUITY nor a new key
                 if encryption_data:
                     decrypt(include_this_segment=True)
-                merge_discontinuity()
+                merge_discontinuity(include_this_segment=True)
 
             progress(advance=1)
 
