@@ -201,13 +201,15 @@ def download(
                 caller=partial(rpc_session.post, url=rpc_uri),
                 secret=rpc_secret,
                 method="aria2.getGlobalStat"
-            )
-            number_stopped = int(global_stats["numStoppedTotal"])
-            if global_stats:
-                yield dict(
-                    completed=number_stopped,
-                    downloaded=f"{filesize.decimal(int(global_stats['downloadSpeed']))}/s"
-                )
+            ) or {}
+
+            number_stopped = int(global_stats.get("numStoppedTotal", 0))
+            download_speed = int(global_stats.get("downloadSpeed", -1))
+
+            if number_stopped:
+                yield dict(completed=number_stopped)
+            if download_speed != -1:
+                yield dict(downloaded=f"{filesize.decimal(download_speed)}/s")
 
             stopped_downloads: list[dict[str, Any]] = rpc(
                 caller=partial(rpc_session.post, url=rpc_uri),
@@ -215,6 +217,7 @@ def download(
                 method="aria2.tellStopped",
                 params=[0, 999999]
             ) or []
+
             for dl in stopped_downloads:
                 if dl["status"] == "error":
                     used_uri = next(
@@ -233,7 +236,7 @@ def download(
                     console.log(Text.from_ansi("\n[Aria2c]: " + error_pretty))
                     raise ValueError(error)
 
-            if len(stopped_downloads) == len(urls):
+            if number_stopped == len(urls):
                 rpc(
                     caller=partial(rpc_session.post, url=rpc_uri),
                     secret=rpc_secret,
