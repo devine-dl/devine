@@ -13,7 +13,7 @@ from rich.tree import Tree
 
 from devine.core.config import config
 from devine.core.console import console
-from devine.core.constants import LANGUAGE_MAX_DISTANCE, LANGUAGE_MUX_MAP, AnyTrack, TrackT
+from devine.core.constants import LANGUAGE_MAX_DISTANCE, AnyTrack, TrackT
 from devine.core.tracks.audio import Audio
 from devine.core.tracks.chapters import Chapter, Chapters
 from devine.core.tracks.subtitle import Subtitle
@@ -306,9 +306,7 @@ class Tracks:
             if callable(vt.OnMultiplex):
                 vt.OnMultiplex()
             cl.extend([
-                "--language", "0:{}".format(LANGUAGE_MUX_MAP.get(
-                    str(vt.language), str(vt.language)
-                )),
+                "--language", f"0:{vt.language}",
                 "--default-track", f"0:{i == 0}",
                 "--original-flag", f"0:{vt.is_original_lang}",
                 "--compression", "0:none",  # disable extra compression
@@ -322,9 +320,7 @@ class Tracks:
                 at.OnMultiplex()
             cl.extend([
                 "--track-name", f"0:{at.get_track_name() or ''}",
-                "--language", "0:{}".format(LANGUAGE_MUX_MAP.get(
-                    str(at.language), str(at.language)
-                )),
+                "--language", f"0:{at.language}",
                 "--default-track", f"0:{i == 0}",
                 "--visual-impaired-flag", f"0:{at.descriptive}",
                 "--original-flag", f"0:{at.is_original_lang}",
@@ -340,9 +336,7 @@ class Tracks:
             default = bool(self.audio and is_close_match(st.language, [self.audio[0].language]) and st.forced)
             cl.extend([
                 "--track-name", f"0:{st.get_track_name() or ''}",
-                "--language", "0:{}".format(LANGUAGE_MUX_MAP.get(
-                    str(st.language), str(st.language)
-                )),
+                "--language", f"0:{st.language}",
                 "--sub-charset", "0:UTF-8",
                 "--forced-track", f"0:{st.forced}",
                 "--default-track", f"0:{default}",
