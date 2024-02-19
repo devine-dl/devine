@@ -247,7 +247,9 @@ class DASH:
         manifest_url_query = urlparse(manifest_url).query
 
         manifest_base_url = manifest.findtext("BaseURL")
-        if not manifest_base_url or not re.match("^https?://", manifest_base_url, re.IGNORECASE):
+        if not manifest_base_url:
+            manifest_base_url = manifest_url
+        elif not re.match("^https?://", manifest_base_url, re.IGNORECASE):
             manifest_base_url = urljoin(manifest_url, f"./{manifest_base_url}")
         period_base_url = urljoin(manifest_base_url, period.findtext("BaseURL"))
         rep_base_url = urljoin(period_base_url, representation.findtext("BaseURL"))
@@ -342,7 +344,9 @@ class DASH:
             initialization = segment_list.find("Initialization")
             if initialization is not None:
                 source_url = initialization.get("sourceURL")
-                if not source_url or not re.match("^https?://", source_url, re.IGNORECASE):
+                if not source_url:
+                    source_url = rep_base_url
+                elif not re.match("^https?://", source_url, re.IGNORECASE):
                     source_url = urljoin(rep_base_url, f"./{source_url}")
 
                 if initialization.get("range"):
@@ -358,7 +362,9 @@ class DASH:
             segment_urls = segment_list.findall("SegmentURL")
             for segment_url in segment_urls:
                 media_url = segment_url.get("media")
-                if not media_url or not re.match("^https?://", media_url, re.IGNORECASE):
+                if not media_url:
+                    media_url = rep_base_url
+                elif not re.match("^https?://", media_url, re.IGNORECASE):
                     media_url = urljoin(rep_base_url, f"./{media_url}")
 
                 segments.append((
