@@ -24,7 +24,7 @@ from devine.core.downloaders import downloader
 from devine.core.downloaders import requests as requests_downloader
 from devine.core.drm import DRM_T, ClearKey, Widevine
 from devine.core.tracks import Audio, Subtitle, Tracks, Video
-from devine.core.utilities import get_binary_path, is_close_match, try_ensure_utf8
+from devine.core.utilities import get_binary_path, get_extension, is_close_match, try_ensure_utf8
 
 
 class HLS:
@@ -292,7 +292,7 @@ class HLS:
         for i, segment in enumerate(segments):
             is_last_segment = (i + 1) == total_segments
             name_len = len(str(total_segments))
-            segment_file_ext = Path(segment.uri).suffix
+            segment_file_ext = get_extension(segment.uri)
             segment_file_path = segment_save_dir / f"{str(i).zfill(name_len)}{segment_file_ext}"
 
             def merge(to: Path, via: list[Path], delete: bool = False, include_map_data: bool = False):
@@ -336,7 +336,7 @@ class HLS:
                 range_len = (last_segment_i - first_segment_i) + 1
 
                 segment_range = f"{str(first_segment_i).zfill(name_len)}-{str(last_segment_i).zfill(name_len)}"
-                merged_path = segment_save_dir / f"{segment_range}{Path(segments[last_segment_i].uri).suffix}"
+                merged_path = segment_save_dir / f"{segment_range}{get_extension(segments[last_segment_i].uri)}"
                 decrypted_path = segment_save_dir / f"{merged_path.stem}_decrypted{merged_path.suffix}"
 
                 files = [

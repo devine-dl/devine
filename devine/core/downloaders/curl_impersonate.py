@@ -11,6 +11,7 @@ from rich import filesize
 
 from devine.core.config import config
 from devine.core.constants import DOWNLOAD_CANCELLED
+from devine.core.utilities import get_extension
 
 MAX_ATTEMPTS = 5
 RETRY_WAIT = 2
@@ -208,7 +209,7 @@ def curl_impersonate(
         for i, url in enumerate(urls)
         for save_path in [output_dir / filename.format(
             i=i,
-            ext=Path((url["url"]) if isinstance(url, dict) else url).suffix
+            ext=get_extension(url["url"] if isinstance(url, dict) else url)
         )]
     ]
 

@@ -18,7 +18,7 @@ from rich.text import Text
 from devine.core.config import config
 from devine.core.console import console
 from devine.core.constants import DOWNLOAD_CANCELLED
-from devine.core.utilities import get_binary_path, get_free_port
+from devine.core.utilities import get_binary_path, get_extension, get_free_port
 
 
 def rpc(caller: Callable, secret: str, method: str, params: Optional[list[Any]] = None) -> Any:
@@ -107,7 +107,7 @@ def download(
             url_data: dict[str, Any] = url
         url_filename = filename.format(
             i=i,
-            ext=Path(url_data["url"]).suffix
+            ext=get_extension(url_data["url"])
         )
         url_text = url_data["url"]
         url_text += f"\n\tdir={output_dir}"

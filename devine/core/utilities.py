@@ -1,6 +1,7 @@
 import ast
 import contextlib
 import importlib.util
+import os
 import re
 import shutil
 import socket
@@ -12,6 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from types import ModuleType
 from typing import Optional, Sequence, Union
+from urllib.parse import ParseResult, urlparse
 
 import chardet
 import requests
@@ -254,6 +256,25 @@ def get_free_port() -> int:
         s.bind(("", 0))
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
+
+
+def get_extension(value: Union[str, Path, ParseResult]) -> Optional[str]:
+    """
+    Get a URL or Path file extension/suffix.
+
+    Note: The returned value will begin with `.`.
+    """
+    if isinstance(value, ParseResult):
+        value_parsed = value
+    elif isinstance(value, (str, Path)):
+        value_parsed = urlparse(str(value))
+    else:
+        raise TypeError(f"Expected {str}, {Path}, or {ParseResult}, got {type(value)}")
+
+    if value_parsed.path:
+        ext = os.path.splitext(value_parsed.path)[1]
+        if ext and ext != ".":
+            return ext
 
 
 class FPS(ast.NodeVisitor):
