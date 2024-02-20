@@ -446,13 +446,18 @@ class HLS:
                 elif not encryption_data or encryption_data[1] != key:
                     drm = HLS.get_drm(key, proxy)
                     if isinstance(drm, Widevine):
-                        if map_data:
-                            track_kid = track.get_key_id(map_data[1])
-                        else:
-                            track_kid = None
-                        progress(downloaded="LICENSING")
-                        license_widevine(drm, track_kid=track_kid)
-                        progress(downloaded="[yellow]LICENSED")
+                        try:
+                            if map_data:
+                                track_kid = track.get_key_id(map_data[1])
+                            else:
+                                track_kid = None
+                            progress(downloaded="LICENSING")
+                            license_widevine(drm, track_kid=track_kid)
+                            progress(downloaded="[yellow]LICENSED")
+                        except Exception:  # noqa
+                            DOWNLOAD_CANCELLED.set()  # skip pending track downloads
+                            progress(downloaded="[red]FAILED")
+                            raise
                     encryption_data = (i, key, drm)
 
             # TODO: This wont work as we already downloaded
