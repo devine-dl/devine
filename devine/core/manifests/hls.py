@@ -310,6 +310,7 @@ class HLS:
                         x.write(map_data[1])
                     for file in via:
                         x.write(file.read_bytes())
+                        x.flush()
                         if delete:
                             file.unlink()
 
@@ -485,6 +486,7 @@ class HLS:
                         continue
                     discontinuity_data = discontinuity_file.read_bytes()
                     f.write(discontinuity_data)
+                    f.flush()
             shutil.rmtree(save_dir)
 
         progress(downloaded="Downloaded")

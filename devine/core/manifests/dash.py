@@ -483,6 +483,7 @@ class DASH:
                     segment_data = try_ensure_utf8(segment_data)
                     segment_data = html.unescape(segment_data.decode("utf8")).encode("utf8")
                 f.write(segment_data)
+                f.flush()
                 segment_file.unlink()
                 progress(advance=1)
 
