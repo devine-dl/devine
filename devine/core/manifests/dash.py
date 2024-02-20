@@ -168,8 +168,9 @@ class DASH:
                         track_type = Subtitle
                         track_codec = Subtitle.Codec.from_codecs(codecs or "vtt")
                         track_args = dict(
-                            forced=self.is_forced(adaptation_set),
-                            cc=self.is_closed_caption(adaptation_set)
+                            cc=self.is_closed_caption(adaptation_set),
+                            sdh=self.is_sdh(adaptation_set),
+                            forced=self.is_forced(adaptation_set)
                         )
                     elif content_type == "image":
                         # we don't want what's likely thumbnails for the seekbar
@@ -636,6 +637,14 @@ class DASH:
             x.get("schemeIdUri") == "urn:mpeg:dash:role:2011"
             and x.get("value") in ("forced-subtitle", "forced_subtitle")
             for x in adaptation_set.findall("Role")
+        )
+
+    @staticmethod
+    def is_sdh(adaptation_set: Element) -> bool:
+        """Check if contents of Adaptation Set is for the Hearing Impaired."""
+        return any(
+            (x.get("schemeIdUri"), x.get("value")) == ("urn:tva:metadata:cs:AudioPurposeCS:2007", "2")
+            for x in adaptation_set.findall("Accessibility")
         )
 
     @staticmethod
