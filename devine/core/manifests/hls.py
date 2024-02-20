@@ -365,7 +365,7 @@ class HLS:
 
                 return decrypted_path
 
-            def merge_discontinuity(include_this_segment: bool):
+            def merge_discontinuity(include_this_segment: bool, include_map_data: bool = True):
                 """
                 Merge all segments of the discontinuity.
 
@@ -377,6 +377,8 @@ class HLS:
                         list of segments to merge and decrypt. This should be False if
                         decrypting on EXT-X-KEY changes, or True when decrypting on the
                         last segment.
+                    include_map_data: Whether to prepend the init map data before the
+                        segment files when merging.
                 """
                 last_segment_i = max(0, i - int(not include_this_segment))
 
@@ -392,7 +394,7 @@ class HLS:
                         to=to_path,
                         via=files,
                         delete=True,
-                        include_map_data=True
+                        include_map_data=include_map_data
                     )
 
             if isinstance(track, Subtitle):
@@ -408,7 +410,10 @@ class HLS:
             if segment.discontinuity and i != 0:
                 if encryption_data:
                     decrypt(include_this_segment=False)
-                merge_discontinuity(include_this_segment=False)
+                merge_discontinuity(
+                    include_this_segment=False,
+                    include_map_data=not encryption_data or not encryption_data[2]
+                )
 
                 discon_i += 1
                 range_offset = 0  # TODO: Should this be reset or not?
@@ -468,7 +473,10 @@ class HLS:
                 # required as it won't end with EXT-X-DISCONTINUITY nor a new key
                 if encryption_data:
                     decrypt(include_this_segment=True)
-                merge_discontinuity(include_this_segment=True)
+                merge_discontinuity(
+                    include_this_segment=True,
+                    include_map_data=not encryption_data or not encryption_data[2]
+                )
 
             progress(advance=1)
 
