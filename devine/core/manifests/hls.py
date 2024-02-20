@@ -306,7 +306,7 @@ class HLS:
                     include_map_data: Whether to include the init map data.
                 """
                 with open(to, "wb") as x:
-                    if include_map_data and map_data:
+                    if include_map_data and map_data and map_data[1]:
                         x.write(map_data[1])
                     for file in via:
                         x.write(file.read_bytes())
