@@ -51,6 +51,12 @@ class Tracks:
     def __len__(self) -> int:
         return len(self.videos) + len(self.audio) + len(self.subtitles)
 
+    def __add__(self, other: Tracks) -> Tracks:
+        if not isinstance(other, Tracks):
+            raise TypeError(f"Cannot only add {Tracks} objects with one another, not {type(other)}")
+
+        return Tracks(list(self) + list(other))
+
     def __repr__(self) -> str:
         return "{name}({items})".format(
             name=self.__class__.__name__,
