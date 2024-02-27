@@ -224,7 +224,7 @@ class Widevine:
             raise ValueError("Cannot decrypt a Track without any Content Keys...")
 
         platform = {"win32": "win", "darwin": "osx"}.get(sys.platform, sys.platform)
-        executable = get_binary_path("shaka-packager", f"packager-{platform}", f"packager-{platform}-x64")
+        executable = get_binary_path("shaka-packager", "packager", f"packager-{platform}", f"packager-{platform}-x64")
         if not executable:
             raise EnvironmentError("Shaka Packager executable not found but is required.")
         if not path or not path.exists():
