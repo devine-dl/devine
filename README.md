@@ -2,7 +2,7 @@
     <img src="https://user-images.githubusercontent.com/17136956/216880837-478f3ec7-6af6-4cca-8eef-5c98ff02104c.png">
     <a href="https://github.com/devine-dl/devine">Devine</a>
     <br/>
-    <sup><em>Open-Source Movie, TV, and Music Downloading Solution</em></sup>
+    <sup><em>Modular Movie, TV, and Music Archival Software</em></sup>
     <br/>
     <a href="https://discord.gg/34K2MGDrBN">
         <img src="https://img.shields.io/discord/841055398240059422?label=&logo=discord&logoColor=ffffff&color=7289DA&labelColor=7289DA" alt="Discord">
@@ -349,4 +349,4 @@ You can find a copy of the license in the LICENSE file in the root folder.
 
 * * *
 
-© rlaphoenix 2019-2023
+© rlaphoenix 2019-2024

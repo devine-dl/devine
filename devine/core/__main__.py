@@ -27,7 +27,7 @@ LOGGING_PATH = None
 @click.option("--log", "log_path", type=Path, default=config.directories.logs / config.filenames.log,
               help="Log path (or filename). Path can contain the following f-string args: {name} {time}.")
 def main(version: bool, debug: bool, log_path: Path) -> None:
-    """Devine—Open-Source Movie, TV, and Music Downloading Solution."""
+    """Devine—Modular Movie, TV, and Music Archival Software."""
     logging.basicConfig(
         level=logging.DEBUG if debug else logging.INFO,
         format="%(message)s",
