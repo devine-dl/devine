@@ -17,7 +17,7 @@ MAX_ATTEMPTS = 5
 RETRY_WAIT = 2
 CHUNK_SIZE = 1024
 PROGRESS_WINDOW = 5
-BROWSER = config.curl_impersonate.get("browser", "chrome110")
+BROWSER = config.curl_impersonate.get("browser", "chrome120")
 
 
 def download(
