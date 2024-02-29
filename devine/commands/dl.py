@@ -906,10 +906,14 @@ class dl:
                                 track.OnDecrypted(drm)
                             progress(downloaded="Decrypted", completed=100)
 
-                        if isinstance(track, Subtitle):
+                        if isinstance(track, Subtitle) and \
+                           track.codec not in (Subtitle.Codec.fVTT, Subtitle.Codec.fTTML):
                             track_data = track.path.read_bytes()
                             track_data = try_ensure_utf8(track_data)
-                            track_data = html.unescape(track_data.decode("utf8")).encode("utf8")
+                            track_data = track_data.decode("utf8"). \
+                                replace("&lrm;", html.unescape("&lrm;")). \
+                                replace("&rlm;", html.unescape("&rlm;")). \
+                                encode("utf8")
                             track.path.write_bytes(track_data)
 
                         progress(downloaded="Downloaded")

@@ -482,7 +482,10 @@ class DASH:
                     track.codec not in (Subtitle.Codec.fVTT, Subtitle.Codec.fTTML)
                 ):
                     segment_data = try_ensure_utf8(segment_data)
-                    segment_data = html.unescape(segment_data.decode("utf8")).encode("utf8")
+                    segment_data = segment_data.decode("utf8"). \
+                        replace("&lrm;", html.unescape("&lrm;")). \
+                        replace("&rlm;", html.unescape("&rlm;")). \
+                        encode("utf8")
                 f.write(segment_data)
                 f.flush()
                 segment_file.unlink()
