@@ -32,6 +32,7 @@ class Track:
         is_original_lang: bool = False,
         descriptor: Descriptor = Descriptor.URL,
         needs_repack: bool = False,
+        name: Optional[str] = None,
         drm: Optional[Iterable[DRM_T]] = None,
         edition: Optional[str] = None,
         extra: Optional[Any] = None,
@@ -47,6 +48,8 @@ class Track:
             raise TypeError(f"Expected descriptor to be a {Track.Descriptor}, not {type(descriptor)}")
         if not isinstance(needs_repack, bool):
             raise TypeError(f"Expected needs_repack to be a {bool}, not {type(needs_repack)}")
+        if not isinstance(name, (str, type(None))):
+            raise TypeError(f"Expected name to be a {str}, not {type(name)}")
         if not isinstance(id_, (str, type(None))):
             raise TypeError(f"Expected id_ to be a {str}, not {type(id_)}")
         if not isinstance(edition, (str, type(None))):
@@ -68,6 +71,7 @@ class Track:
         self.is_original_lang = is_original_lang
         self.descriptor = descriptor
         self.needs_repack = needs_repack
+        self.name = name
         self.drm = drm
         self.edition: str = edition
         self.extra: Any = extra or {}  # allow anything for extra, but default to a dict
@@ -122,7 +126,12 @@ class Track:
         if region and territory:
             region += f", {territory}"
 
-        return region or None
+        if self.name:
+            track_name = self.name + f" ({region})" if region else ""
+        else:
+            track_name = region or None
+
+        return track_name
 
     def get_key_id(self, init_data: Optional[bytes] = None, *args, **kwargs) -> Optional[UUID]:
         """
