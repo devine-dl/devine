@@ -113,7 +113,9 @@ class Track:
         if (script or "").lower() == (territory or "").lower():
             script = None
             territory = None
-        if territory == "US":
+        if script == "Zzzz":
+            script = None
+        if territory in ("ZZ", "US"):
             territory = None
 
         region = script
