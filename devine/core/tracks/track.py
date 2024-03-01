@@ -299,8 +299,7 @@ class Track:
             else:
                 raise
 
-        self.swap(output_path)
-        self.move(original_path)
+        self.path = output_path
 
     def move(self, target: Union[Path, str]) -> bool:
         """
@@ -329,35 +328,6 @@ class Track:
             self.path = target
 
         return success
-
-    def swap(self, target: Union[Path, str]) -> bool:
-        """
-        Delete the Track's file and swap to the Target file.
-
-        Raises:
-            TypeError: If the target argument is not the expected type.
-            OSError: If the file somehow failed to move.
-
-        Returns True if the swap succeeded, or False if the track is not yet downloaded,
-        or the target path does not exist.
-        """
-        if not isinstance(target, (str, Path)):
-            raise TypeError(f"Expected {target} to be a {Path} or {str}, not {type(target)}")
-
-        target = Path(target)
-
-        if not target.exists() or not self.path:
-            return False
-
-        self.path.unlink()
-
-        moved_to = Path(shutil.move(target, self.path))
-        success = moved_to.resolve() == self.path.resolve()
-
-        if not success:
-            return False
-
-        return self.move(target)
 
 
 __all__ = ("Track",)

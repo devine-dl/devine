@@ -214,7 +214,7 @@ class Subtitle(Track):
 
             output_path.write_text(subtitle_text, encoding="utf8")
 
-        self.swap(output_path)
+        self.path = output_path
         self.codec = codec
 
         if callable(self.OnConverted):

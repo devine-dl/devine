@@ -200,8 +200,7 @@ class Video(Track):
             str(output_path)
         ], check=True)
 
-        self.swap(output_path)
-        self.move(original_path)
+        self.path = output_path
 
     def ccextractor(
         self, track_id: Any, out_path: Union[Path, str], language: Language, original: bool = False
@@ -335,7 +334,7 @@ class Video(Track):
 
         log.info(" + Removed")
 
-        self.swap(cleaned_path)
+        self.path = cleaned_path
 
         return True
 
