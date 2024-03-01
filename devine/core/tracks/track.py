@@ -63,15 +63,11 @@ class Track:
                 raise TypeError(f"Expected drm to be an iterable, not {type(drm)}")
 
         self.url = url
-        # required basic metadata
         self.language = Language.get(language)
         self.is_original_lang = bool(is_original_lang)
-        # optional io metadata
         self.descriptor = descriptor
         self.needs_repack = bool(needs_repack)
-        # drm
         self.drm = drm
-        # extra data
         self.edition: str = edition
         self.extra: Any = extra or {}  # allow anything for extra, but default to a dict
 
@@ -97,7 +93,6 @@ class Track:
         # Called before the Track is multiplexed
         self.OnMultiplex: Optional[Callable] = None
 
-        # should only be set internally
         self.path: Optional[Path] = None
 
     def __repr__(self) -> str:
@@ -148,7 +143,6 @@ class Track:
         if not isinstance(init_data, bytes):
             raise TypeError(f"Expected init_data to be bytes, not {init_data!r}")
 
-        # try get via ffprobe, needed for non mp4 data e.g. WEBM from Google Play
         probe = ffprobe(init_data)
         if probe:
             for stream in probe.get("streams") or []:
@@ -156,14 +150,12 @@ class Track:
                 if enc_key_id:
                     return UUID(bytes=base64.b64decode(enc_key_id))
 
-        # look for track encryption mp4 boxes
         for tenc in get_boxes(init_data, b"tenc"):
             if tenc.key_ID.int != 0:
                 return tenc.key_ID
 
-        # look for UUID mp4 boxes holding track encryption mp4 boxes
         for uuid_box in get_boxes(init_data, b"uuid"):
-            if uuid_box.extended_type == UUID("8974dbce-7be7-4c51-84f9-7148f9882554"):
+            if uuid_box.extended_type == UUID("8974dbce-7be7-4c51-84f9-7148f9882554"):  # tenc
                 tenc = uuid_box.data
                 if tenc.key_ID.int != 0:
                     return tenc.key_ID
@@ -208,9 +200,6 @@ class Track:
 
         if not url:
             if self.descriptor != self.Descriptor.URL:
-                # We cannot know which init map from the HLS or DASH playlist is actually used.
-                # For DASH this could be from any adaptation set, any period, e.t.c.
-                # For HLS we could make some assumptions, but it's best that it is explicitly provided.
                 raise ValueError(f"An explicit URL must be provided for {self.descriptor.name} tracks")
             if not self.url:
                 raise ValueError("An explicit URL must be provided as the track has no URL")
@@ -234,7 +223,6 @@ class Track:
             if "Content-Length" in size_test.headers:
                 content_length_header = int(size_test.headers["Content-Length"])
                 if content_length_header > 0:
-                    # use whichever is smaller in case this is a large file
                     content_length = min(content_length_header, maximum_size)
             range_test = session.head(url, headers={"Range": "bytes=0-1"})
             if range_test.status_code == 206:
@@ -250,8 +238,6 @@ class Track:
             res.raise_for_status()
             init_data = res.content
         else:
-            # Take advantage of streaming support to take just the first n bytes
-            # This is a hacky alternative to HTTP's Range on unsupported servers
             init_data = None
             with session.get(url, stream=True) as s:
                 for chunk in s.iter_content(content_length):
