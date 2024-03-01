@@ -160,7 +160,7 @@ AMZN:
   bitrate: CVBR
 ```
 
-or to change the output subtitle format from the default (SubRip SRT) to WebVTT,
+or to change the output subtitle format from the default (original format) to WebVTT,
 
 ```yaml
 sub_format: vtt

@@ -102,7 +102,7 @@ class dl:
     @click.option("--tag", type=str, default=None,
                   help="Set the Group Tag to be used, overriding the one in config if any.")
     @click.option("--sub-format", type=click.Choice(Subtitle.Codec, case_sensitive=False),
-                  default=Subtitle.Codec.SubRip,
+                  default=None,
                   help="Set Output Subtitle Format, only converting if necessary.")
     @click.option("-V", "--video-only", is_flag=True, default=False,
                   help="Only download video tracks.")
@@ -262,7 +262,7 @@ class dl:
         lang: list[str],
         v_lang: list[str],
         s_lang: list[str],
-        sub_format: Subtitle.Codec,
+        sub_format: Optional[Subtitle.Codec],
         video_only: bool,
         audio_only: bool,
         subs_only: bool,
@@ -572,10 +572,11 @@ class dl:
                             break
                     video_track_n += 1
 
-                with console.status(f"Converting Subtitles to {sub_format.name}..."):
-                    for subtitle in title.tracks.subtitles:
-                        if subtitle.codec != sub_format:
-                            subtitle.convert(sub_format)
+                if sub_format:
+                    with console.status(f"Converting Subtitles to {sub_format.name}..."):
+                        for subtitle in title.tracks.subtitles:
+                            if subtitle.codec != sub_format:
+                                subtitle.convert(sub_format)
 
                 with console.status("Repackaging tracks with FFMPEG..."):
                     has_repacked = False
