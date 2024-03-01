@@ -107,6 +107,42 @@ class Track:
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, Track) and self.id == other.id
 
+    def delete(self) -> None:
+        if self.path:
+            self.path.unlink()
+            self.path = None
+
+    def move(self, target: Union[Path, str]) -> Path:
+        """
+        Move the Track's file from current location, to target location.
+        This will overwrite anything at the target path.
+
+        Raises:
+            TypeError: If the target argument is not the expected type.
+            ValueError: If track has no file to move, or the target does not exist.
+            OSError: If the file somehow failed to move.
+
+        Returns the new location of the track.
+        """
+        if not isinstance(target, (str, Path)):
+            raise TypeError(f"Expected {target} to be a {Path} or {str}, not {type(target)}")
+
+        if not self.path:
+            raise ValueError("Track has no file to move")
+
+        if not isinstance(target, Path):
+            target = Path(target)
+
+        if not target.exists():
+            raise ValueError(f"Target file {repr(target)} does not exist")
+
+        moved_to = Path(shutil.move(self.path, target))
+        if moved_to.resolve() != target.resolve():
+            raise OSError(f"Failed to move {self.path} to {target}")
+
+        self.path = target
+        return target
+
     def get_track_name(self) -> Optional[str]:
         """Get the Track Name."""
         simplified_language = self.language.simplify_script()
@@ -262,11 +298,6 @@ class Track:
 
         return init_data
 
-    def delete(self) -> None:
-        if self.path:
-            self.path.unlink()
-            self.path = None
-
     def repackage(self) -> None:
         if not self.path or not self.path.exists():
             raise ValueError("Cannot repackage a Track that has not been downloaded.")
@@ -306,37 +337,6 @@ class Track:
                 raise
 
         self.path = output_path
-
-    def move(self, target: Union[Path, str]) -> Path:
-        """
-        Move the Track's file from current location, to target location.
-        This will overwrite anything at the target path.
-
-        Raises:
-            TypeError: If the target argument is not the expected type.
-            ValueError: If track has no file to move, or the target does not exist.
-            OSError: If the file somehow failed to move.
-
-        Returns the new location of the track.
-        """
-        if not isinstance(target, (str, Path)):
-            raise TypeError(f"Expected {target} to be a {Path} or {str}, not {type(target)}")
-
-        if not self.path:
-            raise ValueError("Track has no file to move")
-
-        if not isinstance(target, Path):
-            target = Path(target)
-
-        if not target.exists():
-            raise ValueError(f"Target file {repr(target)} does not exist")
-
-        moved_to = Path(shutil.move(self.path, target))
-        if moved_to.resolve() != target.resolve():
-            raise OSError(f"Failed to move {self.path} to {target}")
-
-        self.path = target
-        return target
 
 
 __all__ = ("Track",)
