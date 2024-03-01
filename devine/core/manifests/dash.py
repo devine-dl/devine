@@ -16,7 +16,7 @@ from zlib import crc32
 
 import requests
 from langcodes import Language, tag_is_valid
-from lxml.etree import Element
+from lxml.etree import Element, ElementTree
 from pywidevine.cdm import Cdm as WidevineCdm
 from pywidevine.pssh import PSSH
 from requests import Session
@@ -202,15 +202,17 @@ class DASH:
 
                     tracks.add(track_type(
                         id_=track_id,
-                        url=(self.url, self.manifest, rep, adaptation_set, period),
+                        url=self.url,
                         codec=track_codec,
                         language=track_lang,
                         is_original_lang=language and is_close_match(track_lang, [language]),
                         descriptor=Video.Descriptor.DASH,
                         data={
                             "dash": {
-                                "representation": rep,
-                                "adaptation_set": adaptation_set
+                                "manifest": self.manifest,
+                                "period": period,
+                                "adaptation_set": adaptation_set,
+                                "representation": rep
                             }
                         },
                         **track_args
@@ -243,20 +245,21 @@ class DASH:
 
         log = logging.getLogger("DASH")
 
-        manifest_url, manifest, representation, adaptation_set, period = track.url
+        manifest: ElementTree = track.data["dash"]["manifest"]
+        period: Element = track.data["dash"]["period"]
+        adaptation_set: Element = track.data["dash"]["adaptation_set"]
+        representation: Element = track.data["dash"]["representation"]
 
         track.drm = DASH.get_drm(
             representation.findall("ContentProtection") +
             adaptation_set.findall("ContentProtection")
         )
 
-        manifest_url_query = urlparse(manifest_url).query
-
         manifest_base_url = manifest.findtext("BaseURL")
         if not manifest_base_url:
-            manifest_base_url = manifest_url
+            manifest_base_url = track.url
         elif not re.match("^https?://", manifest_base_url, re.IGNORECASE):
-            manifest_base_url = urljoin(manifest_url, f"./{manifest_base_url}")
+            manifest_base_url = urljoin(track.url, f"./{manifest_base_url}")
         period_base_url = urljoin(manifest_base_url, period.findtext("BaseURL"))
         rep_base_url = urljoin(period_base_url, representation.findtext("BaseURL"))
 
@@ -291,8 +294,10 @@ class DASH:
                     if not rep_base_url:
                         raise ValueError("Resolved Segment URL is not absolute, and no Base URL is available.")
                     value = urljoin(rep_base_url, value)
-                if not urlparse(value).query and manifest_url_query:
-                    value += f"?{manifest_url_query}"
+                if not urlparse(value).query:
+                    manifest_url_query = urlparse(track.url).query
+                    if manifest_url_query:
+                        value += f"?{manifest_url_query}"
                 segment_template.set(item, value)
 
             init_url = segment_template.get("initialization")
@@ -406,7 +411,7 @@ class DASH:
             ))
         else:
             log.error("Could not find a way to get segments from this MPD manifest.")
-            log.debug(manifest_url)
+            log.debug(track.url)
             sys.exit(1)
 
         if not track.drm and isinstance(track, (Video, Audio)):
