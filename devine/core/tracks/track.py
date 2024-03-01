@@ -104,19 +104,23 @@ class Track:
         return isinstance(other, Track) and self.id == other.id
 
     def get_track_name(self) -> Optional[str]:
-        """Return the base Track Name. This may be enhanced in sub-classes."""
-        if (self.language.language or "").lower() == (self.language.territory or "").lower():
-            self.language.territory = None  # e.g. en-en, de-DE
-        if self.language.territory == "US":
-            self.language.territory = None
-        reduced = self.language.simplify_script()
-        extra_parts = []
-        if reduced.script is not None:
-            extra_parts.append(reduced.script_name(max_distance=25))
-        if reduced.territory is not None:
-            territory = reduced.territory_name(max_distance=25)
-            extra_parts.append(TERRITORY_MAP.get(territory, territory))
-        return ", ".join(extra_parts) or None
+        """Get the Track Name."""
+        simplified_language = self.language.simplify_script()
+        script = simplified_language.script_name(max_distance=25)
+        territory = simplified_language.territory_name(max_distance=25)
+        territory = TERRITORY_MAP.get(territory, territory)
+
+        if (script or "").lower() == (territory or "").lower():
+            script = None
+            territory = None
+        if territory == "US":
+            territory = None
+
+        region = script
+        if region and territory:
+            region += f", {territory}"
+
+        return region or None
 
     def get_key_id(self, init_data: Optional[bytes] = None, *args, **kwargs) -> Optional[UUID]:
         """
