@@ -5,6 +5,221 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2024-03-01
+
+### Added
+
+- Support for Python 3.12.
+- Audio track's Codec Enum now has [FLAC](https://en.wikipedia.org/wiki/FLAC) defined.
+- The Downloader to use can now be set in the config under the [downloader key](CONFIG.md#downloader-str).
+- New Multi-Threaded Downloader, `requests`, that makes HTTP(S) calls using [Python-requests](https://requests.readthedocs.io).
+- New Multi-Threaded Downloader, `curl_impersonate`, that makes HTTP(S) calls using [Curl-Impersonate](https://github.com/yifeikong/curl-impersonate) via [Curl_CFFI](https://github.com/yifeikong/curl_cffi).
+- HLS manifests specifying a Byte range value without starting offsets are now supported.
+- HLS segments that use `EXT-X-DISCONTINUITY` are now supported.
+- DASH manifests with SegmentBase or only BaseURL are now supported.
+- Subtitle tracks from DASH manifests now automatically marked as SDH if `urn:tva:metadata:cs:AudioPurposeCS:2007 = 2`.
+- The `--audio-only/--subs-only/--chapters-only` flags can now be used simultaneously. For example, `--subs-only`
+  with `--chapters-only` will get just Subtitles and Chapters.
+- Added `--video-only` flag, which can also still be simultaneously used with the only "only" flags. Using all four
+  of these flags will have the same effect as not using any of them.
+- Added `--no-proxy` flag, disabling all uses of proxies, even if `--proxy` is set.
+- Added `--sub-format` option, which sets the wanted output subtitle format, defaulting to SubRip (SRT).
+- Added `Subtitle.reverse_rtl()` method to use SubtitleEdit's `/ReverseRtlStartEnd` functionality.
+- Added `Subtitle.convert()` method to convert the loaded Subtitle to another format. Note that you cannot convert to
+  fTTML or fVTT, but you can convert from them. SubtitleEdit will be used in precedence over pycaption if available.
+  Converting to SubStationAlphav4 requires SubtitleEdit, but you may want to manually alter the Canvas resolution after
+  the download.
+- Added support for SubRip (SRT) format subtitles in `Subtitle.parse()` via pycaption.
+- Added `API` Vault Client aiming for a RESTful like API.
+- Added `Chapters` Class to hold the new reworked `Chapter` objects, automatically handling stuff like order of the
+  Chapters, Chapter numbers, loading from a chapter file or string, and saving to a chapter file or string.
+- Added new `chapter_fallback_name` config option allowing you to set a Chapter Name Template used when muxing Chapters
+  into an MKV Container with MKVMerge. Do note, it defaults to no Chapter Fallback Name at all, but MKVMerge will force
+  `Chapter {i:02}` at least for me on Windows with the program language set to English. You may want to instead use
+  `Chapter {j:02}` which will do `Chapter 01, Intro, Chapter 02` instead of `Chapter 01, Intro, Chapter 03` (an Intro
+  is not a Chapter of story, but it is the 2nd Chapter marker, so It's up to you how you want to interpret it).
+- Added new `Track.OnSegmentDownloaded` Event, called any time one of the Track's segments were downloaded.
+- Added new `Subtitle.OnConverted` Event, called any time that Subtitle is converted.
+- Implemented `__add__` method to `Tracks` class, allowing you to add to the first Tracks object. For example, making
+  it handy to merge HLS video tracks with DASH tracks, `tracks = dash_tracks + hls_tracks.videos`, or for iterating:
+  `for track in dash.videos + hls.videos: ...`.
+- Added new utility `get_free_port()` to get a free local port to use, though it may be taken by the time it's used.
+
+### Changed
+
+- Moved from my forked release of pymp4 (`rlaphoenix-pymp4`) back to the original `pymp4` release as it is
+  now up-to-date with some of my needed fixes.
+- The DASH manifest is now stored in the Track `url` property to be reused by `DASH.download_track()`.
+- Encrypted DASH streams are now downloaded in full and then decrypted, instead of downloading and decrypting
+  each individual segment. Unlike HLS, DASH cannot dynamically switch out the DRM/Protection information.
+  This brings both CPU and Disk IOPS improvements, as well as fixing rare weird decryption anomalies like broken
+  or odd timestamps, decryption failures, or broken a/v continuity.
+- When a track is being decrypted, it now displays "Decrypting" and afterward "Decrypted" in place of the download
+  speed.
+- When a track finishes downloaded, it now displays "Downloaded" in place of the download speed.
+- When licensing is needed and fails, the track will display "FAILED" in place of the download speed. The track
+  download will cancel and all other track downloads will be skipped/cancelled; downloading will end.
+- The fancy smart quotes (`“` and `”`) are now stripped from filenames.
+- All available services are now listed if you provide an invalid service tag/alias.
+- If a WVD file fails to load and looks to be in the older unsupported v1 format, then instructions on migrating to
+  v2 will be displayed.
+- If Shaka-Packager prints an error (i.e., `:ERROR:` log message) it will now raise a `subprocess.CalledProcessError`
+  exception, even if the process return code is 0.
+- The Video classes' Primaries, Transfer, and Matrix classes had changes to their enum names to better represent their
+  values and uses. See the changed names in the [commit](https://github.com/devine-dl/devine/commit/c159672181ee3bd07b06612f256fa8590d61795c).
+- SubRip (SRT) Subtitles no longer have the `MULTI-LANGUAGE SRT` header forcefully removed. The root cause of the error
+  was identified and fixed in this release.
+- Since `Range.Transfer.SDR_BT_601_625 = 5` has been removed, `Range.from_cicp()` now internally remaps CICP transfer
+  values of `5` to `6` (which is now `Range.Transfer.BT_601 = 6`).
+- Referer and User-Agent Header values passed to the aria2(c) downloader is now set via the dedicated `--referer` and
+  `--user-agent` options respectively, instead of `--header`.
+- The aria2(c) `-j`, `-x`, and `-s` option values can now be set by the config under the `aria2c` key in the options'
+  full names.
+- The aria2(c) `-x`, and `-s` option values now use aria2(c)'s own default values for them instead of `16`. The `j`
+  option value defaults to ThreadPoolExecutor's algorithm of `min(32,(cpu_count+4))`.
+- The download progress bar now states `LICENSING` on the speed text when licensing DRM, and `LICENSED` once finished.
+- The download progress bar now states `CANCELLING`/`CANCELLED` on the speed text when cancelling downloads. This is to
+  make it more clear that it didn't just stop, but stopped as it was cancelled.
+- The download cancel/skip events were moved to `constants.py` so it can be used across the codebase easier without
+  argument drilling. `DL_POOL_STOP` was renamed to `DOWNLOAD_CANCELLED` and `DL_POOL_SKIP` to `DOWNLOAD_LICENCE_ONLY`.
+- The Cookie header is now calculated for each URL passed to the aria2(c) downloader based on the URL. Instead of
+  passing every single cookie, which could have two cookies with the same name aimed for different host names, we now
+  pass only cookies intended for the URL.
+- The aria2(c) process no longer prints output to the terminal directly. Devine now only prints contents of the
+  captured log messages to the terminal. This allows filtering out of errors and warnings that isn't a problem.
+- DASH and HLS no longer download segments silencing errors on all but the last retry as the downloader rework makes
+  this unnecessary. The errors will only be printed on the final retry regardless.
+- `Track.repackage()` now saves as `{name}_repack.{ext}` instead of `{name}.repack.{ext}`.
+- `Video.change_color_range()` now saves as `{name}_{limited|full}_range.{ext}` instead of `{name}.range{0|1}.{ext}`.
+- `Widevine.decrypt()` now saves as `{name}_decrypted.{ext}` instead of `{name}.decrypted.{ext}`.
+- Files starting with the save path's name and using the save path's extension, but not the save path, are no longer
+  deleted on download finish/stop/failure.
+- The output container format is now explicitly specified as `MP4` when calling `shaka-packager`.
+- The default downloader is now `requests` instead of `aria2c` to reduce required external dependencies.
+- Reworked the `Chapter` class to only hold a timestamp and name value with an ID automatically generated as a CRC32 of
+  the Chapter representation.
+- The `--group` option has been renamed to `--tag`.
+- The config file is now read from three more locations in the following order:
+  1) The Devine Namespace Folder (e.g., `%appdata%/Python/Python311/site-packages/devine/devine.yaml`).
+  2) The Parent Folder to the Devine Namespace Folder (e.g., `%appdata%/Python/Python311/site-packages/devine.yaml`).
+  3) The AppDirs User Config Folder (e.g., `%localappdata%/devine/devine.yaml`).
+  Location 2 allows having a config at the root of a portable folder.
+- An empty config file is no longer created when no config file is found.
+- You can now set a default cookie file for a Service, [see README](README.md#cookies--credentials).
+- You can now set a default credential for a Service, [see config](CONFIG.md#credentials-dictstr-strlistdict).
+- Services are now auth-less by default and the error for not having at least a cookie or credential is removed.
+  Cookies/Credentials will only be loaded if a default one for the service is available, or if you use `-p/--profile`
+  and the profile exists.
+- Subtitles when converting to SubRip (SRT) via SubtitleEdit will now use the `/ConvertColorsToDialog` option.
+- HLS segments are now merged by discontinuity instead of all at once. The merged discontinuities are then finally
+  merged to one file using `ffmpeg`. Doing the final merge by byte concatenation did not work for some playlists.
+- The Track is no longer passed through Event Callables. If you are able to set a function on an Even Callable, then
+  you should have access to the track reference to call it directly if needed.
+- The Track.OnDecrypted event callable is now passed the DRM and Segment objects used to Decrypt. The segment object is
+  only passed from HLS downloads.
+- The Track.OnDownloaded event callable is now called BEFORE decryption, right after downloading, not after decryption.
+- All generated Track ID values across the codebase has moved from md5 to crc32 values as code processors complain
+  about its use surrounding security, and it's length is too large for our use case anyway.
+- HLS segments are now downloaded multi-threaded first and then processed in sequence thereafter.
+- HLS segments are no longer decrypted one-by-one, requiring a lot of shaka-packager processes to run and close.
+  They now merged and decrypt in groups based on their EXT-X-KEY, before being merged per discontinuity.
+- The DASH and HLS downloaders now pass multiple URLs to the downloader instead of one-by-one, heavily increasing speed
+  and reliability as connections are kept alive and re-used.
+- Downloaders now yield back progress information in the same convention used by `rich`'s `Progress.update()` method.
+  DASH and HLS now pass the yielded information to their progress callable instead of passing the progress callable to
+  the downloader.
+- The aria2(c) downloader now uses the aria2(c) JSON-RPC interface to query for download progress updates instead of
+  parsing the stdout data in an extremely hacky way.
+- The aria2(c) downloader now re-routes non-HTTP proxies via `pproxy` by a subprocess instead of the now-removed
+  `start_pproxy` utility. This way has proven to be easier, more reliable, and prevents pproxy from messing with rich's
+  terminal output in strange ways.
+- All downloader function's have an altered signature but ultimately similar. `uri` to `urls`, `out` (path) was removed,
+  we now calculate the save path by passing an `output_dir` and `filename`. The `silent`, `segmented`, and `progress`
+  parameters were completely removed.
+- All downloader `urls` can now be a string or a dictionary containing extra URL-specific options to use like
+  URL-specific headers. It can also be a list of the two types of URLs to downloading multi-threaded.
+- All downloader `filenames` can be a static string, or a filename string template with a few variables to use. The
+  template system used is f-string, e.g., `"file_{i:03}{ext}"` (ext starts with `.` if there's an extension).
+- DASH now updates the progress bar when merging segments.
+- The `Widevine.decrypt()` method now also searches for shaka-packager as just `packager` as it is the default build
+  name. (#74)
+
+### Removed
+
+- The `devine auth` command and sub-commands due to lack of support, risk of data, and general quirks with it.
+- Removed `profiles` config, you must now specify which profile you wish to use each time with `-p/--profile`. If you
+  use a specific profile a lot more than others, you should make it the default.
+- The `saldl` downloader has been removed as their binary distribution is whack and development has seemed to stall.
+  It was only used as an alternative to what was at the time the only downloader, aria2(c), as it did not support any
+  form of Byte Range, but `saldl` did, which was crucial for resuming extremely large downloads or complex playlists.
+  However, now we have the requests downloader which does support the Range header.
+- The `Track.needs_proxy` property was removed for a few design architectural reasons.
+  1) Design-wise it isn't valid to have --proxy (or via config/otherwise) set a proxy, then unpredictably have it
+     bypassed or disabled. If I specify `--proxy 127.0.0.1:8080`, I would expect it to use that proxy for all
+     communication indefinitely, not switch in and out depending on the track or service.
+  2) With reason 1, it's also a security problem. The only reason I implemented it in the first place was so I could
+     download faster on my home connection. This means I would authenticate and call APIs under a proxy, then suddenly
+     download manifests and segments e.t.c under my home connection. A competent service could see that as an indicator
+     of bad play and flag you.
+  3) Maintaining this setup across the codebase is extremely annoying, especially because of how proxies are setup/used
+     by Requests in the Session. There's no way to tell a request session to temporarily disable the proxy and turn it
+     back on later, without having to get the proxy from the session (in an annoying way) store it, then remove it,
+     make the calls, then assuming your still in the same function you can add it back. If you're not in the same
+     function, well, time for some spaghetti code.
+- The `Range.Transfer.SDR_BT_601_625 = 5` key and value has been removed as I cannot find any official source to verify
+  it as the correct use. However, usually a `transfer` value of `5` would be PAL SD material so it better matches `6`,
+  which is (now named) `Range.Transfer.BT_601 = 6`. If you have something specifying transfer=5, just remap it to 6.
+- The warning log `There's no ... Audio Tracks, likely part of an invariant playlist, continuing...` message has been
+  removed. So long as your playlist is expecting no audio tracks, or the audio is part of the video transport, then
+  this wouldn't be a problem whatsoever. Therefore, having it log this annoying warning all the time is pointless.
+- The `--min-split-size` argument to the aria2(c) downloader as it was only used to disable splitting on
+  segmented downloads, but the newer downloader system wouldn't really need or want this to be done. If aria2 has
+  decided based on its other settings to have split a segment file, then it likely would benefit from doing so.
+- The `--remote-time` argument from the aria2(c) downloader as it may need to do a GET and a HEAD request to
+  get the remote time information, slowing the download down. We don't need this information anyway as it will likely
+  be repacked with `ffmpeg` or multiplexed with `mkvmerge`, discarding/losing that information.
+- DASH and HLS's 5-attempt retry loop as the downloaders will retry for us.
+- The `start_pproxy` utility has been removed as all uses of it now call `pproxy` via subprocess instead.
+- The `LANGUAGE_MUX_MAP` constant and it's usage has been removed as it is no longer necessary as of MKVToolNix v54.
+
+### Fixed
+
+- Uses of `__ALL__` with Class objects have been correct to `__all__` with string objects, following PEP8.
+- Fixed value of URL passed to `Track.get_key_id()` as it was a tuple rather than the URL string.
+- The `--skip-dl` flag now works again after breaking in v[1.3.0].
+- Move WVD file to correct location on new installations in the `wvd add` command.
+- Cookie data is now passed to downloaders and use URLs based on the URI it will be used for, just like a browser.
+- Failure to get FPS in DASH when SegmentBase isn't used.
+- An error message is now returned if a WVD file fails to load instead of raising an exception.
+- Track language information within M3U playlists are now validated with langcodes before use. Some manifests use the
+  property for arbitrary data that their apps/players use for their own purposes.
+- Attempt to fix non-UTF-8 and mixed-encoding Subtitle downloads by automatically converting to UTF-8. (#43)
+  Decoding is attempted in the following order: UTF-8, CP-1252, then finally chardet detection. If it's neither UTF-8
+  nor CP-1252 and chardet could not detect the encoding, then it is left as-is. Conversion is done per-segment if the
+  Subtitle is segmented, unless it's the fVTT or fTTML formats which are binary.
+- Chapter Character Encoding is now explicitly set to UTF-8 when muxing to an MKV container as Windows seems to default
+  to latin1 or something, breaking Chapter names with any sort of special character within.
+- Subtitle passed through SubtitleEdit now explicitly use UTF-8 character encoding as it usually defaulted to UTF-8
+  with Byte Order Marks (aka UTF-8-SIG/UTF-8-BOM).
+- Subtitles passed through SubtitleEdit now use the same output format as the subtitle being processed instead of SRT.
+- Fixed rare infinite loop when the Server hosting the init/header data/segment file responds with a `Content-Length`
+  header with a value of `0` or smaller.
+- Removed empty caption lists/languages when parsing Subtitles with `Subtitle.parse()`. This stopped conversions to SRT
+  containing the `MULTI-LANGUAGE SRT` header when there was multiple caption lists, even though only one of them
+  actually contained captions.
+- Text-based Subtitle formats now try to automatically convert to UTF-8 when run through `Subtitle.parse()`.
+- Text-based Subtitle formats now have `&lrm;` and `&rlm;` HTML entities unescaped post-download as some rendering
+  libraries seems to not decode them for us. SubtitleEdit also has problems with `/ReverseRtlStartEnd` unless it's
+  already decoded.
+- Fixed two concatenation errors surrounding DASH's BaseURL, sourceURL, and media values that start with or use `../`.
+- Fixed the number values in the `Newly added to x/y Vaults` log, which now states `Cached n Key(s) to x/y Vaults`.
+- File write handler now flushes after appending a new segment to the final save path or checkpoint file, reducing
+  memory usage by quite a bit in some scenarios.
+
+### New Contributors
+
+- [Shivelight](https://github.com/Shivelight)
+
 ## [2.2.0] - 2023-04-23
 
 ### Breaking Changes
@@ -428,6 +643,7 @@ This release brings a huge change to the fundamentals of Devine's logging, UI, a
 
 Initial public release under the name Devine.
 
+[3.0.0]: https://github.com/devine-dl/devine/releases/tag/v3.0.0
 [2.2.0]: https://github.com/devine-dl/devine/releases/tag/v2.2.0
 [2.1.0]: https://github.com/devine-dl/devine/releases/tag/v2.1.0
 [2.0.1]: https://github.com/devine-dl/devine/releases/tag/v2.0.1
