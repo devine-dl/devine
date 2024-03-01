@@ -64,9 +64,9 @@ class Track:
 
         self.url = url
         self.language = Language.get(language)
-        self.is_original_lang = bool(is_original_lang)
+        self.is_original_lang = is_original_lang
         self.descriptor = descriptor
-        self.needs_repack = bool(needs_repack)
+        self.needs_repack = needs_repack
         self.drm = drm
         self.edition: str = edition
         self.extra: Any = extra or {}  # allow anything for extra, but default to a dict
