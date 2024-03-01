@@ -18,9 +18,6 @@ from devine.core.utils.subprocess import ffprobe
 
 
 class Track:
-    class DRM(Enum):
-        pass
-
     class Descriptor(Enum):
         URL = 1  # Direct URL, nothing fancy
         M3U = 2  # https://en.wikipedia.org/wiki/M3U (and M3U8)
