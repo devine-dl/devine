@@ -62,6 +62,7 @@ class Track:
             except TypeError:
                 raise TypeError(f"Expected drm to be an iterable, not {type(drm)}")
 
+        self.path: Optional[Path] = None
         self.url = url
         self.language = Language.get(language)
         self.is_original_lang = is_original_lang
@@ -92,8 +93,6 @@ class Track:
         self.OnRepacked: Optional[Callable] = None
         # Called before the Track is multiplexed
         self.OnMultiplex: Optional[Callable] = None
-
-        self.path: Optional[Path] = None
 
     def __repr__(self) -> str:
         return "{name}({items})".format(
