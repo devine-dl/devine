@@ -38,6 +38,31 @@ class Track:
         edition: Optional[str] = None,
         extra: Optional[Any] = None
     ) -> None:
+        if not isinstance(id_, str):
+            raise TypeError(f"Expected id to be a {str}, not {type(id_)}")
+        if not isinstance(url, (str, list)):
+            raise TypeError(f"Expected url to be a {str}, or list of {str}, not {type(url)}")
+        if not isinstance(language, (Language, str)):
+            raise TypeError(f"Expected language to be a {Language} or {str}, not {type(language)}")
+        if not isinstance(is_original_lang, bool):
+            raise TypeError(f"Expected is_original_lang to be a {bool}, not {type(is_original_lang)}")
+        if not isinstance(descriptor, Track.Descriptor):
+            raise TypeError(f"Expected descriptor to be a {Track.Descriptor}, not {type(descriptor)}")
+        if not isinstance(needs_repack, bool):
+            raise TypeError(f"Expected needs_repack to be a {bool}, not {type(needs_repack)}")
+        if not isinstance(edition, (str, type(None))):
+            raise TypeError(f"Expected edition to be a {str}, not {type(edition)}")
+
+        invalid_urls = ", ".join(set(type(x) for x in url if not isinstance(x, str)))
+        if invalid_urls:
+            raise TypeError(f"Expected all items in url to be a {str}, but found {invalid_urls}")
+
+        if drm is not None:
+            try:
+                iter(drm)
+            except TypeError:
+                raise TypeError(f"Expected drm to be an iterable, not {type(drm)}")
+
         self.id = id_
         self.url = url
         # required basic metadata
@@ -75,7 +100,7 @@ class Track:
             items=", ".join([f"{k}={repr(v)}" for k, v in self.__dict__.items()])
         )
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other: Any) -> bool:
         return isinstance(other, Track) and self.id == other.id
 
     def get_track_name(self) -> Optional[str]:
@@ -166,20 +191,27 @@ class Track:
             byte_range: Range of bytes to download from the explicit or implicit URL.
             session: Session context, e.g., authorization and headers.
         """
+        if not isinstance(maximum_size, int):
+            raise TypeError(f"Expected maximum_size to be an {int}, not {type(maximum_size)}")
+        if not isinstance(url, (str, type(None))):
+            raise TypeError(f"Expected url to be a {str}, not {type(url)}")
+        if not isinstance(byte_range, (str, type(None))):
+            raise TypeError(f"Expected byte_range to be a {str}, not {type(byte_range)}")
+        if not isinstance(session, (requests.Session, type(None))):
+            raise TypeError(f"Expected session to be a {requests.Session}, not {type(session)}")
+
+        if not url:
+            if self.descriptor != self.Descriptor.URL:
+                # We cannot know which init map from the HLS or DASH playlist is actually used.
+                # For DASH this could be from any adaptation set, any period, e.t.c.
+                # For HLS we could make some assumptions, but it's best that it is explicitly provided.
+                raise ValueError(f"An explicit URL must be provided for {self.descriptor.name} tracks")
+            if not self.url:
+                raise ValueError("An explicit URL must be provided as the track has no URL")
+            url = self.url
+
         if not session:
             session = requests.Session()
-
-        if self.descriptor != self.Descriptor.URL and not url:
-            # We cannot know which init map from the HLS or DASH playlist is actually used.
-            # For DASH this could be from any adaptation set, any period, e.t.c.
-            # For HLS we could make some assumptions, but it's best that it is explicitly provided.
-            raise ValueError(
-                f"An explicit URL to an init map or file must be provided for {self.descriptor.name} tracks."
-            )
-
-        url = url or self.url
-        if not url:
-            raise ValueError("The track must have an URL to point towards it's data.")
 
         content_length = maximum_size
 
@@ -270,32 +302,61 @@ class Track:
         self.swap(output_path)
         self.move(original_path)
 
-    def move(self, target: Union[str, Path]) -> bool:
+    def move(self, target: Union[Path, str]) -> bool:
         """
         Move the Track's file from current location, to target location.
         This will overwrite anything at the target path.
+
+        Raises:
+            TypeError: If the target argument is not the expected type.
+
+        Returns True if the move succeeded, or False if there was no file to move, or
+        the file failed to move.
         """
+        if not isinstance(target, (str, Path)):
+            raise TypeError(f"Expected {target} to be a {Path} or {str}, not {type(target)}")
+
         if not self.path:
             return False
-        target = Path(target)
 
-        ok = Path(shutil.move(self.path, target)).resolve() == target.resolve()
-        if ok:
+        if not isinstance(target, Path):
+            target = Path(target)
+
+        moved_to = Path(shutil.move(self.path, target))
+        success = moved_to.resolve() == target.resolve()
+
+        if success:
             self.path = target
-        return ok
 
-    def swap(self, target: Union[str, Path]) -> bool:
+        return success
+
+    def swap(self, target: Union[Path, str]) -> bool:
         """
-        Swaps the Track's file with the Target file. The current Track's file is deleted.
-        Returns False if the Track is not yet downloaded, or the target path does not exist.
+        Delete the Track's file and swap to the Target file.
+
+        Raises:
+            TypeError: If the target argument is not the expected type.
+            OSError: If the file somehow failed to move.
+
+        Returns True if the swap succeeded, or False if the track is not yet downloaded,
+        or the target path does not exist.
         """
+        if not isinstance(target, (str, Path)):
+            raise TypeError(f"Expected {target} to be a {Path} or {str}, not {type(target)}")
+
         target = Path(target)
+
         if not target.exists() or not self.path:
             return False
+
         self.path.unlink()
-        ok = Path(shutil.move(target, self.path)).resolve() == self.path.resolve()
-        if not ok:
+
+        moved_to = Path(shutil.move(target, self.path))
+        success = moved_to.resolve() == self.path.resolve()
+
+        if not success:
             return False
+
         return self.move(target)
 
 
