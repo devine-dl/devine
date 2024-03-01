@@ -114,6 +114,7 @@ class DASH:
                 for rep in adaptation_set.findall("Representation"):
                     get = partial(self._get, adaptation_set=adaptation_set, representation=rep)
                     findall = partial(self._findall, adaptation_set=adaptation_set, representation=rep, both=True)
+                    segment_base = rep.find("SegmentBase")
 
                     codecs = get("codecs")
                     content_type = get("contentType")
@@ -141,6 +142,10 @@ class DASH:
                     if content_type == "video":
                         track_type = Video
                         track_codec = Video.Codec.from_codecs(codecs)
+                        track_fps = get("frameRate")
+                        if not track_fps and segment_base is not None:
+                            track_fps = segment_base.get("timescale")
+
                         track_args = dict(
                             range_=self.get_video_range(
                                 codecs,
@@ -150,7 +155,7 @@ class DASH:
                             bitrate=get("bandwidth") or None,
                             width=get("width") or 0,
                             height=get("height") or 0,
-                            fps=get("frameRate") or (rep.find("SegmentBase") or {}).get("timescale") or None
+                            fps=track_fps or None
                         )
                     elif content_type == "audio":
                         track_type = Audio
