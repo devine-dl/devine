@@ -2,10 +2,12 @@ import base64
 import re
 import shutil
 import subprocess
+from copy import copy
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional, Union
 from uuid import UUID
+from zlib import crc32
 
 import m3u8
 import requests
@@ -25,7 +27,6 @@ class Track:
 
     def __init__(
         self,
-        id_: str,
         url: Union[str, list[str]],
         language: Union[Language, str],
         is_original_lang: bool = False,
@@ -33,10 +34,9 @@ class Track:
         needs_repack: bool = False,
         drm: Optional[Iterable[DRM_T]] = None,
         edition: Optional[str] = None,
-        extra: Optional[Any] = None
+        extra: Optional[Any] = None,
+        id_: Optional[str] = None,
     ) -> None:
-        if not isinstance(id_, str):
-            raise TypeError(f"Expected id to be a {str}, not {type(id_)}")
         if not isinstance(url, (str, list)):
             raise TypeError(f"Expected url to be a {str}, or list of {str}, not {type(url)}")
         if not isinstance(language, (Language, str)):
@@ -47,6 +47,8 @@ class Track:
             raise TypeError(f"Expected descriptor to be a {Track.Descriptor}, not {type(descriptor)}")
         if not isinstance(needs_repack, bool):
             raise TypeError(f"Expected needs_repack to be a {bool}, not {type(needs_repack)}")
+        if not isinstance(id_, (str, type(None))):
+            raise TypeError(f"Expected id_ to be a {str}, not {type(id_)}")
         if not isinstance(edition, (str, type(None))):
             raise TypeError(f"Expected edition to be a {str}, not {type(edition)}")
 
@@ -60,7 +62,6 @@ class Track:
             except TypeError:
                 raise TypeError(f"Expected drm to be an iterable, not {type(drm)}")
 
-        self.id = id_
         self.url = url
         # required basic metadata
         self.language = Language.get(language)
@@ -73,6 +74,14 @@ class Track:
         # extra data
         self.edition: str = edition
         self.extra: Any = extra or {}  # allow anything for extra, but default to a dict
+
+        if not id_:
+            this = copy(self)
+            this.url = self.url.rsplit("?", maxsplit=1)[0]
+            checksum = crc32(repr(self).encode("utf8"))
+            id_ = hex(checksum)[2:]
+
+        self.id = id_
 
         # TODO: Currently using OnFoo event naming, change to just segment_filter
         self.OnSegmentFilter: Optional[Callable] = None
