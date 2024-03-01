@@ -116,7 +116,11 @@ class HLS:
                 bitrate=playlist.stream_info.average_bandwidth or playlist.stream_info.bandwidth,
                 descriptor=Video.Descriptor.HLS,
                 drm=session_drm,
-                extra=playlist,
+                data={
+                    "hls": {
+                        "playlist": playlist
+                    }
+                },
                 # video track args
                 **(dict(
                     range_=Video.Range.DV if any(
@@ -166,7 +170,11 @@ class HLS:
                 is_original_lang=language and is_close_match(track_lang, [language]),
                 descriptor=Audio.Descriptor.HLS,
                 drm=session_drm if media.type == "AUDIO" else None,
-                extra=media,
+                data={
+                    "hls": {
+                        "media": media
+                    }
+                },
                 # audio track args
                 **(dict(
                     bitrate=0,  # TODO: M3U doesn't seem to state bitrate?

@@ -35,7 +35,7 @@ class Track:
         name: Optional[str] = None,
         drm: Optional[Iterable[DRM_T]] = None,
         edition: Optional[str] = None,
-        extra: Optional[Any] = None,
+        data: Optional[dict] = None,
         id_: Optional[str] = None,
     ) -> None:
         if not isinstance(url, (str, list)):
@@ -54,6 +54,8 @@ class Track:
             raise TypeError(f"Expected id_ to be a {str}, not {type(id_)}")
         if not isinstance(edition, (str, type(None))):
             raise TypeError(f"Expected edition to be a {str}, not {type(edition)}")
+        if not isinstance(data, (dict, type(None))):
+            raise TypeError(f"Expected data to be a {dict}, not {type(data)}")
 
         invalid_urls = ", ".join(set(type(x) for x in url if not isinstance(x, str)))
         if invalid_urls:
@@ -74,7 +76,7 @@ class Track:
         self.name = name
         self.drm = drm
         self.edition: str = edition
-        self.extra: Any = extra or {}  # allow anything for extra, but default to a dict
+        self.data = data or {}
 
         if not id_:
             this = copy(self)

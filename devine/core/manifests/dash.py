@@ -207,7 +207,12 @@ class DASH:
                         language=track_lang,
                         is_original_lang=language and is_close_match(track_lang, [language]),
                         descriptor=Video.Descriptor.DASH,
-                        extra=(rep, adaptation_set),
+                        data={
+                            "dash": {
+                                "representation": rep,
+                                "adaptation_set": adaptation_set
+                            }
+                        },
                         **track_args
                     ))
 
