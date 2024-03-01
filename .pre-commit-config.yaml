@@ -2,6 +2,11 @@
 # See https://pre-commit.com/hooks.html for more hooks
 
 repos:
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.1.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
   - repo: https://github.com/mtkennerly/pre-commit-hooks
     rev: v0.3.0
     hooks:
