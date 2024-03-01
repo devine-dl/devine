@@ -20,8 +20,8 @@ from devine.core.utils.subprocess import ffprobe
 class Track:
     class Descriptor(Enum):
         URL = 1  # Direct URL, nothing fancy
-        M3U = 2  # https://en.wikipedia.org/wiki/M3U (and M3U8)
-        MPD = 3  # https://en.wikipedia.org/wiki/Dynamic_Adaptive_Streaming_over_HTTP
+        HLS = 2  # https://en.wikipedia.org/wiki/HTTP_Live_Streaming
+        DASH = 3  # https://en.wikipedia.org/wiki/Dynamic_Adaptive_Streaming_over_HTTP
 
     def __init__(
         self,

@@ -78,7 +78,7 @@ class Widevine:
         pssh_boxes: list[Container] = []
         tenc_boxes: list[Container] = []
 
-        if track.descriptor == track.Descriptor.M3U:
+        if track.descriptor == track.Descriptor.HLS:
             m3u_url = track.url
             master = m3u8.loads(session.get(m3u_url).text, uri=m3u_url)
             pssh_boxes.extend(

@@ -835,7 +835,7 @@ class dl:
             cleanup()
 
         try:
-            if track.descriptor == track.Descriptor.M3U:
+            if track.descriptor == track.Descriptor.HLS:
                 HLS.download_track(
                     track=track,
                     save_path=save_path,
@@ -845,7 +845,7 @@ class dl:
                     proxy=proxy,
                     license_widevine=prepare_drm
                 )
-            elif track.descriptor == track.Descriptor.MPD:
+            elif track.descriptor == track.Descriptor.DASH:
                 DASH.download_track(
                     track=track,
                     save_path=save_path,

@@ -114,7 +114,7 @@ class HLS:
                 language=language,  # HLS manifests do not seem to have language info
                 is_original_lang=True,  # TODO: All we can do is assume Yes
                 bitrate=playlist.stream_info.average_bandwidth or playlist.stream_info.bandwidth,
-                descriptor=Video.Descriptor.M3U,
+                descriptor=Video.Descriptor.HLS,
                 drm=session_drm,
                 extra=playlist,
                 # video track args
@@ -164,7 +164,7 @@ class HLS:
                 codec=codec,
                 language=track_lang,  # HLS media may not have language info, fallback if needed
                 is_original_lang=language and is_close_match(track_lang, [language]),
-                descriptor=Audio.Descriptor.M3U,
+                descriptor=Audio.Descriptor.HLS,
                 drm=session_drm if media.type == "AUDIO" else None,
                 extra=media,
                 # audio track args

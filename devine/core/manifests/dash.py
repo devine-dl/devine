@@ -206,7 +206,7 @@ class DASH:
                         codec=track_codec,
                         language=track_lang,
                         is_original_lang=language and is_close_match(track_lang, [language]),
-                        descriptor=Video.Descriptor.MPD,
+                        descriptor=Video.Descriptor.DASH,
                         extra=(rep, adaptation_set),
                         **track_args
                     ))
