@@ -4,11 +4,13 @@ import re
 import subprocess
 from collections import defaultdict
 from enum import Enum
+from functools import partial
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional
 
 import pycaption
+import requests
 from construct import Container
 from pycaption import Caption, CaptionList, CaptionNode, WebVTTReader
 from pycaption.geometry import Layout
@@ -146,6 +148,21 @@ class Subtitle(Track):
                 flag = f" ({flag})"
             track_name += flag
         return track_name or None
+
+    def download(
+        self,
+        session: requests.Session,
+        prepare_drm: partial,
+        progress: Optional[partial] = None
+    ):
+        super().download(session, prepare_drm, progress)
+        if not self.path:
+            return
+
+        if self.codec == Subtitle.Codec.fTTML:
+            self.convert(Subtitle.Codec.TimedTextMarkupLang)
+        elif self.codec == Subtitle.Codec.fVTT:
+            self.convert(Subtitle.Codec.WebVTT)
 
     def convert(self, codec: Subtitle.Codec) -> Path:
         """
