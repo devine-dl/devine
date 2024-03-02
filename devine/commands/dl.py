@@ -376,7 +376,13 @@ class dl:
                             sys.exit(1)
 
                     video_languages = v_lang or lang
-                    if video_languages and "all" not in video_languages:
+                    if (
+                        (v_lang and "all" not in v_lang) or
+                        (lang and "all" not in lang and any(
+                            x.language != title.tracks.videos[0].language
+                            for x in title.tracks.videos
+                        ))
+                    ):
                         title.tracks.videos = title.tracks.by_language(title.tracks.videos, video_languages)
                         if not title.tracks.videos:
                             self.log.error(f"There's no {video_languages} Video Track...")
