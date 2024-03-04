@@ -787,18 +787,6 @@ class dl:
                     export.write_text(jsonpickle.dumps(keys, indent=4), encoding="utf8")
 
     @staticmethod
-    def get_profile(service: str) -> Optional[str]:
-        """Get profile for Service from config."""
-        profile = config.profiles.get(service)
-        if profile is False:
-            return None  # auth-less service if `false` in config
-        if not profile:
-            profile = config.profiles.get("default")
-        if not profile:
-            raise ValueError(f"No profile has been defined for '{service}' in the config.")
-        return profile
-
-    @staticmethod
     def get_cookie_path(service: str, profile: Optional[str]) -> Optional[Path]:
         """Get Service Cookie File Path for Profile."""
         direct_cookie_file = config.directories.cookies / f"{service}.txt"
