@@ -70,8 +70,8 @@ class dl:
     @click.option("-q", "--quality", type=QUALITY_LIST, default=[],
                   help="Download Resolution(s), defaults to the best available resolution.")
     @click.option("-v", "--vcodec", type=click.Choice(Video.Codec, case_sensitive=False),
-                  default=Video.Codec.AVC,
-                  help="Video Codec to download, defaults to H.264.")
+                  default=None,
+                  help="Video Codec to download, defaults to any codec.")
     @click.option("-a", "--acodec", type=click.Choice(Audio.Codec, case_sensitive=False),
                   default=None,
                   help="Audio Codec to download, defaults to any codec.")
@@ -250,7 +250,7 @@ class dl:
         self,
         service: Service,
         quality: list[int],
-        vcodec: Video.Codec,
+        vcodec: Optional[Video.Codec],
         acodec: Optional[Audio.Codec],
         vbitrate: int,
         abitrate: int,
@@ -357,10 +357,11 @@ class dl:
             with console.status("Selecting tracks...", spinner="dots"):
                 if isinstance(title, (Movie, Episode)):
                     # filter video tracks
-                    title.tracks.select_video(lambda x: x.codec == vcodec)
-                    if not title.tracks.videos:
-                        self.log.error(f"There's no {vcodec.name} Video Track...")
-                        sys.exit(1)
+                    if vcodec:
+                        title.tracks.select_video(lambda x: x.codec == vcodec)
+                        if not title.tracks.videos:
+                            self.log.error(f"There's no {vcodec.name} Video Track...")
+                            sys.exit(1)
 
                     title.tracks.select_video(lambda x: x.range == range_)
                     if not title.tracks.videos:
