@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from functools import partial
 from http.cookiejar import CookieJar, MozillaCookieJar
-from itertools import zip_longest
+from itertools import product
 from pathlib import Path
 from threading import Lock
 from typing import Any, Callable, Optional
@@ -32,7 +32,7 @@ from rich.console import Group
 from rich.live import Live
 from rich.padding import Padding
 from rich.panel import Panel
-from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeRemainingColumn
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskID, TextColumn, TimeRemainingColumn
 from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
@@ -50,7 +50,7 @@ from devine.core.titles import Movie, Song, Title_T
 from devine.core.titles.episode import Episode
 from devine.core.tracks import Audio, Subtitle, Tracks, Video
 from devine.core.utilities import get_binary_path, is_close_match, time_elapsed_since
-from devine.core.utils.click_types import LANGUAGE_RANGE, QUALITY_LIST, SEASON_RANGE, ContextData
+from devine.core.utils.click_types import LANGUAGE_RANGE, QUALITY_LIST, SEASON_RANGE, ContextData, MultipleChoice
 from devine.core.utils.collections import merge_dict
 from devine.core.utils.subprocess import ffprobe
 from devine.core.vaults import Vaults
@@ -81,9 +81,9 @@ class dl:
     @click.option("-ab", "--abitrate", type=int,
                   default=None,
                   help="Audio Bitrate to download (in kbps), defaults to highest available.")
-    @click.option("-r", "--range", "range_", type=click.Choice(Video.Range, case_sensitive=False),
-                  default=Video.Range.SDR,
-                  help="Video Color Range, defaults to SDR.")
+    @click.option("-r", "--range", "range_", type=MultipleChoice(Video.Range, case_sensitive=False),
+                  default=[Video.Range.SDR],
+                  help="Video Color Range(s) to download, defaults to SDR.")
     @click.option("-c", "--channels", type=float,
                   default=None,
                   help="Audio Channel(s) to download. Matches sub-channel layouts like 5.1 with 6.0 implicitly.")
@@ -254,7 +254,7 @@ class dl:
         acodec: Optional[Audio.Codec],
         vbitrate: int,
         abitrate: int,
-        range_: Video.Range,
+        range_: list[Video.Range],
         channels: float,
         wanted: list[str],
         lang: list[str],
@@ -363,10 +363,12 @@ class dl:
                             self.log.error(f"There's no {vcodec.name} Video Track...")
                             sys.exit(1)
 
-                    title.tracks.select_video(lambda x: x.range == range_)
-                    if not title.tracks.videos:
-                        self.log.error(f"There's no {range_.name} Video Track...")
-                        sys.exit(1)
+                    if range_:
+                        title.tracks.select_video(lambda x: x.range in range_)
+                        for color_range in range_:
+                            if not any(x.range == color_range for x in title.tracks.videos):
+                                self.log.error(f"There's no {color_range.name} Video Tracks...")
+                                sys.exit(1)
 
                     if vbitrate:
                         title.tracks.select_video(lambda x: x.bitrate and x.bitrate // 1000 == vbitrate)
@@ -382,7 +384,7 @@ class dl:
                             sys.exit(1)
 
                     if quality:
-                        title.tracks.by_resolutions(quality, per_resolution=1)
+                        title.tracks.by_resolutions(quality)
                         missing_resolutions = []
                         for resolution in quality:
                             if any(video.height == resolution for video in title.tracks.videos):
@@ -398,8 +400,27 @@ class dl:
                             plural = "s" if len(missing_resolutions) > 1 else ""
                             self.log.error(f"There's no {res_list} Video Track{plural}...")
                             sys.exit(1)
-                    else:
-                        title.tracks.videos = [title.tracks.videos[0]]
+
+                    # choose best track by range and quality
+                    title.tracks.videos = [
+                        track
+                        for resolution, color_range in product(
+                            quality or [None],
+                            range_ or [None]
+                        )
+                        for track in [next(
+                            t
+                            for t in title.tracks.videos
+                            if (not resolution and not color_range) or
+                            (
+                                (not resolution or (
+                                   (t.height == resolution) or
+                                   (int(t.width * (9 / 16)) == resolution)
+                                ))
+                                and (not color_range or t.range == color_range)
+                            )
+                        )]
+                    ]
 
                     # filter subtitle tracks
                     if s_lang and "all" not in s_lang:
@@ -599,26 +620,31 @@ class dl:
                         TimeRemainingColumn(compact=True, elapsed_when_finished=True),
                         console=console
                     )
-                    multi_jobs = len(title.tracks.videos) > 1
-                    tasks = [
-                        progress.add_task(
-                            f"Multiplexing{f' {x.height}p' if multi_jobs else ''}...",
-                            total=None,
-                            start=False
-                        )
-                        for x in title.tracks.videos or [None]
-                    ]
+
+                    multiplex_tasks: list[tuple[TaskID, Tracks]] = []
+                    for video_track in title.tracks.videos:
+                        task_description = "Multiplexing"
+                        if len(quality) > 1:
+                            task_description += f" {video_track.height}p"
+                        if len(range_) > 1:
+                            task_description += f" {video_track.range.name}"
+
+                        task_id = progress.add_task(f"{task_description}...", total=None, start=False)
+
+                        task_tracks = Tracks(title.tracks)
+                        task_tracks.videos = [video_track]
+
+                        multiplex_tasks.append((task_id, task_tracks))
+
                     with Live(
                         Padding(progress, (0, 5, 1, 5)),
                         console=console
                     ):
-                        for task, video_track in zip_longest(tasks, title.tracks.videos, fillvalue=None):
-                            if video_track:
-                                title.tracks.videos = [video_track]
-                            progress.start_task(task)  # TODO: Needed?
-                            muxed_path, return_code = title.tracks.mux(
+                        for task_id, task_tracks in multiplex_tasks:
+                            progress.start_task(task_id)  # TODO: Needed?
+                            muxed_path, return_code = task_tracks.mux(
                                 str(title),
-                                progress=partial(progress.update, task_id=task),
+                                progress=partial(progress.update, task_id=task_id),
                                 delete=False
                             )
                             muxed_paths.append(muxed_path)
@@ -627,8 +653,7 @@ class dl:
                             elif return_code >= 2:
                                 self.log.error(f"Failed to Mux video to Matroska file ({return_code})")
                                 sys.exit(1)
-                            if video_track:
-                                video_track.delete()
+                            task_tracks.videos[0].delete()
                         for track in title.tracks:
                             track.delete()
                 else:
