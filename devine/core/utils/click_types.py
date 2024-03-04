@@ -1,7 +1,8 @@
 import re
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 import click
+from click.shell_completion import CompletionItem
 from pywidevine.cdm import Cdm as WidevineCdm
 
 
@@ -120,6 +121,62 @@ class QualityList(click.ParamType):
             except ValueError:
                 self.fail(f"{resolution!r} is not a valid integer", param, ctx)
         return sorted(resolutions, reverse=True)
+
+
+class MultipleChoice(click.Choice):
+    """
+    The multiple choice type allows multiple values to be checked against
+    a fixed set of supported values.
+
+    It internally uses and is based off of click.Choice.
+    """
+
+    name = "multiple_choice"
+
+    def __repr__(self) -> str:
+        return f"MultipleChoice({list(self.choices)})"
+
+    def convert(
+        self,
+        value: Any,
+        param: Optional[click.Parameter] = None,
+        ctx: Optional[click.Context] = None
+    ) -> list[Any]:
+        if not value:
+            return []
+        if isinstance(value, str):
+            values = value.split(",")
+        elif isinstance(value, list):
+            values = value
+        else:
+            self.fail(
+                f"{value!r} is not a supported value.",
+                param,
+                ctx
+            )
+
+        chosen_values: list[Any] = []
+        for value in values:
+            chosen_values.append(super(click.Choice, self).convert(value, param, ctx))
+
+        return chosen_values
+
+    def shell_complete(
+        self,
+        ctx: click.Context,
+        param: click.Parameter,
+        incomplete: str
+    ) -> list[CompletionItem]:
+        """
+        Complete choices that start with the incomplete value.
+
+        Parameters:
+            ctx: Invocation context for this command.
+            param: The parameter that is requesting completion.
+            incomplete: Value being completed. May be empty.
+        """
+        incomplete = incomplete.rsplit(",")[-1]
+        return super(self).shell_complete(ctx, param, incomplete)
 
 
 SEASON_RANGE = SeasonRange()
