@@ -1,0 +1,71 @@
+# git-cliff ~ default configuration file
+# https://git-cliff.org/docs/configuration
+
+[changelog]
+header = """
+# Changelog\n
+All notable changes to this project will be documented in this file.
+
+This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+Versions [3.0.0] and older use a format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+but versions thereafter use a custom changelog format using [git-cliff](https://git-cliff.org).\n
+"""
+body = """
+{% if version -%}
+    ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else -%}
+    ## [Unreleased]
+{% endif -%}
+{% for group, commits in commits | group_by(attribute="group") %}
+    ### {{ group | striptags | trim | upper_first }}
+    {% for commit in commits %}
+        - {% if commit.scope %}*{{ commit.scope }}*: {% endif %}\
+            {% if commit.breaking %}[**breaking**] {% endif %}\
+            {{ commit.message | upper_first }}\
+    {% endfor %}
+{% endfor %}\n
+"""
+footer = """
+{% for release in releases -%}
+    {% if release.version -%}
+        {% if release.previous.version -%}
+            [{{ release.version | trim_start_matches(pat="v") }}]: \
+                https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}\
+                    /compare/{{ release.previous.version }}..{{ release.version }}
+        {% endif -%}
+    {% else -%}
+        [unreleased]: https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}\
+            /compare/{{ release.previous.version }}..HEAD
+    {% endif -%}
+{% endfor %}
+"""
+trim = true
+postprocessors = [
+  # { pattern = '<REPO>', replace = "https://github.com/orhun/git-cliff" }, # replace repository URL
+]
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+commit_preprocessors = []
+commit_parsers = [
+  { message = "^feat", group = "<!-- 0 -->Features" },
+  { message = "^fix|revert", group = "<!-- 1 -->Bug Fixes" },
+  { message = "^docs", group = "<!-- 2 -->Documentation" },
+  { message = "^style", skip = true },
+  { message = "^refactor", group = "<!-- 3 -->Changes" },
+  { message = "^perf", group = "<!-- 4 -->Performance Improvements" },
+  { message = "^test", skip = true },
+  { message = "^build", group = "<!-- 5 -->Builds" },
+  { message = "^ci", skip = true },
+  { message = "^chore", skip = true },
+]
+protect_breaking_commits = false
+filter_commits = false
+# tag_pattern = "v[0-9].*"
+# skip_tags = ""
+# ignore_tags = ""
+topo_order = false
+sort_commits = "oldest"
