@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "devine"
-version = "3.0.0"
+version = "3.1.0"
 description = "Modular Movie, TV, and Music Archival Software."
 license = "GPL-3.0-only"
 authors = ["rlaphoenix <rlaphoenix@pm.me>"]
