@@ -2,8 +2,50 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+Versions [3.0.0] and older use a format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+but versions thereafter use a custom changelog format using [git-cliff](https://git-cliff.org).
+
+## [3.1.0] - 2024-03-05
+
+### Features
+
+- *cli*: Implement MultipleChoice click param based on Choice param
+- *dl*: Skip video lang filter if --v-lang unused & only 1 video lang
+- *dl*: Change --vcodec default to None, use any codec
+- *dl*: Support multiple -r/--range and mux ranges separately
+- *Subtitle*: Convert from fTTML->TTML & fVTT->WebVTT post-download
+- *Track*: Make ID optional, Automatically compute one if not provided
+- *Track*: Add a name property to use for the Track Name
+
+### Bug Fixes
+
+- *dl*: Have --sub-format default to None to keep original sub format
+- *HLS*: Use filtered out segment key info
+- *Track*: Don't modify lang when getting name
+- *Track*: Don't use fallback values "Zzzz"/"ZZ" for track name
+- *version*: The `__version__` variable forgot to be updated
+
+### Changes
+
+- Move dl command's download_track() to Track.download()
+- *dl*: Remove unused `get_profiles()` method
+- *DASH*: Move data values from track url to track data property
+- *DASH*: Change how Video FPS is gotten to remove FutureWarning log
+- *Track*: Add type checks, improve typing
+- *Track*: Remove swap() method and it's uses
+- *Track*: Remove unused DRM enum
+- *Track*: Rename Descriptor's M3U & MPD to HLS & DASH
+- *Track*: Remove unnecessary bool casting
+- *Track*: Move the path class instance variable with the rest
+- *Track*: Return new path on move(), raise exceptions on errors
+- *Track*: Move delete and move methods near start of Class
+- *Track*: Rename extra to data, enforce type as dict
+
+### Builds
+
+- Explicitly use marisa-trie==1.1.0 for Python 3.12 wheels
 
 ## [3.0.0] - 2024-03-01
 
@@ -643,6 +685,7 @@ This release brings a huge change to the fundamentals of Devine's logging, UI, a
 
 Initial public release under the name Devine.
 
+[3.1.0]: https://github.com/devine-dl/devine/releases/tag/v3.1.0
 [3.0.0]: https://github.com/devine-dl/devine/releases/tag/v3.0.0
 [2.2.0]: https://github.com/devine-dl/devine/releases/tag/v2.2.0
 [2.1.0]: https://github.com/devine-dl/devine/releases/tag/v2.1.0
