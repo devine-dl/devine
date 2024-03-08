@@ -97,7 +97,7 @@ class Track:
         if not id_:
             this = copy(self)
             this.url = self.url.rsplit("?", maxsplit=1)[0]
-            checksum = crc32(repr(self).encode("utf8"))
+            checksum = crc32(repr(this).encode("utf8"))
             id_ = hex(checksum)[2:]
 
         self.id = id_
