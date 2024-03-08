@@ -81,6 +81,10 @@ class ClearKey:
         if not session:
             session = Session()
 
+        if not session.headers.get("User-Agent"):
+            # commonly needed default for HLS playlists
+            session.headers["User-Agent"] = "smartexoplayer/1.1.0 (Linux;Android 8.0.0) ExoPlayerLib/2.13.3"
+
         if m3u_key.uri.startswith("data:"):
             media_types, data = m3u_key.uri[5:].split(",")
             media_types = media_types.split(";")
@@ -89,12 +93,7 @@ class ClearKey:
             key = data
         else:
             url = urljoin(m3u_key.base_uri, m3u_key.uri)
-            res = session.get(
-                url=url,
-                headers={
-                    "User-Agent": "smartexoplayer/1.1.0 (Linux;Android 8.0.0) ExoPlayerLib/2.13.3"
-                }
-            )
+            res = session.get(url)
             res.raise_for_status()
             if not res.content:
                 raise EOFError("Unexpected Empty Response by M3U Key URI.")
