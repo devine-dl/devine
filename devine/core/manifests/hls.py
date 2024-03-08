@@ -581,29 +581,12 @@ class HLS:
                 continue
             # TODO: Add a way to specify which supported key system to use
             # TODO: Add support for 'SAMPLE-AES', 'AES-CTR', 'AES-CBC', 'ClearKey'
-            # if encryption_data and encryption_data[0] == key:
-            #     # no need to re-obtain the exact same encryption data
-            #     break
             elif key.method == "AES-128":
                 return key
-                # encryption_data = (key, ClearKey.from_m3u_key(key, session))
-                # break
             elif key.method == "ISO-23001-7":
                 return key
-                # encryption_data = (key, Widevine(
-                #     pssh=PSSH.new(
-                #         key_ids=[key.uri.split(",")[-1]],
-                #         system_id=PSSH.SystemId.Widevine
-                #     )
-                # ))
-                # break
             elif key.keyformat and key.keyformat.lower() == WidevineCdm.urn:
                 return key
-                # encryption_data = (key, Widevine(
-                #     pssh=PSSH(key.uri.split(",")[-1]),
-                #     **key._extra_params  # noqa
-                # ))
-                # break
             else:
                 unsupported_systems.append(key.method + (f" ({key.keyformat})" if key.keyformat else ""))
         else:
