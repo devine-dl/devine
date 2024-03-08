@@ -1,6 +1,7 @@
 import base64
 import logging
 from abc import ABCMeta, abstractmethod
+from collections.abc import Generator
 from http.cookiejar import CookieJar
 from typing import Optional, Union
 from urllib.parse import urlparse
@@ -16,6 +17,7 @@ from devine.core.config import config
 from devine.core.console import console
 from devine.core.constants import AnyTrack
 from devine.core.credential import Credential
+from devine.core.search_result import SearchResult
 from devine.core.titles import Title_T, Titles_T
 from devine.core.tracks import Chapters, Tracks
 from devine.core.utilities import get_ip_info
@@ -122,6 +124,17 @@ class Service(metaclass=ABCMeta):
             if not isinstance(cookies, CookieJar):
                 raise TypeError(f"Expected cookies to be a {CookieJar}, not {cookies!r}.")
             self.session.cookies.update(cookies)
+
+    def search(self) -> Generator[SearchResult, None, None]:
+        """
+        Search by query for titles from the Service.
+
+        The query must be taken as a CLI argument by the Service class.
+        Ideally just re-use the title ID argument (i.e. self.title).
+
+        Search results will be displayed in the order yielded.
+        """
+        raise NotImplementedError(f"Search functionality has not been implemented by {self.__class__.__name__}")
 
     def get_widevine_service_certificate(self, *, challenge: bytes, title: Title_T, track: AnyTrack) \
             -> Union[bytes, str]:
