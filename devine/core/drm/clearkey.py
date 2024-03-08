@@ -6,10 +6,10 @@ from pathlib import Path
 from typing import Optional, Union
 from urllib.parse import urljoin
 
-import requests
 from Cryptodome.Cipher import AES
 from Cryptodome.Util.Padding import pad, unpad
 from m3u8.model import Key
+from requests import Session
 
 
 class ClearKey:
@@ -58,13 +58,28 @@ class ClearKey:
         shutil.move(decrypted_path, path)
 
     @classmethod
-    def from_m3u_key(cls, m3u_key: Key, proxy: Optional[str] = None) -> ClearKey:
+    def from_m3u_key(cls, m3u_key: Key, session: Optional[Session] = None) -> ClearKey:
+        """
+        Load a ClearKey from an M3U(8) Playlist's EXT-X-KEY.
+
+        Parameters:
+            m3u_key: A Key object parsed from a m3u(8) playlist using
+                the `m3u8` library.
+            session: Optional session used to request external URIs with.
+                Useful to set headers, proxies, cookies, and so forth.
+        """
         if not isinstance(m3u_key, Key):
             raise ValueError(f"Provided M3U Key is in an unexpected type {m3u_key!r}")
+        if not isinstance(session, (Session, type(None))):
+            raise TypeError(f"Expected session to be a {Session}, not a {type(session)}")
+
         if not m3u_key.method.startswith("AES"):
             raise ValueError(f"Provided M3U Key is not an AES Clear Key, {m3u_key.method}")
         if not m3u_key.uri:
             raise ValueError("No URI in M3U Key, unable to get Key.")
+
+        if not session:
+            session = Session()
 
         if m3u_key.uri.startswith("data:"):
             media_types, data = m3u_key.uri[5:].split(",")
@@ -74,12 +89,11 @@ class ClearKey:
             key = data
         else:
             url = urljoin(m3u_key.base_uri, m3u_key.uri)
-            res = requests.get(
+            res = session.get(
                 url=url,
                 headers={
                     "User-Agent": "smartexoplayer/1.1.0 (Linux;Android 8.0.0) ExoPlayerLib/2.13.3"
-                },
-                proxies={"all": proxy} if proxy else None
+                }
             )
             res.raise_for_status()
             if not res.content:

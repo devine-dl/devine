@@ -469,7 +469,7 @@ class HLS:
                 if key is None:
                     encryption_data = None
                 elif not encryption_data or encryption_data[0] != key:
-                    drm = HLS.get_drm(key, proxy)
+                    drm = HLS.get_drm(key, session)
                     if isinstance(drm, Widevine):
                         try:
                             if map_data:
@@ -586,8 +586,7 @@ class HLS:
             #     break
             elif key.method == "AES-128":
                 return key
-                # # TODO: Use a session instead of creating a new connection within
-                # encryption_data = (key, ClearKey.from_m3u_key(key, proxy))
+                # encryption_data = (key, ClearKey.from_m3u_key(key, session))
                 # break
             elif key.method == "ISO-23001-7":
                 return key
@@ -613,21 +612,26 @@ class HLS:
     @staticmethod
     def get_drm(
         key: Union[m3u8.model.SessionKey, m3u8.model.Key],
-        proxy: Optional[str] = None
+        session: Optional[requests.Session] = None
     ) -> DRM_T:
         """
         Convert HLS EXT-X-KEY data to an initialized DRM object.
 
         Parameters:
             key: m3u8 key system (EXT-X-KEY) object.
-            proxy: Optional proxy string used for requesting AES-128 URIs.
+            session: Optional session used to request AES-128 URIs.
+                Useful to set headers, proxies, cookies, and so forth.
 
         Raises a NotImplementedError if the key system is not supported.
         """
+        if not isinstance(session, (Session, type(None))):
+            raise TypeError(f"Expected session to be a {Session}, not {type(session)}")
+        if not session:
+            session = Session()
+
         # TODO: Add support for 'SAMPLE-AES', 'AES-CTR', 'AES-CBC', 'ClearKey'
         if key.method == "AES-128":
-            # TODO: Use a session instead of creating a new connection within
-            drm = ClearKey.from_m3u_key(key, proxy)
+            drm = ClearKey.from_m3u_key(key, session)
         elif key.method == "ISO-23001-7":
             drm = Widevine(
                 pssh=PSSH.new(
