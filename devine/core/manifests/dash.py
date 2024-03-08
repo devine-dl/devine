@@ -483,6 +483,10 @@ class DASH:
                     status_update["downloaded"] = f"DASH {downloaded}"
                 progress(**status_update)
 
+        # see https://github.com/devine-dl/devine/issues/71
+        for control_file in save_dir.glob("*.aria2__temp"):
+            control_file.unlink()
+
         segments_to_merge = sorted(save_dir.iterdir())
         progress(downloaded="Merging", completed=0, total=len(segments_to_merge))
 
