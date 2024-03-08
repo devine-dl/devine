@@ -13,12 +13,12 @@ from uuid import UUID
 from zlib import crc32
 
 import m3u8
-import requests
 from langcodes import Language
+from requests import Session
 
 from devine.core.config import config
 from devine.core.constants import DOWNLOAD_CANCELLED, DOWNLOAD_LICENCE_ONLY, TERRITORY_MAP
-from devine.core.downloaders import downloader
+from devine.core.downloaders import aria2c, curl_impersonate, requests
 from devine.core.drm import DRM_T, Widevine
 from devine.core.utilities import get_binary_path, get_boxes, try_ensure_utf8
 from devine.core.utils.subprocess import ffprobe
@@ -40,6 +40,7 @@ class Track:
         name: Optional[str] = None,
         drm: Optional[Iterable[DRM_T]] = None,
         edition: Optional[str] = None,
+        downloader: Optional[Callable] = None,
         data: Optional[dict] = None,
         id_: Optional[str] = None,
     ) -> None:
@@ -59,6 +60,8 @@ class Track:
             raise TypeError(f"Expected id_ to be a {str}, not {type(id_)}")
         if not isinstance(edition, (str, type(None))):
             raise TypeError(f"Expected edition to be a {str}, not {type(edition)}")
+        if not isinstance(downloader, (Callable, type(None))):
+            raise TypeError(f"Expected downloader to be a {Callable}, not {type(downloader)}")
         if not isinstance(data, (dict, type(None))):
             raise TypeError(f"Expected data to be a {dict}, not {type(data)}")
 
@@ -72,6 +75,13 @@ class Track:
             except TypeError:
                 raise TypeError(f"Expected drm to be an iterable, not {type(drm)}")
 
+        if downloader is None:
+            downloader = {
+                "aria2c": aria2c,
+                "curl_impersonate": curl_impersonate,
+                "requests": requests
+            }[config.downloader]
+
         self.path: Optional[Path] = None
         self.url = url
         self.language = Language.get(language)
@@ -81,6 +91,7 @@ class Track:
         self.name = name
         self.drm = drm
         self.edition: str = edition
+        self.downloader = downloader
         self.data = data or {}
 
         if not id_:
@@ -116,7 +127,7 @@ class Track:
 
     def download(
         self,
-        session: requests.Session,
+        session: Session,
         prepare_drm: partial,
         progress: Optional[partial] = None
     ):
@@ -213,7 +224,7 @@ class Track:
                     if DOWNLOAD_LICENCE_ONLY.is_set():
                         progress(downloaded="[yellow]SKIPPED")
                     else:
-                        for status_update in downloader(
+                        for status_update in self.downloader(
                             urls=self.url,
                             output_dir=save_path.parent,
                             filename=save_path.name,
@@ -382,7 +393,7 @@ class Track:
         maximum_size: int = 20000,
         url: Optional[str] = None,
         byte_range: Optional[str] = None,
-        session: Optional[requests.Session] = None
+        session: Optional[Session] = None
     ) -> bytes:
         """
         Get the Track's Initial Segment Data Stream.
@@ -412,8 +423,8 @@ class Track:
             raise TypeError(f"Expected url to be a {str}, not {type(url)}")
         if not isinstance(byte_range, (str, type(None))):
             raise TypeError(f"Expected byte_range to be a {str}, not {type(byte_range)}")
-        if not isinstance(session, (requests.Session, type(None))):
-            raise TypeError(f"Expected session to be a {requests.Session}, not {type(session)}")
+        if not isinstance(session, (Session, type(None))):
+            raise TypeError(f"Expected session to be a {Session}, not {type(session)}")
 
         if not url:
             if self.descriptor != self.Descriptor.URL:
@@ -423,7 +434,7 @@ class Track:
             url = self.url
 
         if not session:
-            session = requests.Session()
+            session = Session()
 
         content_length = maximum_size
 

@@ -22,7 +22,6 @@ from pywidevine.pssh import PSSH
 from requests import Session
 
 from devine.core.constants import DOWNLOAD_CANCELLED, DOWNLOAD_LICENCE_ONLY, AnyTrack
-from devine.core.downloaders import downloader
 from devine.core.downloaders import requests as requests_downloader
 from devine.core.drm import Widevine
 from devine.core.tracks import Audio, Subtitle, Tracks, Video
@@ -452,12 +451,12 @@ class DASH:
 
         progress(total=len(segments))
 
-        downloader_ = downloader
+        downloader = track.downloader
         if downloader.__name__ == "aria2c" and any(bytes_range is not None for url, bytes_range in segments):
             # aria2(c) is shit and doesn't support the Range header, fallback to the requests downloader
-            downloader_ = requests_downloader
+            downloader = requests_downloader
 
-        for status_update in downloader_(
+        for status_update in downloader(
             urls=[
                 {
                     "url": url,

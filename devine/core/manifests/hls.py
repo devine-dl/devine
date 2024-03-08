@@ -20,7 +20,6 @@ from pywidevine.pssh import PSSH
 from requests import Session
 
 from devine.core.constants import DOWNLOAD_CANCELLED, DOWNLOAD_LICENCE_ONLY, AnyTrack
-from devine.core.downloaders import downloader
 from devine.core.downloaders import requests as requests_downloader
 from devine.core.drm import DRM_T, ClearKey, Widevine
 from devine.core.tracks import Audio, Subtitle, Tracks, Video
@@ -247,7 +246,7 @@ class HLS:
         total_segments = len(master.segments) - len(unwanted_segments)
         progress(total=total_segments)
 
-        downloader_ = downloader
+        downloader = track.downloader
 
         urls: list[dict[str, Any]] = []
         range_offset = 0
@@ -256,9 +255,9 @@ class HLS:
                 continue
 
             if segment.byterange:
-                if downloader_.__name__ == "aria2c":
+                if downloader.__name__ == "aria2c":
                     # aria2(c) is shit and doesn't support the Range header, fallback to the requests downloader
-                    downloader_ = requests_downloader
+                    downloader = requests_downloader
                 byte_range = HLS.calculate_byte_range(segment.byterange, range_offset)
                 range_offset = byte_range.split("-")[0]
             else:
@@ -273,7 +272,7 @@ class HLS:
 
         segment_save_dir = save_dir / "segments"
 
-        for status_update in downloader_(
+        for status_update in downloader(
             urls=urls,
             output_dir=segment_save_dir,
             filename="{i:0%d}{ext}" % len(str(len(urls))),
