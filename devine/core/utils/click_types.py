@@ -157,7 +157,7 @@ class MultipleChoice(click.Choice):
 
         chosen_values: list[Any] = []
         for value in values:
-            chosen_values.append(super(click.Choice, self).convert(value, param, ctx))
+            chosen_values.append(super().convert(value, param, ctx))
 
         return chosen_values
 
