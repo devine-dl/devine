@@ -622,17 +622,19 @@ class dl:
                     )
 
                     multiplex_tasks: list[tuple[TaskID, Tracks]] = []
-                    for video_track in title.tracks.videos:
+                    for video_track in title.tracks.videos or [None]:
                         task_description = "Multiplexing"
-                        if len(quality) > 1:
-                            task_description += f" {video_track.height}p"
-                        if len(range_) > 1:
-                            task_description += f" {video_track.range.name}"
+                        if video_track:
+                            if len(quality) > 1:
+                                task_description += f" {video_track.height}p"
+                            if len(range_) > 1:
+                                task_description += f" {video_track.range.name}"
 
                         task_id = progress.add_task(f"{task_description}...", total=None, start=False)
 
                         task_tracks = Tracks(title.tracks) + title.tracks.chapters
-                        task_tracks.videos = [video_track]
+                        if video_track:
+                            task_tracks.videos = [video_track]
 
                         multiplex_tasks.append((task_id, task_tracks))
 
@@ -653,7 +655,8 @@ class dl:
                             elif return_code >= 2:
                                 self.log.error(f"Failed to Mux video to Matroska file ({return_code})")
                                 sys.exit(1)
-                            task_tracks.videos[0].delete()
+                            for video_track in task_tracks.videos:
+                                video_track.delete()
                         for track in title.tracks:
                             track.delete()
                 else:
