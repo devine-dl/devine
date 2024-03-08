@@ -36,7 +36,7 @@ class Tracks:
         Chapter: 3
     }
 
-    def __init__(self, *args: Union[Tracks, list[Track], Track]):
+    def __init__(self, *args: Union[Tracks, Sequence[Union[AnyTrack, Chapter, Chapters]], Track, Chapter, Chapters]):
         self.videos: list[Video] = []
         self.audio: list[Audio] = []
         self.subtitles: list[Subtitle] = []
