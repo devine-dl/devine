@@ -631,7 +631,7 @@ class dl:
 
                         task_id = progress.add_task(f"{task_description}...", total=None, start=False)
 
-                        task_tracks = Tracks(title.tracks)
+                        task_tracks = Tracks(title.tracks) + title.tracks.chapters
                         task_tracks.videos = [video_track]
 
                         multiplex_tasks.append((task_id, task_tracks))
