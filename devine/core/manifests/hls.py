@@ -508,22 +508,28 @@ class HLS:
             return
 
         # finally merge all the discontinuity save files together to the final path
-        progress(downloaded="Merging")
-        if isinstance(track, (Video, Audio)):
-            HLS.merge_segments(
-                segments=sorted(list(save_dir.iterdir())),
-                save_path=save_path
-            )
-            shutil.rmtree(save_dir)
+        segments_to_merge = [
+            x
+            for x in sorted(save_dir.iterdir())
+            if x.is_file()
+        ]
+        if len(segments_to_merge) == 1:
+            shutil.move(segments_to_merge[0], save_path)
         else:
-            with open(save_path, "wb") as f:
-                for discontinuity_file in sorted(save_dir.iterdir()):
-                    if discontinuity_file.is_dir():
-                        continue
-                    discontinuity_data = discontinuity_file.read_bytes()
-                    f.write(discontinuity_data)
-                    f.flush()
-            shutil.rmtree(save_dir)
+            progress(downloaded="Merging")
+            if isinstance(track, (Video, Audio)):
+                HLS.merge_segments(
+                    segments=segments_to_merge,
+                    save_path=save_path
+                )
+                shutil.rmtree(save_dir)
+            else:
+                with open(save_path, "wb") as f:
+                    for discontinuity_file in segments_to_merge:
+                        discontinuity_data = discontinuity_file.read_bytes()
+                        f.write(discontinuity_data)
+                        f.flush()
+                shutil.rmtree(save_dir)
 
         progress(downloaded="Downloaded")
 
