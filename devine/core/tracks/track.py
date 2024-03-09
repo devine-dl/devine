@@ -341,7 +341,7 @@ class Track:
             region += f", {territory}"
 
         if self.name:
-            track_name = self.name + f" ({region})" if region else ""
+            track_name = self.name + (f" ({region})" if region else "")
         else:
             track_name = region or None
 
