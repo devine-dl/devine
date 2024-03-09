@@ -507,6 +507,8 @@ class HLS:
         if DOWNLOAD_LICENCE_ONLY.is_set():
             return
 
+        segment_save_dir.rmdir()
+
         # finally merge all the discontinuity save files together to the final path
         segments_to_merge = [
             x
@@ -522,14 +524,14 @@ class HLS:
                     segments=segments_to_merge,
                     save_path=save_path
                 )
-                shutil.rmtree(save_dir)
             else:
                 with open(save_path, "wb") as f:
                     for discontinuity_file in segments_to_merge:
                         discontinuity_data = discontinuity_file.read_bytes()
                         f.write(discontinuity_data)
                         f.flush()
-                shutil.rmtree(save_dir)
+
+        save_dir.rmdir()
 
         progress(downloaded="Downloaded")
 
