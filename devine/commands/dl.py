@@ -57,7 +57,7 @@ from devine.core.vaults import Vaults
 
 
 class dl:
-    @click.group(
+    @click.command(
         short_help="Download, Decrypt, and Mux tracks for titles from a Service.",
         cls=Services,
         context_settings=dict(
