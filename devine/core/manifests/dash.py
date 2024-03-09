@@ -496,23 +496,22 @@ class DASH:
                 f.write(init_data)
             if len(segments_to_merge) > 1:
                 progress(downloaded="Merging", completed=0, total=len(segments_to_merge))
-            else:
-                for segment_file in segments_to_merge:
-                    segment_data = segment_file.read_bytes()
-                    # TODO: fix encoding after decryption?
-                    if (
-                        not drm and isinstance(track, Subtitle) and
-                        track.codec not in (Subtitle.Codec.fVTT, Subtitle.Codec.fTTML)
-                    ):
-                        segment_data = try_ensure_utf8(segment_data)
-                        segment_data = segment_data.decode("utf8"). \
-                            replace("&lrm;", html.unescape("&lrm;")). \
-                            replace("&rlm;", html.unescape("&rlm;")). \
-                            encode("utf8")
-                    f.write(segment_data)
-                    f.flush()
-                    segment_file.unlink()
-                    progress(advance=1)
+            for segment_file in segments_to_merge:
+                segment_data = segment_file.read_bytes()
+                # TODO: fix encoding after decryption?
+                if (
+                    not drm and isinstance(track, Subtitle) and
+                    track.codec not in (Subtitle.Codec.fVTT, Subtitle.Codec.fTTML)
+                ):
+                    segment_data = try_ensure_utf8(segment_data)
+                    segment_data = segment_data.decode("utf8"). \
+                        replace("&lrm;", html.unescape("&lrm;")). \
+                        replace("&rlm;", html.unescape("&rlm;")). \
+                        encode("utf8")
+                f.write(segment_data)
+                f.flush()
+                segment_file.unlink()
+                progress(advance=1)
 
         track.path = save_path
         if callable(track.OnDownloaded):
