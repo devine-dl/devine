@@ -17,7 +17,7 @@ from langcodes import Language
 from requests import Session
 
 from devine.core.config import config
-from devine.core.constants import DOWNLOAD_CANCELLED, DOWNLOAD_LICENCE_ONLY, TERRITORY_MAP
+from devine.core.constants import DOWNLOAD_CANCELLED, DOWNLOAD_LICENCE_ONLY
 from devine.core.downloaders import aria2c, curl_impersonate, requests
 from devine.core.drm import DRM_T, Widevine
 from devine.core.utilities import get_binary_path, get_boxes, try_ensure_utf8
@@ -326,7 +326,8 @@ class Track:
         simplified_language = self.language.simplify_script()
         script = simplified_language.script_name(max_distance=25)
         territory = simplified_language.territory_name(max_distance=25)
-        territory = TERRITORY_MAP.get(territory, territory)
+        if territory and territory.endswith(" SAR China"):
+            territory = territory.split(" SAR China")[0]
 
         if (script or "").lower() == (territory or "").lower():
             script = None

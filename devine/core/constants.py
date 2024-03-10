@@ -5,9 +5,6 @@ DOWNLOAD_CANCELLED = Event()
 DOWNLOAD_LICENCE_ONLY = Event()
 
 DRM_SORT_MAP = ["ClearKey", "Widevine"]
-TERRITORY_MAP = {
-    "Hong Kong SAR China": "Hong Kong"
-}
 LANGUAGE_MAX_DISTANCE = 5  # this is max to be considered "same", e.g., en, en-US, en-AU
 VIDEO_CODEC_MAP = {
     "AVC": "H.264",
