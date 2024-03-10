@@ -94,6 +94,23 @@ class Track:
         self.downloader = downloader
         self.data = data or {}
 
+        if self.name is None:
+            lang = Language.get(self.language)
+            if (lang.language or "").lower() == (lang.territory or "").lower():
+                lang.territory = None  # e.g. en-en, de-DE
+            reduced = lang.simplify_script()
+            extra_parts = []
+            if reduced.script is not None:
+                script = reduced.script_name(max_distance=25)
+                if script and script != "Zzzz":
+                    extra_parts.append(script)
+            if reduced.territory is not None:
+                territory = reduced.territory_name(max_distance=25)
+                if territory and territory != "ZZ":
+                    territory = territory.removesuffix(" SAR China")
+                    extra_parts.append(territory)
+            self.name = ", ".join(extra_parts) or None
+
         if not id_:
             this = copy(self)
             this.url = self.url.rsplit("?", maxsplit=1)[0]
@@ -323,30 +340,7 @@ class Track:
 
     def get_track_name(self) -> Optional[str]:
         """Get the Track Name."""
-        simplified_language = self.language.simplify_script()
-        script = simplified_language.script_name(max_distance=25)
-        territory = simplified_language.territory_name(max_distance=25)
-        if territory and territory.endswith(" SAR China"):
-            territory = territory.split(" SAR China")[0]
-
-        if (script or "").lower() == (territory or "").lower():
-            script = None
-            territory = None
-        if script == "Zzzz":
-            script = None
-        if territory in ("ZZ", "US"):
-            territory = None
-
-        region = script
-        if region and territory:
-            region += f", {territory}"
-
-        if self.name:
-            track_name = self.name + (f" ({region})" if region else "")
-        else:
-            track_name = region or None
-
-        return track_name
+        return self.name
 
     def get_key_id(self, init_data: Optional[bytes] = None, *args, **kwargs) -> Optional[UUID]:
         """
