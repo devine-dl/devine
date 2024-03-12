@@ -321,11 +321,12 @@ class Video(Track):
         i = file.index(b"x264")
         encoding_settings = file[i: i + file[i:].index(b"\x00")].replace(b":", br"\\:").replace(b",", br"\,").decode()
 
-        cleaned_path = self.path.with_suffix(f".cleaned{self.path.suffix}")
+        original_path = self.path
+        cleaned_path = original_path.with_suffix(f".cleaned{original_path.suffix}")
         subprocess.run([
             executable, "-hide_banner",
             "-loglevel", "panic",
-            "-i", self.path,
+            "-i", original_path,
             "-map_metadata", "-1",
             "-fflags", "bitexact",
             "-bsf:v", f"filter_units=remove_types=6,h264_metadata=sei_user_data={uuid}+{encoding_settings}",
@@ -336,6 +337,7 @@ class Video(Track):
         log.info(" + Removed")
 
         self.path = cleaned_path
+        original_path.unlink()
 
         return True
 
