@@ -201,6 +201,7 @@ class Video(Track):
         ], check=True)
 
         self.path = output_path
+        original_path.unlink()
 
     def ccextractor(
         self, track_id: Any, out_path: Union[Path, str], language: Language, original: bool = False
