@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Generator, MutableMapping, Optional, Union
 
 from requests import Session
+from requests.adapters import HTTPAdapter
 from rich import filesize
 
 from devine.core.constants import DOWNLOAD_CANCELLED
@@ -211,6 +212,12 @@ def requests(
     ]
 
     session = Session()
+    session.mount("https://", HTTPAdapter(
+        pool_connections=max_workers,
+        pool_maxsize=max_workers
+    ))
+    session.mount("http://", session.adapters["https://"])
+
     if headers:
         headers = {
             k: v
