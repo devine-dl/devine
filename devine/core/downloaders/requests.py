@@ -218,7 +218,8 @@ def requests(
     session = Session()
     session.mount("https://", HTTPAdapter(
         pool_connections=max_workers,
-        pool_maxsize=max_workers
+        pool_maxsize=max_workers,
+        pool_block=True
     ))
     session.mount("http://", session.adapters["https://"])
 
