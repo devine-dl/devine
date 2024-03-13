@@ -1,4 +1,5 @@
 import math
+import os
 import time
 from concurrent import futures
 from concurrent.futures.thread import ThreadPoolExecutor
@@ -195,6 +196,9 @@ def requests(
 
     if not isinstance(urls, list):
         urls = [urls]
+
+    if not max_workers:
+        max_workers = min(32, (os.cpu_count() or 1) + 4)
 
     urls = [
         dict(
