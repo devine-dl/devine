@@ -569,6 +569,9 @@ class HLS:
         ])
         demuxer_file.unlink()
 
+        for segment in segments:
+            segment.unlink()
+
         return save_path.stat().st_size
 
     @staticmethod
