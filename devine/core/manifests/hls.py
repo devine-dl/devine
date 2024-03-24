@@ -530,6 +530,7 @@ class HLS:
                         discontinuity_data = discontinuity_file.read_bytes()
                         f.write(discontinuity_data)
                         f.flush()
+                        discontinuity_file.unlink()
 
         save_dir.rmdir()
 
