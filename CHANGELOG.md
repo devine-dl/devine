@@ -7,6 +7,40 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 Versions [3.0.0] and older use a format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 but versions thereafter use a custom changelog format using [git-cliff](https://git-cliff.org).
 
+## [3.2.0] - 2024-03-25
+
+### Features
+
+- *ClearKey*: Pass session not proxy str in from_m3u_key method
+- *Track*: Allow Track to choose downloader to use
+- *search*: New Search command, Service method, SearchResult Class
+
+### Bug Fixes
+
+- *dl*: Include chapters when muxing
+- *aria2c*: Support aria2(c) 1.37.0 by handling upstream regression
+- *MultipleChoice*: Simplify super() call and value types
+- *dl*: Add single mux job if there's no video tracks
+- *Track*: Compute Track ID from the `this` variable, not `self`
+- *DASH/HLS*: Don't merge folders, skip final merge if only 1 segment
+- *dl*: Use click.command() instead of click.group()
+- *HLS*: Remove save dir even if final merge wasn't needed
+- *Track*: Fix order of operation mistake in get_track_name
+- *requests*: Set HTTP pool connections/maxsize to max workers
+- *Video*: Delete original file after using change_color_range()
+- *Video*: Delete original file after using remove_eia_cc()
+- *requests*: Manually compute default max_workers or pool size is None
+- *requests*: Block until connection freed if too many connections
+- *HLS*: Delete subtitle segments as they are merged
+- *HLS*: Delete video/audio segments after FFmpeg merge
+
+### Changes
+
+- *ClearKey*: Only use User-Agent if none set in from_m3u_key
+- *Track*: Remove TERRITORY_MAP constant, trim SAR China manually
+- *Track*: Default the track name to it's lang's script/territory
+- *Service*: Go back to the default pool_maxsize in Session
+
 ## [3.1.0] - 2024-03-05
 
 ### Features
@@ -685,6 +719,7 @@ This release brings a huge change to the fundamentals of Devine's logging, UI, a
 
 Initial public release under the name Devine.
 
+[3.2.0]: https://github.com/devine-dl/devine/releases/tag/v3.2.0
 [3.1.0]: https://github.com/devine-dl/devine/releases/tag/v3.1.0
 [3.0.0]: https://github.com/devine-dl/devine/releases/tag/v3.0.0
 [2.2.0]: https://github.com/devine-dl/devine/releases/tag/v2.2.0
