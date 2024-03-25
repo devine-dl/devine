@@ -277,6 +277,27 @@ def get_extension(value: Union[str, Path, ParseResult]) -> Optional[str]:
             return ext
 
 
+def get_system_fonts() -> dict[str, Path]:
+    if sys.platform == "win32":
+        import winreg
+        with winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE) as reg:
+            key = winreg.OpenKey(
+                reg,
+                r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts",
+                0,
+                winreg.KEY_READ
+            )
+            total_fonts = winreg.QueryInfoKey(key)[1]
+            return {
+                name.replace(" (TrueType)", ""): Path(r"C:\Windows\Fonts", filename)
+                for n in range(0, total_fonts)
+                for name, filename, _ in [winreg.EnumValue(key, n)]
+            }
+    else:
+        # TODO: Get System Fonts for Linux and mac OS
+        return {}
+
+
 class FPS(ast.NodeVisitor):
     def visit_BinOp(self, node: ast.BinOp) -> float:
         if isinstance(node.op, ast.Div):

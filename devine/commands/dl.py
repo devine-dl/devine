@@ -50,7 +50,7 @@ from devine.core.titles import Movie, Song, Title_T
 from devine.core.titles.episode import Episode
 from devine.core.tracks import Audio, Subtitle, Tracks, Video
 from devine.core.tracks.attachment import Attachment
-from devine.core.utilities import get_binary_path, is_close_match, time_elapsed_since
+from devine.core.utilities import get_binary_path, get_system_fonts, is_close_match, time_elapsed_since
 from devine.core.utils.click_types import LANGUAGE_RANGE, QUALITY_LIST, SEASON_RANGE, ContextData, MultipleChoice
 from devine.core.utils.collections import merge_dict
 from devine.core.utils.subprocess import ffprobe
@@ -607,11 +607,21 @@ class dl:
                                     font_names.append(line.removesuffix("Style: ").split(",")[1])
 
                     font_count = 0
+                    system_fonts = get_system_fonts()
                     for font_name in set(font_names):
                         family_dir = Path(config.directories.fonts, font_name)
+                        fonts_from_system = [
+                            file
+                            for name, file in system_fonts.items()
+                            if name.startswith(font_name)
+                        ]
                         if family_dir.exists():
                             fonts = family_dir.glob("*.*tf")
                             for font in fonts:
+                                title.tracks.add(Attachment(font, f"{font_name} ({font.stem})"))
+                                font_count += 1
+                        elif fonts_from_system:
+                            for font in fonts_from_system:
                                 title.tracks.add(Attachment(font, f"{font_name} ({font.stem})"))
                                 font_count += 1
                         else:
