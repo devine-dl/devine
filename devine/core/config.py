@@ -17,6 +17,7 @@ class Config:
         commands = namespace_dir / "commands"
         services = namespace_dir / "services"
         vaults = namespace_dir / "vaults"
+        fonts = namespace_dir / "fonts"
         user_configs = Path(app_dirs.user_config_dir)
         data = Path(app_dirs.user_data_dir)
         downloads = Path.home() / "Downloads" / "devine"

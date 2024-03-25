@@ -49,6 +49,7 @@ from devine.core.services import Services
 from devine.core.titles import Movie, Song, Title_T
 from devine.core.titles.episode import Episode
 from devine.core.tracks import Audio, Subtitle, Tracks, Video
+from devine.core.tracks.attachment import Attachment
 from devine.core.utilities import get_binary_path, is_close_match, time_elapsed_since
 from devine.core.utils.click_types import LANGUAGE_RANGE, QUALITY_LIST, SEASON_RANGE, ContextData, MultipleChoice
 from devine.core.utils.collections import merge_dict
@@ -596,6 +597,28 @@ class dl:
                         for subtitle in title.tracks.subtitles:
                             if subtitle.codec != sub_format:
                                 subtitle.convert(sub_format)
+
+                with console.status("Checking Subtitles for Fonts..."):
+                    font_names = []
+                    for subtitle in title.tracks.subtitles:
+                        if subtitle.codec == Subtitle.Codec.SubStationAlphav4:
+                            for line in subtitle.path.read_text("utf8").splitlines():
+                                if line.startswith("Style: "):
+                                    font_names.append(line.removesuffix("Style: ").split(",")[1])
+
+                    font_count = 0
+                    for font_name in set(font_names):
+                        family_dir = Path(config.directories.fonts, font_name)
+                        if family_dir.exists():
+                            fonts = family_dir.glob("*.*tf")
+                            for font in fonts:
+                                title.tracks.add(Attachment(font, f"{font_name} ({font.stem})"))
+                                font_count += 1
+                        else:
+                            self.log.warning(f"Subtitle uses font [text2]{font_name}[/] but it could not be found...")
+
+                    if font_count:
+                        self.log.info(f"Attached {font_count} fonts for the Subtitles")
 
                 with console.status("Repackaging tracks with FFMPEG..."):
                     has_repacked = False

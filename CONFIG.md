@@ -122,6 +122,7 @@ The following directories are available and may be overridden,
 - `commands` - CLI Command Classes.
 - `services` - Service Classes.
 - `vaults` - Vault Classes.
+- `fonts` - Font files (ttf or otf).
 - `downloads` - Downloads.
 - `temp` - Temporary files or conversions during download.
 - `cache` - Expiring data like Authorization tokens, or other misc data.
