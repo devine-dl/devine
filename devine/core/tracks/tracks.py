@@ -14,6 +14,7 @@ from rich.tree import Tree
 from devine.core.config import config
 from devine.core.console import console
 from devine.core.constants import LANGUAGE_MAX_DISTANCE, AnyTrack, TrackT
+from devine.core.tracks.attachment import Attachment
 from devine.core.tracks.audio import Audio
 from devine.core.tracks.chapters import Chapter, Chapters
 from devine.core.tracks.subtitle import Subtitle
@@ -25,7 +26,7 @@ from devine.core.utils.collections import as_list, flatten
 
 class Tracks:
     """
-    Video, Audio, Subtitle, and Chapter Track Store.
+    Video, Audio, Subtitle, Chapter, and Attachment Track Store.
     It provides convenience functions for listing, sorting, and selecting tracks.
     """
 
@@ -33,14 +34,23 @@ class Tracks:
         Video: 0,
         Audio: 1,
         Subtitle: 2,
-        Chapter: 3
+        Chapter: 3,
+        Attachment: 4
     }
 
-    def __init__(self, *args: Union[Tracks, Sequence[Union[AnyTrack, Chapter, Chapters]], Track, Chapter, Chapters]):
+    def __init__(self, *args: Union[
+        Tracks,
+        Sequence[Union[AnyTrack, Chapter, Chapters, Attachment]],
+        Track,
+        Chapter,
+        Chapters,
+        Attachment
+    ]):
         self.videos: list[Video] = []
         self.audio: list[Audio] = []
         self.subtitles: list[Subtitle] = []
         self.chapters = Chapters()
+        self.attachments: list[Attachment] = []
 
         if args:
             self.add(args)
@@ -53,7 +63,14 @@ class Tracks:
 
     def __add__(
         self,
-        other: Union[Tracks, Sequence[Union[AnyTrack, Chapter, Chapters]], Track, Chapter, Chapters]
+        other: Union[
+            Tracks,
+            Sequence[Union[AnyTrack, Chapter, Chapters, Attachment]],
+            Track,
+            Chapter,
+            Chapters,
+            Attachment
+        ]
     ) -> Tracks:
         self.add(other)
         return self
@@ -69,7 +86,8 @@ class Tracks:
             Video: [],
             Audio: [],
             Subtitle: [],
-            Chapter: []
+            Chapter: [],
+            Attachment: []
         }
         tracks = [*list(self), *self.chapters]
 
@@ -98,7 +116,7 @@ class Tracks:
         return rep
 
     def tree(self, add_progress: bool = False) -> tuple[Tree, list[partial]]:
-        all_tracks = [*list(self), *self.chapters]
+        all_tracks = [*list(self), *self.chapters, *self.attachments]
 
         progress_callables = []
 
@@ -111,7 +129,7 @@ class Tracks:
             track_type_plural = track_type.__name__ + ("s" if track_type != Audio and num_tracks != 1 else "")
             tracks_tree = tree.add(f"[repr.number]{num_tracks}[/] {track_type_plural}")
             for track in tracks:
-                if add_progress and track_type != Chapter:
+                if add_progress and track_type not in (Chapter, Attachment):
                     progress = Progress(
                         SpinnerColumn(finished_text=""),
                         BarColumn(),
@@ -143,12 +161,19 @@ class Tracks:
 
     def add(
         self,
-        tracks: Union[Tracks, Sequence[Union[AnyTrack, Chapter, Chapters]], Track, Chapter, Chapters],
+        tracks: Union[
+            Tracks,
+            Sequence[Union[AnyTrack, Chapter, Chapters, Attachment]],
+            Track,
+            Chapter,
+            Chapters,
+            Attachment
+        ],
         warn_only: bool = False
     ) -> None:
         """Add a provided track to its appropriate array and ensuring it's not a duplicate."""
         if isinstance(tracks, Tracks):
-            tracks = [*list(tracks), *tracks.chapters]
+            tracks = [*list(tracks), *tracks.chapters, *tracks.attachments]
 
         duplicates = 0
         for track in flatten(tracks):
@@ -173,6 +198,8 @@ class Tracks:
                 self.subtitles.append(track)
             elif isinstance(track, Chapter):
                 self.chapters.add(track)
+            elif isinstance(track, Attachment):
+                self.attachments.append(track)
             else:
                 raise ValueError("Track type was not set or is invalid.")
 
@@ -362,6 +389,16 @@ class Tracks:
             cl.extend(["--chapter-charset", "UTF-8", "--chapters", str(chapters_path)])
         else:
             chapters_path = None
+
+        for attachment in self.attachments:
+            if not attachment.path or not attachment.path.exists():
+                raise ValueError("Attachment File was not found...")
+            cl.extend([
+                "--attachment-description", attachment.description or "",
+                "--attachment-mime-type", attachment.mime_type,
+                "--attachment-name", attachment.name,
+                "--attach-file", str(attachment.path.resolve())
+            ])
 
         output_path = (
             self.videos[0].path.with_suffix(".muxed.mkv") if self.videos else
