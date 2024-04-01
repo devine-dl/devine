@@ -287,24 +287,22 @@ Service's GEOFENCE class property, but can also be explicitly used with `--proxy
 to use by prefixing it with the provider key name, e.g., `--proxy basic:de` or `--proxy nordvpn:de`. Some providers
 support specific query formats for selecting a country/server.
 
-### basic (list\[dict])
+### basic (dict[str, str|list])
 
 Define a mapping of country to proxy to use where required.  
 The keys are region Alpha 2 Country Codes. Alpha 2 Country Codes are `[a-z]{2}` codes, e.g., `us`, `gb`, and `jp`.  
 Don't get this mixed up with language codes like `en` vs. `gb`, or `ja` vs. `jp`.
 
-Do note that each key's value is not a string but a list or sequence.
-It will randomly choose which entry to use.
-
-For example,
+Do note that each key's value can be a list of strings, or a string. For example,
 
 ```yaml
 us:
   - "http://john%40email.tld:password123@proxy-us.domain.tld:8080"
   - "http://jane%40email.tld:password456@proxy-us.domain2.tld:8080"
-de:
-  - "http://127.0.0.1:8888"
+de: "https://127.0.0.1:8080"
 ```
+
+Note that if multiple proxies are defined for a region, then it will randomly choose which one to use.
 
 ### nordvpn (dict)
 

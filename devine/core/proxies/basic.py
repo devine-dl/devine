@@ -29,7 +29,10 @@ class Basic(Proxy):
         if not servers:
             return
 
-        proxy = random.choice(servers)
+        if isinstance(servers, str):
+            proxy = servers
+        else:
+            proxy = random.choice(servers)
 
         proxy = prepend_scheme_if_needed(proxy, "http")
         parsed_proxy = parse_url(proxy)
