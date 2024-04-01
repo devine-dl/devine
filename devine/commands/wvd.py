@@ -120,7 +120,7 @@ def dump(wvd_paths: list[Path], out_dir: Path) -> None:
     If the path is relative, with no file extension, it will dump the WVD in the WVDs
     directory.
     """
-    if wvd_paths == (Path(""),):
+    if wvd_paths == ():
         wvd_paths = list(config.directories.wvds.iterdir())
     for wvd_path, out_path in zip(wvd_paths, (out_dir / x.stem for x in wvd_paths)):
         try:
