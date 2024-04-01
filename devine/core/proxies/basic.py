@@ -1,4 +1,5 @@
 import random
+import re
 from typing import Optional, Union
 
 from requests.utils import prepend_scheme_if_needed
@@ -25,12 +26,27 @@ class Basic(Proxy):
         """Get a proxy URI from the config."""
         query = query.lower()
 
-        servers = self.countries.get(query)
+        match = re.match(r"^([a-z]{2})(\d+)?$", query, re.IGNORECASE)
+        if not match:
+            raise ValueError(f"The query \"{query}\" was not recognized...")
+
+        country_code = match.group(1)
+        entry = match.group(2)
+
+        servers: Optional[Union[str, list[str]]] = self._data.get(country_code)
         if not servers:
-            return
+            raise ValueError(f"There's no proxies configured for \"{country_code}\"...")
 
         if isinstance(servers, str):
             proxy = servers
+        elif entry:
+            try:
+                proxy = servers[int(entry) - 1]
+            except IndexError:
+                raise ValueError(
+                    f"There's only {len(servers)} prox{'y' if len(servers) == 1 else 'ies'} "
+                    f"for \"{country_code}\"..."
+                )
         else:
             proxy = random.choice(servers)
 

@@ -302,7 +302,9 @@ us:
 de: "https://127.0.0.1:8080"
 ```
 
-Note that if multiple proxies are defined for a region, then it will randomly choose which one to use.
+Note that if multiple proxies are defined for a region, then by default one will be randomly chosen.
+You can choose a specific one by specifying it's number, e.g., `--proxy basic:us2` will choose the
+second proxy of the US list.
 
 ### nordvpn (dict)
 
