@@ -124,7 +124,11 @@ def dump(wvd_paths: list[Path], out_dir: Path) -> None:
 
     if wvd_paths == ():
         wvd_paths = list(config.directories.wvds.iterdir())
-    for wvd_path, out_path in zip(wvd_paths, (out_dir / x.stem for x in wvd_paths)):
+
+    for i, (wvd_path, out_path) in enumerate(zip(wvd_paths, (out_dir / x.stem for x in wvd_paths))):
+        if i > 0:
+            log.info("")
+
         try:
             named = not wvd_path.suffix and wvd_path.relative_to(Path(""))
         except ValueError:
