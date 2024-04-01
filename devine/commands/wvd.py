@@ -133,9 +133,9 @@ def dump(wvd_paths: list[Path], out_dir: Path) -> None:
             wvd_path = config.directories.wvds / f"{wvd_path.stem}.wvd"
         out_path.mkdir(parents=True, exist_ok=True)
 
+        log.info(f"Dumping: {wvd_path}")
         device = Device.load(wvd_path)
 
-        log.info(f"Dumping: {wvd_path}")
         log.info(f"L{device.security_level} {device.system_id} {device.type.name}")
         log.info(f"Saving to: {out_path}")
 
