@@ -120,6 +120,8 @@ def dump(wvd_paths: list[Path], out_dir: Path) -> None:
     If the path is relative, with no file extension, it will dump the WVD in the WVDs
     directory.
     """
+    log = logging.getLogger("wvd")
+
     if wvd_paths == ():
         wvd_paths = list(config.directories.wvds.iterdir())
     for wvd_path, out_path in zip(wvd_paths, (out_dir / x.stem for x in wvd_paths)):
@@ -133,7 +135,6 @@ def dump(wvd_paths: list[Path], out_dir: Path) -> None:
 
         device = Device.load(wvd_path)
 
-        log = logging.getLogger("wvd")
         log.info(f"Dumping: {wvd_path}")
         log.info(f"L{device.security_level} {device.system_id} {device.type.name}")
         log.info(f"Saving to: {out_path}")
