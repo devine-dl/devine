@@ -84,6 +84,10 @@ def parse(path: Path) -> None:
 
     log = logging.getLogger("wvd")
 
+    if not path.exists():
+        console.log(f"[bright_blue]{path.absolute()}[/] does not exist...")
+        return
+
     device = Device.load(path)
 
     log.info(f"System ID: {device.system_id}")
