@@ -123,7 +123,15 @@ def dump(wvd_paths: list[Path], out_dir: Path) -> None:
     log = logging.getLogger("wvd")
 
     if wvd_paths == ():
-        wvd_paths = list(config.directories.wvds.iterdir())
+        if not config.directories.wvds.exists():
+            console.log(f"[bright_blue]{config.directories.wvds.absolute()}[/] does not exist...")
+        wvd_paths = list(
+            x
+            for x in config.directories.wvds.iterdir()
+            if x.is_file() and x.suffix.lower() == ".wvd"
+        )
+        if not wvd_paths:
+            console.log(f"[bright_blue]{config.directories.wvds.absolute()}[/] is empty...")
 
     for i, (wvd_path, out_path) in enumerate(zip(wvd_paths, (out_dir / x.stem for x in wvd_paths))):
         if i > 0:
