@@ -1,6 +1,9 @@
 import random
 from typing import Optional, Union
 
+from requests.utils import prepend_scheme_if_needed
+from urllib3.util import parse_url
+
 from devine.core.proxies.proxy import Proxy
 
 
@@ -28,8 +31,9 @@ class Basic(Proxy):
 
         proxy = random.choice(servers)
 
-        if "://" not in proxy:
-            # TODO: Improve the test for a valid URI
+        proxy = prepend_scheme_if_needed(proxy, "http")
+        parsed_proxy = parse_url(proxy)
+        if not parsed_proxy.host:
             raise ValueError(f"The proxy '{proxy}' is not a valid proxy URI supported by Python-Requests.")
 
         return proxy
