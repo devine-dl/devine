@@ -282,7 +282,10 @@ together.
 
 ## proxy_providers (dict)
 
-Enable external proxy provider services.
+Enable external proxy provider services. These proxies will be used automatically where needed as defined by the
+Service's GEOFENCE class property, but can also be explicitly used with `--proxy`. You can specify which provider
+to use by prefixing it with the provider key name, e.g., `--proxy basic:de` or `--proxy nordvpn:de`. Some providers
+support specific query formats for selecting a country/server.
 
 ### basic (list\[dict])
 
