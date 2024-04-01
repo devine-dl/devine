@@ -1,13 +1,16 @@
 import random
-from typing import Optional
+from typing import Optional, Union
 
 from devine.core.proxies.proxy import Proxy
 
 
 class Basic(Proxy):
-    def __init__(self, **countries):
+    def __init__(self, **countries: dict[str, Union[str, list[str]]]):
         """Basic Proxy Service using Proxies specified in the config."""
-        self.countries = countries
+        self.countries = {
+            k.lower(): v
+            for k, v in countries.items()
+        }
 
     def __repr__(self) -> str:
         countries = len(self.countries)
@@ -17,6 +20,8 @@ class Basic(Proxy):
 
     def get_proxy(self, query: str) -> Optional[str]:
         """Get a proxy URI from the config."""
+        query = query.lower()
+
         servers = self.countries.get(query)
         if not servers:
             return
