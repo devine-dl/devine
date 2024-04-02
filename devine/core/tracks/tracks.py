@@ -14,6 +14,7 @@ from rich.tree import Tree
 from devine.core.config import config
 from devine.core.console import console
 from devine.core.constants import LANGUAGE_MAX_DISTANCE, AnyTrack, TrackT
+from devine.core.events import events
 from devine.core.tracks.attachment import Attachment
 from devine.core.tracks.audio import Audio
 from devine.core.tracks.chapters import Chapter, Chapters
@@ -337,8 +338,7 @@ class Tracks:
         for i, vt in enumerate(self.videos):
             if not vt.path or not vt.path.exists():
                 raise ValueError("Video Track must be downloaded before muxing...")
-            if callable(vt.OnMultiplex):
-                vt.OnMultiplex()
+            events.emit(events.Types.TRACK_MULTIPLEX, track=vt)
             cl.extend([
                 "--language", f"0:{vt.language}",
                 "--default-track", f"0:{i == 0}",
@@ -350,8 +350,7 @@ class Tracks:
         for i, at in enumerate(self.audio):
             if not at.path or not at.path.exists():
                 raise ValueError("Audio Track must be downloaded before muxing...")
-            if callable(at.OnMultiplex):
-                at.OnMultiplex()
+            events.emit(events.Types.TRACK_MULTIPLEX, track=at)
             cl.extend([
                 "--track-name", f"0:{at.get_track_name() or ''}",
                 "--language", f"0:{at.language}",
@@ -365,8 +364,7 @@ class Tracks:
         for st in self.subtitles:
             if not st.path or not st.path.exists():
                 raise ValueError("Text Track must be downloaded before muxing...")
-            if callable(st.OnMultiplex):
-                st.OnMultiplex()
+            events.emit(events.Types.TRACK_MULTIPLEX, track=st)
             default = bool(self.audio and is_close_match(st.language, [self.audio[0].language]) and st.forced)
             cl.extend([
                 "--track-name", f"0:{st.get_track_name() or ''}",

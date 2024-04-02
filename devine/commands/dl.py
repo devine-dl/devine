@@ -43,6 +43,7 @@ from devine.core.console import console
 from devine.core.constants import DOWNLOAD_LICENCE_ONLY, AnyTrack, context_settings
 from devine.core.credential import Credential
 from devine.core.drm import DRM_T, Widevine
+from devine.core.events import events
 from devine.core.proxies import Basic, Hola, NordVPN
 from devine.core.service import Service
 from devine.core.services import Services
@@ -324,6 +325,14 @@ class dl:
                 with console.status(f"Delaying by {delay} seconds..."):
                     time.sleep(delay)
 
+            with console.status("Subscribing to events...", spinner="dots"):
+                events.reset()
+                events.subscribe(events.Types.SEGMENT_DOWNLOADED, service.on_segment_downloaded)
+                events.subscribe(events.Types.TRACK_DOWNLOADED, service.on_track_downloaded)
+                events.subscribe(events.Types.TRACK_DECRYPTED, service.on_track_decrypted)
+                events.subscribe(events.Types.TRACK_REPACKED, service.on_track_repacked)
+                events.subscribe(events.Types.TRACK_MULTIPLEX, service.on_track_multiplex)
+
             with console.status("Getting tracks...", spinner="dots"):
                 title.tracks.add(service.get_tracks(title), warn_only=True)
                 title.tracks.chapters = service.get_chapters(title)
@@ -339,8 +348,13 @@ class dl:
                     non_sdh_sub = deepcopy(subtitle)
                     non_sdh_sub.id += "_stripped"
                     non_sdh_sub.sdh = False
-                    non_sdh_sub.OnMultiplex = lambda: non_sdh_sub.strip_hearing_impaired()
                     title.tracks.add(non_sdh_sub)
+                    events.subscribe(
+                        events.Types.TRACK_MULTIPLEX,
+                        lambda track: (
+                            track.strip_hearing_impaired()
+                        ) if track.id == non_sdh_sub.id else None
+                    )
 
             with console.status("Sorting tracks by language and bitrate...", spinner="dots"):
                 title.tracks.sort_videos(by_language=v_lang or lang)
@@ -636,8 +650,7 @@ class dl:
                         if track.needs_repack:
                             track.repackage()
                             has_repacked = True
-                            if callable(track.OnRepacked):
-                                track.OnRepacked()
+                            events.emit(events.Types.TRACK_REPACKED, track=track)
                     if has_repacked:
                         # we don't want to fill up the log with "Repacked x track"
                         self.log.info("Repacked one or more tracks with FFMPEG")

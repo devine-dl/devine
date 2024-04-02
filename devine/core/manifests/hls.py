@@ -22,6 +22,7 @@ from requests import Session
 from devine.core.constants import DOWNLOAD_CANCELLED, DOWNLOAD_LICENCE_ONLY, AnyTrack
 from devine.core.downloaders import requests as requests_downloader
 from devine.core.drm import DRM_T, ClearKey, Widevine
+from devine.core.events import events
 from devine.core.tracks import Audio, Subtitle, Tracks, Video
 from devine.core.utilities import get_binary_path, get_extension, is_close_match, try_ensure_utf8
 
@@ -282,8 +283,8 @@ class HLS:
             max_workers=16
         ):
             file_downloaded = status_update.get("file_downloaded")
-            if file_downloaded and callable(track.OnSegmentDownloaded):
-                track.OnSegmentDownloaded(file_downloaded)
+            if file_downloaded:
+                events.emit(events.Types.SEGMENT_DOWNLOADED, track=track, segment=file_downloaded)
             else:
                 downloaded = status_update.get("downloaded")
                 if downloaded and downloaded.endswith("/s"):
@@ -381,8 +382,12 @@ class HLS:
                 drm.decrypt(merged_path)
                 merged_path.rename(decrypted_path)
 
-                if callable(track.OnDecrypted):
-                    track.OnDecrypted(drm, decrypted_path)
+                events.emit(
+                    events.Types.TRACK_DECRYPTED,
+                    track=track,
+                    drm=drm,
+                    segment=decrypted_path
+                )
 
                 return decrypted_path
 
@@ -537,8 +542,7 @@ class HLS:
         progress(downloaded="Downloaded")
 
         track.path = save_path
-        if callable(track.OnDownloaded):
-            track.OnDownloaded()
+        events.emit(events.Types.TRACK_DOWNLOADED, track=track)
 
     @staticmethod
     def merge_segments(segments: list[Path], save_path: Path) -> int:

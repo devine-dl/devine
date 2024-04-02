@@ -12,7 +12,6 @@ from typing import Any, Callable, Iterable, Optional, Union
 from uuid import UUID
 from zlib import crc32
 
-import m3u8
 from langcodes import Language
 from requests import Session
 
@@ -20,6 +19,7 @@ from devine.core.config import config
 from devine.core.constants import DOWNLOAD_CANCELLED, DOWNLOAD_LICENCE_ONLY
 from devine.core.downloaders import aria2c, curl_impersonate, requests
 from devine.core.drm import DRM_T, Widevine
+from devine.core.events import events
 from devine.core.utilities import get_binary_path, get_boxes, try_ensure_utf8
 from devine.core.utils.subprocess import ffprobe
 
@@ -121,17 +121,6 @@ class Track:
 
         # TODO: Currently using OnFoo event naming, change to just segment_filter
         self.OnSegmentFilter: Optional[Callable] = None
-
-        # Called after one of the Track's segments have downloaded
-        self.OnSegmentDownloaded: Optional[Callable[[Path], None]] = None
-        # Called after the Track has downloaded
-        self.OnDownloaded: Optional[Callable] = None
-        # Called after the Track or one of its segments have been decrypted
-        self.OnDecrypted: Optional[Callable[[DRM_T, Optional[m3u8.Segment]], None]] = None
-        # Called after the Track has been repackaged
-        self.OnRepacked: Optional[Callable] = None
-        # Called before the Track is multiplexed
-        self.OnMultiplex: Optional[Callable] = None
 
     def __repr__(self) -> str:
         return "{name}({items})".format(
@@ -257,15 +246,18 @@ class Track:
                         save_path.with_suffix(f"{save_path.suffix}.aria2__temp").unlink(missing_ok=True)
 
                         self.path = save_path
-                        if callable(self.OnDownloaded):
-                            self.OnDownloaded()
+                        events.emit(events.Types.TRACK_DOWNLOADED, track=self)
 
                         if drm:
                             progress(downloaded="Decrypting", completed=0, total=100)
                             drm.decrypt(save_path)
                             self.drm = None
-                            if callable(self.OnDecrypted):
-                                self.OnDecrypted(drm)
+                            events.emit(
+                                events.Types.TRACK_DECRYPTED,
+                                track=self,
+                                drm=drm,
+                                segment=None
+                            )
                             progress(downloaded="Decrypted", completed=100)
 
                         if track_type == "Subtitle" and self.codec.name not in ("fVTT", "fTTML"):
@@ -299,8 +291,7 @@ class Track:
             if self.path.stat().st_size <= 3:  # Empty UTF-8 BOM == 3 bytes
                 raise IOError("Download failed, the downloaded file is empty.")
 
-        if callable(self.OnDownloaded):
-            self.OnDownloaded(self)
+        events.emit(events.Types.TRACK_DOWNLOADED, track=self)
 
     def delete(self) -> None:
         if self.path:

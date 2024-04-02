@@ -3,10 +3,12 @@ import logging
 from abc import ABCMeta, abstractmethod
 from collections.abc import Generator
 from http.cookiejar import CookieJar
+from pathlib import Path
 from typing import Optional, Union
 from urllib.parse import urlparse
 
 import click
+import m3u8
 import requests
 from requests.adapters import HTTPAdapter, Retry
 from rich.padding import Padding
@@ -17,6 +19,7 @@ from devine.core.config import config
 from devine.core.console import console
 from devine.core.constants import AnyTrack
 from devine.core.credential import Credential
+from devine.core.drm import DRM_T
 from devine.core.search_result import SearchResult
 from devine.core.titles import Title_T, Titles_T
 from devine.core.tracks import Chapters, Tracks
@@ -235,5 +238,53 @@ class Service(metaclass=ABCMeta):
         option `chapter_fallback_name`. For example, `"Chapter {i:02}"` for "Chapter 01".
         """
 
+    # Optional Event methods
+
+    def on_segment_downloaded(self, track: AnyTrack, segment: Path) -> None:
+        """
+        Called when one of a Track's Segments has finished downloading.
+
+        Parameters:
+            track: The Track object that had a Segment downloaded.
+            segment: The Path to the Segment that was downloaded.
+        """
+
+    def on_track_downloaded(self, track: AnyTrack) -> None:
+        """
+        Called when a Track has finished downloading.
+
+        Parameters:
+            track: The Track object that was downloaded.
+        """
+
+    def on_track_decrypted(self, track: AnyTrack, drm: DRM_T, segment: Optional[m3u8.Segment] = None) -> None:
+        """
+        Called when a Track has finished decrypting.
+
+        Parameters:
+            track: The Track object that was decrypted.
+            drm: The DRM object it decrypted with.
+            segment: The HLS segment information that was decrypted.
+        """
+
+    def on_track_repacked(self, track: AnyTrack) -> None:
+        """
+        Called when a Track has finished repacking.
+
+        Parameters:
+            track: The Track object that was repacked.
+        """
+
+    def on_track_multiplex(self, track: AnyTrack) -> None:
+        """
+        Called when a Track is about to be Multiplexed into a Container.
+
+        Note: Right now only MKV containers are multiplexed but in the future
+        this may also be called when multiplexing to other containers like
+        MP4 via ffmpeg/mp4box.
+
+        Parameters:
+            track: The Track object that was repacked.
+        """
 
 __all__ = ("Service",)

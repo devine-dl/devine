@@ -24,6 +24,7 @@ from requests import Session
 from devine.core.constants import DOWNLOAD_CANCELLED, DOWNLOAD_LICENCE_ONLY, AnyTrack
 from devine.core.downloaders import requests as requests_downloader
 from devine.core.drm import Widevine
+from devine.core.events import events
 from devine.core.tracks import Audio, Subtitle, Tracks, Video
 from devine.core.utilities import is_close_match, try_ensure_utf8
 from devine.core.utils.xml import load_xml
@@ -474,8 +475,8 @@ class DASH:
             max_workers=16
         ):
             file_downloaded = status_update.get("file_downloaded")
-            if file_downloaded and callable(track.OnSegmentDownloaded):
-                track.OnSegmentDownloaded(file_downloaded)
+            if file_downloaded:
+                events.emit(events.Types.SEGMENT_DOWNLOADED, track=track, segment=file_downloaded)
             else:
                 downloaded = status_update.get("downloaded")
                 if downloaded and downloaded.endswith("/s"):
@@ -514,15 +515,18 @@ class DASH:
                 progress(advance=1)
 
         track.path = save_path
-        if callable(track.OnDownloaded):
-            track.OnDownloaded()
+        events.emit(events.Types.TRACK_DOWNLOADED, track=track)
 
         if drm:
             progress(downloaded="Decrypting", completed=0, total=100)
             drm.decrypt(save_path)
             track.drm = None
-            if callable(track.OnDecrypted):
-                track.OnDecrypted(drm)
+            events.emit(
+                events.Types.TRACK_DECRYPTED,
+                track=track,
+                drm=drm,
+                segment=None
+            )
             progress(downloaded="Decrypting", advance=100)
 
         save_dir.rmdir()
