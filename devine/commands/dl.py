@@ -131,8 +131,8 @@ class dl:
                   help="Disable folder creation for TV Shows.")
     @click.option("--no-source", is_flag=True, default=False,
                   help="Disable the source tag from the output file name and path.")
-    @click.option("--workers", type=int, default=1,
-                  help="Max concurrent workers to use throughout the code, particularly downloads.")
+    @click.option("--downloads", type=int, default=1,
+                  help="Amount of tracks to download concurrently.")
     @click.pass_context
     def cli(ctx: click.Context, **kwargs: Any) -> dl:
         return dl(ctx, **kwargs)
@@ -275,7 +275,7 @@ class dl:
         no_proxy: bool,
         no_folder: bool,
         no_source: bool,
-        workers: int,
+        downloads: int,
         *_: Any,
         **__: Any
     ) -> None:
@@ -502,7 +502,7 @@ class dl:
                     console=console,
                     refresh_per_second=5
                 ):
-                    with ThreadPoolExecutor(workers) as pool:
+                    with ThreadPoolExecutor(downloads) as pool:
                         for download in futures.as_completed((
                             pool.submit(
                                 track.download,
@@ -542,7 +542,7 @@ class dl:
             except Exception as e:  # noqa
                 error_messages = [
                     ":x: Download Failed...",
-                    "   One of the download workers had an error!",
+                    "   One of the track downloads had an error!",
                     "   See the error trace above for more information."
                 ]
                 if isinstance(e, subprocess.CalledProcessError):
