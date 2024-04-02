@@ -197,6 +197,7 @@ class HLS:
         progress: partial,
         session: Optional[Session] = None,
         proxy: Optional[str] = None,
+        max_workers: Optional[int] = None,
         license_widevine: Optional[Callable] = None
     ) -> None:
         if not session:
@@ -280,7 +281,7 @@ class HLS:
             headers=session.headers,
             cookies=session.cookies,
             proxy=proxy,
-            max_workers=16
+            max_workers=max_workers
         ):
             file_downloaded = status_update.get("file_downloaded")
             if file_downloaded:

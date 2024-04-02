@@ -131,6 +131,8 @@ class dl:
                   help="Disable folder creation for TV Shows.")
     @click.option("--no-source", is_flag=True, default=False,
                   help="Disable the source tag from the output file name and path.")
+    @click.option("--workers", type=int, default=None,
+                  help="Max workers/threads to download with per-track. Default depends on the downloader.")
     @click.option("--downloads", type=int, default=1,
                   help="Amount of tracks to download concurrently.")
     @click.pass_context
@@ -275,6 +277,7 @@ class dl:
         no_proxy: bool,
         no_folder: bool,
         no_source: bool,
+        workers: Optional[int],
         downloads: int,
         *_: Any,
         **__: Any
@@ -528,6 +531,7 @@ class dl:
                                     vaults_only=vaults_only,
                                     export=export
                                 ),
+                                max_workers=workers,
                                 progress=tracks_progress_callables[i]
                             )
                             for i, track in enumerate(title.tracks)

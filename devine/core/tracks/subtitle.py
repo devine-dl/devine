@@ -153,9 +153,10 @@ class Subtitle(Track):
         self,
         session: requests.Session,
         prepare_drm: partial,
+        max_workers: Optional[int] = None,
         progress: Optional[partial] = None
     ):
-        super().download(session, prepare_drm, progress)
+        super().download(session, prepare_drm, max_workers, progress)
         if not self.path:
             return
 

@@ -153,6 +153,13 @@ For example to set the default primary language to download to German,
 lang: de
 ```
 
+to set how many tracks to download concurrently to 4 and download threads to 16,
+
+```yaml
+downloads: 4
+workers: 16
+```
+
 to set `--bitrate=CVBR` for the AMZN service,
 
 ```yaml

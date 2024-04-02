@@ -135,6 +135,7 @@ class Track:
         self,
         session: Session,
         prepare_drm: partial,
+        max_workers: Optional[int] = None,
         progress: Optional[partial] = None
     ):
         """Download and optionally Decrypt this Track."""
@@ -191,6 +192,7 @@ class Track:
                     progress=progress,
                     session=session,
                     proxy=proxy,
+                    max_workers=max_workers,
                     license_widevine=prepare_drm
                 )
             elif self.descriptor == self.Descriptor.DASH:
@@ -201,6 +203,7 @@ class Track:
                     progress=progress,
                     session=session,
                     proxy=proxy,
+                    max_workers=max_workers,
                     license_widevine=prepare_drm
                 )
             elif self.descriptor == self.Descriptor.URL:
@@ -236,7 +239,8 @@ class Track:
                             filename=save_path.name,
                             headers=session.headers,
                             cookies=session.cookies,
-                            proxy=proxy
+                            proxy=proxy,
+                            max_workers=max_workers
                         ):
                             file_downloaded = status_update.get("file_downloaded")
                             if not file_downloaded:
