@@ -41,7 +41,7 @@ class Chapter:
                 seconds, ms = divmod(int(remainder * 1000), 1000)
             else:
                 raise TypeError
-            timestamp = f"{hours:02}:{minutes:02}:{seconds:02}.{str(ms).zfill(3)[:3]}"
+            timestamp = f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}.{str(ms).zfill(3)[:3]}"
 
         timestamp_m = TIMESTAMP_FORMAT.match(timestamp)
         if not timestamp_m:
