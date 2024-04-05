@@ -73,7 +73,7 @@ mypy = "^1.9.0"
 mypy-protobuf = "^3.6.0"
 types-protobuf = "^4.24.0.20240311"
 types-PyMySQL = "^1.1.0.1"
-types-requests = "^2.31.0.20240402"
+types-requests = "^2.31.0.20240403"
 isort = "^5.13.2"
 ruff = "~0.3.5"
 
