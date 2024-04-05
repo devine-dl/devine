@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from enum import Enum
 from typing import Any, Callable
 
@@ -25,10 +26,11 @@ class Events:
 
     def reset(self):
         """Reset Event Observer clearing all Subscriptions."""
-        self.__subscriptions = self.__ephemeral = {
+        self.__subscriptions = {
             k: []
             for k in Events.Types.__members__.values()
         }
+        self.__ephemeral = deepcopy(self.__subscriptions)
 
     def subscribe(self, event_type: Events.Types, callback: Callable, ephemeral: bool = False) -> None:
         """
