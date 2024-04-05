@@ -7,6 +7,26 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 Versions [3.0.0] and older use a format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 but versions thereafter use a custom changelog format using [git-cliff](https://git-cliff.org).
 
+## [3.3.1] - 2024-04-05
+
+### Features
+
+- *dl*: Add *new* --workers to set download threads/workers
+
+### Bug Fixes
+
+- *Chapter*: Cast values to int prior to formatting
+- *requests*: Fix multithreaded downloads
+- *Events*: Dereference subscription store from ephemeral store
+
+### Changes
+
+- *dl*: Change --workers to --downloads
+
+### New Contributors
+
+- [knowhere01](https://github.com/knowhere01)
+
 ## [3.3.0] - 2024-04-02
 
 ### Features
@@ -748,6 +768,7 @@ This release brings a huge change to the fundamentals of Devine's logging, UI, a
 
 Initial public release under the name Devine.
 
+[3.3.1]: https://github.com/devine-dl/devine/releases/tag/v3.3.1
 [3.3.0]: https://github.com/devine-dl/devine/releases/tag/v3.3.0
 [3.2.0]: https://github.com/devine-dl/devine/releases/tag/v3.2.0
 [3.1.0]: https://github.com/devine-dl/devine/releases/tag/v3.1.0
