@@ -468,11 +468,24 @@ class dl:
                         if not title.tracks.audio:
                             self.log.error(f"There's no {channels} Audio Track...")
                             sys.exit(1)
-                    if lang and "all" not in lang:
-                        title.tracks.audio = title.tracks.by_language(title.tracks.audio, lang, per_language=1)
-                        if not title.tracks.audio:
-                            self.log.error(f"There's no {lang} Audio Track, cannot continue...")
-                            sys.exit(1)
+                    if lang and "all" in lang:
+                        # Get unique languages and select highest quality for each
+                        unique_languages = set(track.language for track in title.tracks.audio)
+                        selected_audio = []
+                        for language in unique_languages:
+                            highest_quality = max(
+                                (track for track in title.tracks.audio if track.language == language),
+                                key=lambda x: x.bitrate or 0
+                            )
+                            selected_audio.append(highest_quality)
+                        title.tracks.audio = selected_audio
+                    else:
+                        # Existing behavior for specific language selection
+                        if lang and "all" not in lang:
+                            title.tracks.audio = title.tracks.by_language(title.tracks.audio, lang, per_language=1)
+                            if not title.tracks.audio:
+                                self.log.error(f"There's no {lang} Audio Track, cannot continue...")
+                                sys.exit(1)
 
                 if video_only or audio_only or subs_only or chapters_only:
                     kept_tracks = []
