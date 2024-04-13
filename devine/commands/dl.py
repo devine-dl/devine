@@ -923,12 +923,13 @@ class dl:
                 return Credential.loads(credentials)  # type: ignore
 
     @staticmethod
-    def get_cdm(service: str, profile: Optional[str] = None) -> WidevineCdm:
+    def get_cdm(service: str, profile: Optional[str] = None, cdm_name: Optional[str] = None) -> WidevineCdm:
         """
-        Get CDM for a specified service (either Local or Remote CDM).
+        Get CDM for a specified service and profile (either Local or Remote CDM).
         Raises a ValueError if there's a problem getting a CDM.
         """
-        cdm_name = config.cdm.get(service) or config.cdm.get("default")
+        if cdm_name is None:
+            cdm_name = config.cdm.get(service) or config.cdm.get("default")
         if not cdm_name:
             raise ValueError("A CDM to use wasn't listed in the config")
 
@@ -939,13 +940,17 @@ class dl:
             if not cdm_name:
                 raise ValueError(f"A CDM to use was not mapped for the profile {profile}")
 
-        cdm_api = next(iter(x for x in config.remote_cdm if x["name"] == cdm_name), None)
+        cdm_api = next((x for x in config.remote_cdm if x["name"] == cdm_name), None)
         if cdm_api:
             del cdm_api["name"]
             return RemoteCdm(**cdm_api)
 
         cdm_path = config.directories.wvds / f"{cdm_name}.wvd"
         if not cdm_path.is_file():
+            # Attempt to use fallback CDM if defined
+            fallback_cdm = config.cdm.get("fallback")
+            if fallback_cdm:
+                return dl.get_cdm(service, profile, cdm_name=fallback_cdm)
             raise ValueError(f"{cdm_name} does not exist or is not a file")
 
         try:
