@@ -18,7 +18,7 @@ def env() -> None:
 def info() -> None:
     """Displays information about the current environment."""
     log = logging.getLogger("env")
-    log.info(f"[Config]     : {config_path or config.directories.user_configs / config.filenames.root_config}")
+    log.info(f"[Config]     : {config_path or '--'}")
     log.info(f"[Cookies]    : {config.directories.cookies}")
     log.info(f"[WVDs]       : {config.directories.wvds}")
     log.info(f"[Cache]      : {config.directories.cache}")
