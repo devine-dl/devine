@@ -139,6 +139,14 @@ class Subtitle(Track):
         # Called after Track has been converted to another format
         self.OnConverted: Optional[Callable[[Subtitle.Codec], None]] = None
 
+    def __str__(self) -> str:
+        return " | ".join(filter(bool, [
+            "SUB",
+            f"[{self.codec.value}]",
+            str(self.language),
+            self.get_track_name()
+        ]))
+
     def get_track_name(self) -> Optional[str]:
         """Return the base Track Name."""
         track_name = super().get_track_name() or ""
@@ -524,14 +532,6 @@ class Subtitle(Track):
             check=True,
             stdout=subprocess.DEVNULL
         )
-
-    def __str__(self) -> str:
-        return " | ".join(filter(bool, [
-            "SUB",
-            f"[{self.codec.value}]",
-            str(self.language),
-            self.get_track_name()
-        ]))
 
 
 __all__ = ("Subtitle",)

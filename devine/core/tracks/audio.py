@@ -76,6 +76,17 @@ class Audio(Track):
         self.joc = joc
         self.descriptive = bool(descriptive)
 
+    def __str__(self) -> str:
+        return " | ".join(filter(bool, [
+            "AUD",
+            f"[{self.codec.value}]",
+            str(self.channels or "?") + (f" (JOC {self.joc})" if self.joc else ""),
+            f"{self.bitrate // 1000 if self.bitrate else '?'} kb/s",
+            str(self.language),
+            self.get_track_name(),
+            self.edition
+        ]))
+
     @staticmethod
     def parse_channels(channels: Union[str, int, float]) -> float:
         """
@@ -108,17 +119,6 @@ class Audio(Track):
                 flag = f" ({flag})"
             track_name += flag
         return track_name or None
-
-    def __str__(self) -> str:
-        return " | ".join(filter(bool, [
-            "AUD",
-            f"[{self.codec.value}]",
-            str(self.channels or "?") + (f" (JOC {self.joc})" if self.joc else ""),
-            f"{self.bitrate // 1000 if self.bitrate else '?'} kb/s",
-            str(self.language),
-            self.get_track_name(),
-            self.edition
-        ]))
 
 
 __all__ = ("Audio",)
