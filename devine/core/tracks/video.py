@@ -141,9 +141,11 @@ class Video(Track):
                 return Video.Range.SDR
 
         @staticmethod
-        def from_m3u_range_tag(tag: str) -> Video.Range:
+        def from_m3u_range_tag(tag: str) -> Optional[Video.Range]:
             tag = (tag or "").upper().replace('"', '').strip()
-            if not tag or tag == "SDR":
+            if not tag:
+                return None
+            if tag == "SDR":
                 return Video.Range.SDR
             elif tag == "PQ":
                 return Video.Range.HDR10  # technically could be any PQ-transfer range
