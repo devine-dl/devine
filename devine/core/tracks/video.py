@@ -152,17 +152,78 @@ class Video(Track):
             # for some reason there's no Dolby Vision info tag
             raise ValueError(f"The M3U Range Tag '{tag}' is not a supported Video Range")
 
-    def __init__(self, *args: Any, codec: Video.Codec, range_: Video.Range, bitrate: Union[str, int, float],
-                 width: int, height: int, fps: Optional[Union[str, int, float]] = None, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        *args: Any,
+        codec: Optional[Video.Codec] = None,
+        range_: Optional[Video.Range] = None,
+        bitrate: Optional[Union[str, int, float]] = None,
+        width: Optional[int] = None,
+        height: Optional[int] = None,
+        fps: Optional[Union[str, int, float]] = None,
+        **kwargs: Any
+    ) -> None:
+        """
+        Create a new Video track object.
+
+        Parameters:
+            codec: A Video.Codec enum representing the video codec.
+                If not specified, MediaInfo will be used to retrieve the codec
+                once the track has been downloaded.
+            range_: A Video.Range enum representing the video color range.
+                Defaults to SDR if not specified.
+            bitrate: A number or float representing the average bandwidth in bytes/s.
+                Float values are rounded up to the nearest integer.
+            width: The horizontal resolution of the video.
+            height: The vertical resolution of the video.
+            fps: A number, float, or string representing the frames/s of the video.
+                Strings may represent numbers, floats, or a fraction (num/den).
+                All strings will be cast to either a number or float.
+
+        Note: If codec, bitrate, width, height, or fps is not specified some checks
+        may be skipped or assume a value. Specifying as much information as possible
+        is highly recommended.
+        """
         super().__init__(*args, **kwargs)
-        # required
+
+        if not isinstance(codec, (Video.Codec, type(None))):
+            raise TypeError(f"Expected codec to be a {Video.Codec}, not {codec!r}")
+        if not isinstance(range_, (Video.Range, type(None))):
+            raise TypeError(f"Expected range_ to be a {Video.Range}, not {range_!r}")
+        if not isinstance(bitrate, (str, int, float, type(None))):
+            raise TypeError(f"Expected bitrate to be a {str}, {int}, or {float}, not {bitrate!r}")
+        if not isinstance(width, (int, type(None))):
+            raise TypeError(f"Expected width to be a {int}, not {width!r}")
+        if not isinstance(height, (int, type(None))):
+            raise TypeError(f"Expected height to be a {int}, not {height!r}")
+        if not isinstance(fps, (str, int, float, type(None))):
+            raise TypeError(f"Expected fps to be a {str}, {int}, or {float}, not {fps!r}")
+
         self.codec = codec
         self.range = range_ or Video.Range.SDR
-        self.bitrate = int(math.ceil(float(bitrate))) if bitrate else None
-        self.width = int(width)
-        self.height = int(height)
-        # optional
-        self.fps = FPS.parse(str(fps)) if fps else None
+
+        try:
+            self.bitrate = int(math.ceil(float(bitrate))) if bitrate else None
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Expected bitrate to be a number or float, {e}")
+
+        try:
+            self.width = int(width or 0) or None
+        except ValueError as e:
+            raise ValueError(f"Expected width to be a number, {e}")
+
+        try:
+            self.height = int(height or 0) or None
+        except ValueError as e:
+            raise ValueError(f"Expected height to be a number, {e}")
+
+        try:
+            self.fps = (FPS.parse(str(fps)) or None) if fps else None
+        except Exception as e:
+            raise ValueError(
+                "Expected fps to be a number, float, or a string as numerator/denominator form, " +
+                str(e)
+            )
 
     def __str__(self) -> str:
         return " | ".join(filter(bool, [
