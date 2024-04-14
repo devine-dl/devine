@@ -79,10 +79,13 @@ class Audio(Track):
     def __str__(self) -> str:
         return " | ".join(filter(bool, [
             "AUD",
-            f"[{self.codec.value}]",
+            f"[{self.codec.value}]" if self.codec else None,
             str(self.language),
-            str(self.channels or "?") + (f" (JOC {self.joc})" if self.joc else ""),
-            f"{self.bitrate // 1000 if self.bitrate else '?'} kb/s",
+            ", ".join(filter(bool, [
+                str(self.channels) if self.channels else None,
+                f"JOC {self.joc}" if self.joc else None,
+            ])),
+            f"{self.bitrate // 1000} kb/s" if self.bitrate else None,
             self.get_track_name(),
             self.edition
         ]))
