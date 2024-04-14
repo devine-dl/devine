@@ -131,8 +131,8 @@ class HLS:
                         codec.split(".")[0] in ("dva1", "dvav", "dvhe", "dvh1")
                         for codec in (playlist.stream_info.codecs or "").lower().split(",")
                     ) else Video.Range.from_m3u_range_tag(playlist.stream_info.video_range),
-                    width=playlist.stream_info.resolution[0],
-                    height=playlist.stream_info.resolution[1],
+                    width=playlist.stream_info.resolution[0] if playlist.stream_info.resolution else None,
+                    height=playlist.stream_info.resolution[1] if playlist.stream_info.resolution else None,
                     fps=playlist.stream_info.frame_rate
                 ) if primary_track_type is Video else {})
             ))
