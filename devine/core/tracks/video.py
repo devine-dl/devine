@@ -177,7 +177,14 @@ class Video(Track):
     def change_color_range(self, range_: int) -> None:
         """Change the Video's Color Range to Limited (0) or Full (1)."""
         if not self.path or not self.path.exists():
-            raise ValueError("Cannot repackage a Track that has not been downloaded.")
+            raise ValueError("Cannot change the color range flag on a Video that has not been downloaded.")
+        if not self.codec:
+            raise ValueError("Cannot change the color range flag on a Video that has no codec specified.")
+        if self.codec not in (Video.Codec.AVC, Video.Codec.HEVC):
+            raise NotImplementedError(
+                "Cannot change the color range flag on this Video as "
+                f"it's codec, {self.codec.value}, is not yet supported."
+            )
 
         executable = get_binary_path("ffmpeg")
         if not executable:
