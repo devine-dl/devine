@@ -165,12 +165,20 @@ class Video(Track):
         self.fps = FPS.parse(str(fps)) if fps else None
 
     def __str__(self) -> str:
-        fps = f"{self.fps:.3f}" if self.fps else "Unknown"
         return " | ".join(filter(bool, [
             "VID",
-            f"[{self.codec.value}, {self.range.name}]",
+            "[" + (", ".join(filter(bool, [
+                self.codec.value if self.codec else None,
+                self.range.name
+            ]))) + "]",
             str(self.language),
-            f"{self.width}x{self.height} @ {self.bitrate // 1000 if self.bitrate else '?'} kb/s, {fps} FPS",
+            ", ".join(filter(bool, [
+                " @ ".join(filter(bool, [
+                    f"{self.width}x{self.height}" if self.width and self.height else None,
+                    f"{self.bitrate // 1000} kb/s" if self.bitrate else None
+                ])),
+                f"{self.fps:.3f} FPS" if self.fps else None
+            ])),
             self.edition
         ]))
 
