@@ -74,22 +74,22 @@ class Subtitle(Track):
                 return Subtitle.Codec.TimedTextMarkupLang
             raise ValueError(f"The Content Profile '{profile}' is not a supported Subtitle Codec")
 
-    def __init__(self, *args: Any, codec: Subtitle.Codec, cc: bool = False, sdh: bool = False, forced: bool = False,
-                 **kwargs: Any):
+    def __init__(
+        self,
+        *args: Any,
+        codec: Optional[Subtitle.Codec] = None,
+        cc: bool = False,
+        sdh: bool = False,
+        forced: bool = False,
+        **kwargs: Any
+    ):
         """
-        Information on Subtitle Types:
-            https://bit.ly/2Oe4fLC (3PlayMedia Blog on SUB vs CC vs SDH).
-            However, I wouldn't pay much attention to the claims about SDH needing to
-            be in the original source language. It's logically not true.
-
-            CC == Closed Captions. Source: Basically every site.
-            SDH = Subtitles for the Deaf or Hard-of-Hearing. Source: Basically every site.
-            HOH = Exact same as SDH. Is a term used in the UK. Source: https://bit.ly/2PGJatz (ICO UK)
-
-            More in-depth information, examples, and stuff to look for can be found in the Parameter
-            explanation list below.
+        Create a new Subtitle track object.
 
         Parameters:
+            codec: A Subtitle.Codec enum representing the subtitle format.
+                If not specified, MediaInfo will be used to retrieve the format
+                once the track has been downloaded.
             cc: Closed Caption.
                 - Intended as if you couldn't hear the audio at all.
                 - Can have Sound as well as Dialogue, but doesn't have to.
@@ -125,19 +125,56 @@ class Subtitle(Track):
                      no other way to reliably work with Forced subtitles where multiple
                      forced subtitles may be in the output file. Just know what to expect
                      with "forced" subtitles.
+
+        Note: If codec is not specified some checks may be skipped or assume a value.
+        Specifying as much information as possible is highly recommended.
+
+        Information on Subtitle Types:
+            https://bit.ly/2Oe4fLC (3PlayMedia Blog on SUB vs CC vs SDH).
+            However, I wouldn't pay much attention to the claims about SDH needing to
+            be in the original source language. It's logically not true.
+
+            CC == Closed Captions. Source: Basically every site.
+            SDH = Subtitles for the Deaf or Hard-of-Hearing. Source: Basically every site.
+            HOH = Exact same as SDH. Is a term used in the UK. Source: https://bit.ly/2PGJatz (ICO UK)
+
+            More in-depth information, examples, and stuff to look for can be found in the Parameter
+            explanation list above.
         """
         super().__init__(*args, **kwargs)
+
+        if not isinstance(codec, (Subtitle.Codec, type(None))):
+            raise TypeError(f"Expected codec to be a {Subtitle.Codec}, not {codec!r}")
+        if not isinstance(cc, (bool, int)) or (isinstance(cc, int) and cc not in (0, 1)):
+            raise TypeError(f"Expected cc to be a {bool} or bool-like {int}, not {cc!r}")
+        if not isinstance(sdh, (bool, int)) or (isinstance(sdh, int) and sdh not in (0, 1)):
+            raise TypeError(f"Expected sdh to be a {bool} or bool-like {int}, not {sdh!r}")
+        if not isinstance(forced, (bool, int)) or (isinstance(forced, int) and forced not in (0, 1)):
+            raise TypeError(f"Expected forced to be a {bool} or bool-like {int}, not {forced!r}")
+
         self.codec = codec
+
         self.cc = bool(cc)
         self.sdh = bool(sdh)
+        self.forced = bool(forced)
+
         if self.cc and self.sdh:
             raise ValueError("A text track cannot be both CC and SDH.")
-        self.forced = bool(forced)
-        if (self.cc or self.sdh) and self.forced:
+
+        if self.forced and (self.cc or self.sdh):
             raise ValueError("A text track cannot be CC/SDH as well as Forced.")
 
+        # TODO: Migrate to new event observer system
         # Called after Track has been converted to another format
         self.OnConverted: Optional[Callable[[Subtitle.Codec], None]] = None
+
+    def __str__(self) -> str:
+        return " | ".join(filter(bool, [
+            "SUB",
+            f"[{self.codec.value}]" if self.codec else None,
+            str(self.language),
+            self.get_track_name()
+        ]))
 
     def get_track_name(self) -> Optional[str]:
         """Return the base Track Name."""
@@ -524,14 +561,6 @@ class Subtitle(Track):
             check=True,
             stdout=subprocess.DEVNULL
         )
-
-    def __str__(self) -> str:
-        return " | ".join(filter(bool, [
-            "SUB",
-            f"[{self.codec.value}]",
-            str(self.language),
-            self.get_track_name()
-        ]))
 
 
 __all__ = ("Subtitle",)

@@ -5,7 +5,7 @@ import sys
 import click
 from ruamel.yaml import YAML
 
-from devine.core.config import config
+from devine.core.config import config, get_config_path
 from devine.core.constants import context_settings
 
 
@@ -36,15 +36,15 @@ def cfg(ctx: click.Context, key: str, value: str, unset: bool, list_: bool) -> N
 
     log = logging.getLogger("cfg")
 
-    config_path = config.directories.user_configs / config.filenames.root_config
-
     yaml, data = YAML(), None
     yaml.default_flow_style = False
-    if config_path.is_file():
+
+    config_path = get_config_path() or config.directories.user_configs / config.filenames.root_config
+    if config_path.exists():
         data = yaml.load(config_path)
 
     if not data:
-        log.warning(f"{config_path} has no configuration data, yet")
+        log.warning("No config file was found or it has no data, yet")
         # yaml.load() returns `None` if the input data is blank instead of a usable object
         # force a usable object by making one and removing the only item within it
         data = yaml.load("""__TEMP__: null""")

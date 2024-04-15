@@ -64,17 +64,79 @@ class Audio(Track):
                 return Audio.Codec.OGG
             raise ValueError(f"The Content Profile '{profile}' is not a supported Audio Codec")
 
-    def __init__(self, *args: Any, codec: Audio.Codec, bitrate: Union[str, int, float],
-                 channels: Optional[Union[str, int, float]] = None, joc: int = 0, descriptive: bool = False,
-                 **kwargs: Any):
+    def __init__(
+        self,
+        *args: Any,
+        codec: Optional[Audio.Codec] = None,
+        bitrate: Optional[Union[str, int, float]] = None,
+        channels: Optional[Union[str, int, float]] = None,
+        joc: Optional[int] = None,
+        descriptive: Union[bool, int] = False,
+        **kwargs: Any
+    ):
+        """
+        Create a new Audio track object.
+
+        Parameters:
+            codec: An Audio.Codec enum representing the audio codec.
+                If not specified, MediaInfo will be used to retrieve the codec
+                once the track has been downloaded.
+            bitrate: A number or float representing the average bandwidth in bytes/s.
+                Float values are rounded up to the nearest integer.
+            channels: A number, float, or string representing the number of audio channels.
+                Strings may represent numbers or floats. Expanded layouts like 7.1.1 is
+                not supported. All numbers and strings will be cast to float.
+            joc: The number of Joint-Object-Coding Channels/Objects in the audio stream.
+            descriptive: Mark this audio as being descriptive audio for the blind.
+
+        Note: If codec, bitrate, channels, or joc is not specified some checks may be
+        skipped or assume a value. Specifying as much information as possible is highly
+        recommended.
+        """
         super().__init__(*args, **kwargs)
-        # required
+
+        if not isinstance(codec, (Audio.Codec, type(None))):
+            raise TypeError(f"Expected codec to be a {Audio.Codec}, not {codec!r}")
+        if not isinstance(bitrate, (str, int, float, type(None))):
+            raise TypeError(f"Expected bitrate to be a {str}, {int}, or {float}, not {bitrate!r}")
+        if not isinstance(channels, (str, int, float, type(None))):
+            raise TypeError(f"Expected channels to be a {str}, {int}, or {float}, not {channels!r}")
+        if not isinstance(joc, (int, type(None))):
+            raise TypeError(f"Expected joc to be a {int}, not {joc!r}")
+        if (
+            not isinstance(descriptive, (bool, int)) or
+            (isinstance(descriptive, int) and descriptive not in (0, 1))
+        ):
+            raise TypeError(f"Expected descriptive to be a {bool} or bool-like {int}, not {descriptive!r}")
+
         self.codec = codec
-        self.bitrate = int(math.ceil(float(bitrate))) if bitrate else None
-        self.channels = self.parse_channels(channels) if channels else None
-        # optional
+
+        try:
+            self.bitrate = int(math.ceil(float(bitrate))) if bitrate else None
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Expected bitrate to be a number or float, {e}")
+
+        try:
+            self.channels = self.parse_channels(channels) if channels else None
+        except (ValueError, NotImplementedError) as e:
+            raise ValueError(f"Expected channels to be a number, float, or a string, {e}")
+
         self.joc = joc
         self.descriptive = bool(descriptive)
+
+    def __str__(self) -> str:
+        return " | ".join(filter(bool, [
+            "AUD",
+            f"[{self.codec.value}]" if self.codec else None,
+            str(self.language),
+            ", ".join(filter(bool, [
+                str(self.channels) if self.channels else None,
+                f"JOC {self.joc}" if self.joc else None,
+            ])),
+            f"{self.bitrate // 1000} kb/s" if self.bitrate else None,
+            self.get_track_name(),
+            self.edition
+        ]))
 
     @staticmethod
     def parse_channels(channels: Union[str, int, float]) -> float:
@@ -108,17 +170,6 @@ class Audio(Track):
                 flag = f" ({flag})"
             track_name += flag
         return track_name or None
-
-    def __str__(self) -> str:
-        return " | ".join(filter(bool, [
-            "AUD",
-            f"[{self.codec.value}]",
-            str(self.channels or "?") + (f" (JOC {self.joc})" if self.joc else ""),
-            f"{self.bitrate // 1000 if self.bitrate else '?'} kb/s",
-            str(self.language),
-            self.get_track_name(),
-            self.edition
-        ]))
 
 
 __all__ = ("Audio",)

@@ -4,7 +4,7 @@ from typing import Optional
 
 import click
 
-from devine.core.config import config
+from devine.core.config import config, config_path
 from devine.core.constants import context_settings
 from devine.core.services import Services
 
@@ -18,13 +18,13 @@ def env() -> None:
 def info() -> None:
     """Displays information about the current environment."""
     log = logging.getLogger("env")
-    log.info(f"[Root Config]     : {config.directories.user_configs / config.filenames.root_config}")
-    log.info(f"[Cookies]         : {config.directories.cookies}")
-    log.info(f"[WVDs]            : {config.directories.wvds}")
-    log.info(f"[Cache]           : {config.directories.cache}")
-    log.info(f"[Logs]            : {config.directories.logs}")
-    log.info(f"[Temp Files]      : {config.directories.temp}")
-    log.info(f"[Downloads]       : {config.directories.downloads}")
+    log.info(f"[Config]     : {config_path or '--'}")
+    log.info(f"[Cookies]    : {config.directories.cookies}")
+    log.info(f"[WVDs]       : {config.directories.wvds}")
+    log.info(f"[Cache]      : {config.directories.cache}")
+    log.info(f"[Logs]       : {config.directories.logs}")
+    log.info(f"[Temp Files] : {config.directories.temp}")
+    log.info(f"[Downloads]  : {config.directories.downloads}")
 
 
 @env.group(name="clear", short_help="Clear an environment directory.", context_settings=context_settings)

@@ -101,7 +101,8 @@ class HLS:
 
             try:
                 # TODO: Any better way to figure out the primary track type?
-                Video.Codec.from_codecs(playlist.stream_info.codecs)
+                if playlist.stream_info.codecs:
+                    Video.Codec.from_codecs(playlist.stream_info.codecs)
             except ValueError:
                 primary_track_type = Audio
             else:
@@ -110,7 +111,10 @@ class HLS:
             tracks.add(primary_track_type(
                 id_=hex(crc32(str(playlist).encode()))[2:],
                 url=urljoin(playlist.base_uri, playlist.uri),
-                codec=primary_track_type.Codec.from_codecs(playlist.stream_info.codecs),
+                codec=(
+                    primary_track_type.Codec.from_codecs(playlist.stream_info.codecs)
+                    if playlist.stream_info.codecs else None
+                ),
                 language=language,  # HLS manifests do not seem to have language info
                 is_original_lang=True,  # TODO: All we can do is assume Yes
                 bitrate=playlist.stream_info.average_bandwidth or playlist.stream_info.bandwidth,
@@ -125,10 +129,10 @@ class HLS:
                 **(dict(
                     range_=Video.Range.DV if any(
                         codec.split(".")[0] in ("dva1", "dvav", "dvhe", "dvh1")
-                        for codec in playlist.stream_info.codecs.lower().split(",")
+                        for codec in (playlist.stream_info.codecs or "").lower().split(",")
                     ) else Video.Range.from_m3u_range_tag(playlist.stream_info.video_range),
-                    width=playlist.stream_info.resolution[0],
-                    height=playlist.stream_info.resolution[1],
+                    width=playlist.stream_info.resolution[0] if playlist.stream_info.resolution else None,
+                    height=playlist.stream_info.resolution[1] if playlist.stream_info.resolution else None,
                     fps=playlist.stream_info.frame_rate
                 ) if primary_track_type is Video else {})
             ))

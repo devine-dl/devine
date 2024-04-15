@@ -141,9 +141,11 @@ class Video(Track):
                 return Video.Range.SDR
 
         @staticmethod
-        def from_m3u_range_tag(tag: str) -> Video.Range:
+        def from_m3u_range_tag(tag: str) -> Optional[Video.Range]:
             tag = (tag or "").upper().replace('"', '').strip()
-            if not tag or tag == "SDR":
+            if not tag:
+                return None
+            if tag == "SDR":
                 return Video.Range.SDR
             elif tag == "PQ":
                 return Video.Range.HDR10  # technically could be any PQ-transfer range
@@ -152,32 +154,108 @@ class Video(Track):
             # for some reason there's no Dolby Vision info tag
             raise ValueError(f"The M3U Range Tag '{tag}' is not a supported Video Range")
 
-    def __init__(self, *args: Any, codec: Video.Codec, range_: Video.Range, bitrate: Union[str, int, float],
-                 width: int, height: int, fps: Optional[Union[str, int, float]] = None, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        *args: Any,
+        codec: Optional[Video.Codec] = None,
+        range_: Optional[Video.Range] = None,
+        bitrate: Optional[Union[str, int, float]] = None,
+        width: Optional[int] = None,
+        height: Optional[int] = None,
+        fps: Optional[Union[str, int, float]] = None,
+        **kwargs: Any
+    ) -> None:
+        """
+        Create a new Video track object.
+
+        Parameters:
+            codec: A Video.Codec enum representing the video codec.
+                If not specified, MediaInfo will be used to retrieve the codec
+                once the track has been downloaded.
+            range_: A Video.Range enum representing the video color range.
+                Defaults to SDR if not specified.
+            bitrate: A number or float representing the average bandwidth in bytes/s.
+                Float values are rounded up to the nearest integer.
+            width: The horizontal resolution of the video.
+            height: The vertical resolution of the video.
+            fps: A number, float, or string representing the frames/s of the video.
+                Strings may represent numbers, floats, or a fraction (num/den).
+                All strings will be cast to either a number or float.
+
+        Note: If codec, bitrate, width, height, or fps is not specified some checks
+        may be skipped or assume a value. Specifying as much information as possible
+        is highly recommended.
+        """
         super().__init__(*args, **kwargs)
-        # required
+
+        if not isinstance(codec, (Video.Codec, type(None))):
+            raise TypeError(f"Expected codec to be a {Video.Codec}, not {codec!r}")
+        if not isinstance(range_, (Video.Range, type(None))):
+            raise TypeError(f"Expected range_ to be a {Video.Range}, not {range_!r}")
+        if not isinstance(bitrate, (str, int, float, type(None))):
+            raise TypeError(f"Expected bitrate to be a {str}, {int}, or {float}, not {bitrate!r}")
+        if not isinstance(width, (int, type(None))):
+            raise TypeError(f"Expected width to be a {int}, not {width!r}")
+        if not isinstance(height, (int, type(None))):
+            raise TypeError(f"Expected height to be a {int}, not {height!r}")
+        if not isinstance(fps, (str, int, float, type(None))):
+            raise TypeError(f"Expected fps to be a {str}, {int}, or {float}, not {fps!r}")
+
         self.codec = codec
         self.range = range_ or Video.Range.SDR
-        self.bitrate = int(math.ceil(float(bitrate))) if bitrate else None
-        self.width = int(width)
-        self.height = int(height)
-        # optional
-        self.fps = FPS.parse(str(fps)) if fps else None
+
+        try:
+            self.bitrate = int(math.ceil(float(bitrate))) if bitrate else None
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Expected bitrate to be a number or float, {e}")
+
+        try:
+            self.width = int(width or 0) or None
+        except ValueError as e:
+            raise ValueError(f"Expected width to be a number, {e}")
+
+        try:
+            self.height = int(height or 0) or None
+        except ValueError as e:
+            raise ValueError(f"Expected height to be a number, {e}")
+
+        try:
+            self.fps = (FPS.parse(str(fps)) or None) if fps else None
+        except Exception as e:
+            raise ValueError(
+                "Expected fps to be a number, float, or a string as numerator/denominator form, " +
+                str(e)
+            )
 
     def __str__(self) -> str:
-        fps = f"{self.fps:.3f}" if self.fps else "Unknown"
         return " | ".join(filter(bool, [
             "VID",
-            f"[{self.codec.value}, {self.range.name}]",
+            "[" + (", ".join(filter(bool, [
+                self.codec.value if self.codec else None,
+                self.range.name
+            ]))) + "]",
             str(self.language),
-            f"{self.width}x{self.height} @ {self.bitrate // 1000 if self.bitrate else '?'} kb/s, {fps} FPS",
+            ", ".join(filter(bool, [
+                " @ ".join(filter(bool, [
+                    f"{self.width}x{self.height}" if self.width and self.height else None,
+                    f"{self.bitrate // 1000} kb/s" if self.bitrate else None
+                ])),
+                f"{self.fps:.3f} FPS" if self.fps else None
+            ])),
             self.edition
         ]))
 
     def change_color_range(self, range_: int) -> None:
         """Change the Video's Color Range to Limited (0) or Full (1)."""
         if not self.path or not self.path.exists():
-            raise ValueError("Cannot repackage a Track that has not been downloaded.")
+            raise ValueError("Cannot change the color range flag on a Video that has not been downloaded.")
+        if not self.codec:
+            raise ValueError("Cannot change the color range flag on a Video that has no codec specified.")
+        if self.codec not in (Video.Codec.AVC, Video.Codec.HEVC):
+            raise NotImplementedError(
+                "Cannot change the color range flag on this Video as "
+                f"it's codec, {self.codec.value}, is not yet supported."
+            )
 
         executable = get_binary_path("ffmpeg")
         if not executable:
