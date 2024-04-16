@@ -194,9 +194,9 @@ class Video(Track):
             raise TypeError(f"Expected range_ to be a {Video.Range}, not {range_!r}")
         if not isinstance(bitrate, (str, int, float, type(None))):
             raise TypeError(f"Expected bitrate to be a {str}, {int}, or {float}, not {bitrate!r}")
-        if not isinstance(width, (int, type(None))):
+        if not isinstance(width, (int, str, type(None))):
             raise TypeError(f"Expected width to be a {int}, not {width!r}")
-        if not isinstance(height, (int, type(None))):
+        if not isinstance(height, (int, str, type(None))):
             raise TypeError(f"Expected height to be a {int}, not {height!r}")
         if not isinstance(fps, (str, int, float, type(None))):
             raise TypeError(f"Expected fps to be a {str}, {int}, or {float}, not {fps!r}")
@@ -212,12 +212,12 @@ class Video(Track):
         try:
             self.width = int(width or 0) or None
         except ValueError as e:
-            raise ValueError(f"Expected width to be a number, {e}")
+            raise ValueError(f"Expected width to be a number, not {width!r}, {e}")
 
         try:
             self.height = int(height or 0) or None
         except ValueError as e:
-            raise ValueError(f"Expected height to be a number, {e}")
+            raise ValueError(f"Expected height to be a number, not {height!r}, {e}")
 
         try:
             self.fps = (FPS.parse(str(fps)) or None) if fps else None
