@@ -468,7 +468,7 @@ class dl:
                         if not title.tracks.audio:
                             self.log.error(f"There's no {channels} Audio Track...")
                             sys.exit(1)
-                    if lang and "all" in lang:
+                    if lang and "best" in lang:
                         # Get unique languages and select highest quality for each
                         unique_languages = {track.language for track in title.tracks.audio}
                         selected_audio = []
@@ -480,7 +480,7 @@ class dl:
                             selected_audio.append(highest_quality)
                         title.tracks.audio = selected_audio
                     else:
-                        if lang and "all" not in lang:
+                        if lang and "best" not in lang:
                             title.tracks.audio = title.tracks.by_language(title.tracks.audio, lang, per_language=1)
                             if not title.tracks.audio:
                                 self.log.error("There's no %s Audio Track, cannot continue...", lang)
