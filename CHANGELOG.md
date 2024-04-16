@@ -7,6 +7,33 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 Versions [3.0.0] and older use a format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 but versions thereafter use a custom changelog format using [git-cliff](https://git-cliff.org).
 
+## [3.3.2] - 2024-04-16
+
+### Bug Fixes
+
+- *Video*: Ensure track is supported in change_color_range()
+- *Video*: Optionalise constructor args, add doc-string & checks
+- *Audio*: Optionalise constructor args, add doc-string & checks
+- *Subtitle*: Optionalise constructor args, add doc-string & checks
+- *HLS*: Ensure playlist.stream_info.codecs exists before use
+- *HLS*: Ensure playlist.stream_info.resolution exists before use
+- *env*: List used config path, otherwise the default path
+- *cfg*: Use loaded config path instead of hardcoded default
+- *Basic*: Return None not Exception if no proxy configured
+
+### Changes
+
+- *Video*: Do not print "?"/"Unknown" values in str()
+- *Audio*: Do not print "?"/"Unknown" values in str()
+- *Subtitle*: Do not print "?"/"Unknown" values in str()
+- *Audio*: List lang after codec for consistency with other Tracks
+- *Video*: Return None if no m3u RANGE, not SDR
+- *env*: Use -- to indicate no config found/loaded
+
+### New Contributors
+
+- [retouching](https://github.com/retouching)
+
 ## [3.3.1] - 2024-04-05
 
 ### Features
@@ -768,6 +795,7 @@ This release brings a huge change to the fundamentals of Devine's logging, UI, a
 
 Initial public release under the name Devine.
 
+[3.3.2]: https://github.com/devine-dl/devine/releases/tag/v3.3.2
 [3.3.1]: https://github.com/devine-dl/devine/releases/tag/v3.3.1
 [3.3.0]: https://github.com/devine-dl/devine/releases/tag/v3.3.0
 [3.2.0]: https://github.com/devine-dl/devine/releases/tag/v3.2.0
