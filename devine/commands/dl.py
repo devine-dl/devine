@@ -394,8 +394,8 @@ class dl:
                             self.log.error(f"There's no {vbitrate}kbps Video Track...")
                             sys.exit(1)
 
-                    video_languages = v_lang or lang
-                    if video_languages and "all" not in video_languages:
+                    video_languages = [lang for lang in (v_lang or lang) if lang != "best"]
+                    if video_languages:
                         title.tracks.videos = title.tracks.by_language(title.tracks.videos, video_languages)
                         if not title.tracks.videos:
                             self.log.error(f"There's no {video_languages} Video Track...")
