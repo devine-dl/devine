@@ -5,8 +5,9 @@ from typing import Optional
 import click
 from rich.padding import Padding
 from rich.table import Table
+from rich.tree import Tree
 
-from devine.core.config import config, config_path
+from devine.core.config import POSSIBLE_CONFIG_PATHS, config, config_path
 from devine.core.console import console
 from devine.core.constants import context_settings
 from devine.core.services import Services
@@ -25,7 +26,13 @@ def info() -> None:
     if config_path:
         log.info(f"Config loaded from {config_path}")
     else:
-        log.info("No config file found...")
+        tree = Tree("No config file found, you can use any of the following locations:")
+        for i, path in enumerate(POSSIBLE_CONFIG_PATHS, start=1):
+            tree.add(f"[repr.number]{i}.[/] [text2]{path.resolve()}[/]")
+        console.print(Padding(
+            tree,
+            (0, 5)
+        ))
 
     table = Table(title="Directories", expand=True)
     table.add_column("Name", no_wrap=True)
