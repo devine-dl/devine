@@ -6,7 +6,6 @@ from http.cookiejar import CookieJar
 from pathlib import Path
 from typing import Any, Generator, MutableMapping, Optional, Union
 
-from curl_cffi import CurlOpt
 from curl_cffi.requests import Session
 from rich import filesize
 
@@ -18,7 +17,7 @@ MAX_ATTEMPTS = 5
 RETRY_WAIT = 2
 CHUNK_SIZE = 1024
 PROGRESS_WINDOW = 5
-BROWSER = config.curl_impersonate.get("browser", "chrome120")
+BROWSER = config.curl_impersonate.get("browser", "chrome124")
 
 
 def download(
@@ -53,11 +52,6 @@ def download(
             for one-time request changes like a header, cookie, or proxy. For example,
             to request Byte-ranges use e.g., `headers={"Range": "bytes=0-128"}`.
     """
-    # https://github.com/yifeikong/curl_cffi/issues/6#issuecomment-2028518677
-    # must be applied here since the `session.curl` is thread-localized
-    # noinspection PyProtectedMember
-    session.curl.setopt(CurlOpt.PROXY_CAINFO, session.curl._cacert)
-
     save_dir = save_path.parent
     control_file = save_path.with_name(f"{save_path.name}.!dev")
 

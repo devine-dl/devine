@@ -3,8 +3,12 @@ import shutil
 from typing import Optional
 
 import click
+from rich.padding import Padding
+from rich.table import Table
+from rich.tree import Tree
 
-from devine.core.config import config, config_path
+from devine.core.config import POSSIBLE_CONFIG_PATHS, config, config_path
+from devine.core.console import console
 from devine.core.constants import context_settings
 from devine.core.services import Services
 
@@ -18,13 +22,32 @@ def env() -> None:
 def info() -> None:
     """Displays information about the current environment."""
     log = logging.getLogger("env")
-    log.info(f"[Config]     : {config_path or '--'}")
-    log.info(f"[Cookies]    : {config.directories.cookies}")
-    log.info(f"[WVDs]       : {config.directories.wvds}")
-    log.info(f"[Cache]      : {config.directories.cache}")
-    log.info(f"[Logs]       : {config.directories.logs}")
-    log.info(f"[Temp Files] : {config.directories.temp}")
-    log.info(f"[Downloads]  : {config.directories.downloads}")
+
+    if config_path:
+        log.info(f"Config loaded from {config_path}")
+    else:
+        tree = Tree("No config file found, you can use any of the following locations:")
+        for i, path in enumerate(POSSIBLE_CONFIG_PATHS, start=1):
+            tree.add(f"[repr.number]{i}.[/] [text2]{path.resolve()}[/]")
+        console.print(Padding(
+            tree,
+            (0, 5)
+        ))
+
+    table = Table(title="Directories", expand=True)
+    table.add_column("Name", no_wrap=True)
+    table.add_column("Path")
+
+    for name in sorted(dir(config.directories)):
+        if name.startswith("__") or name == "app_dirs":
+            continue
+        path = getattr(config.directories, name).resolve()
+        table.add_row(name.title(), str(path))
+
+    console.print(Padding(
+        table,
+        (1, 5)
+    ))
 
 
 @env.group(name="clear", short_help="Clear an environment directory.", context_settings=context_settings)

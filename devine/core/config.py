@@ -77,29 +77,27 @@ class Config:
         return cls(**yaml.safe_load(path.read_text(encoding="utf8")) or {})
 
 
+# noinspection PyProtectedMember
+POSSIBLE_CONFIG_PATHS = (
+    # The Devine Namespace Folder (e.g., %appdata%/Python/Python311/site-packages/devine)
+    Config._Directories.namespace_dir / Config._Filenames.root_config,
+    # The Parent Folder to the Devine Namespace Folder (e.g., %appdata%/Python/Python311/site-packages)
+    Config._Directories.namespace_dir.parent / Config._Filenames.root_config,
+    # The AppDirs User Config Folder (e.g., %localappdata%/devine)
+    Config._Directories.user_configs / Config._Filenames.root_config
+)
+
+
 def get_config_path() -> Optional[Path]:
     """
-    Get Path to Config from various locations.
-
-    Looks for a config file in the following folders in order:
-
-    1. The Devine Namespace Folder (e.g., %appdata%/Python/Python311/site-packages/devine)
-    2. The Parent Folder to the Devine Namespace Folder (e.g., %appdata%/Python/Python311/site-packages)
-    3. The AppDirs User Config Folder (e.g., %localappdata%/devine)
+    Get Path to Config from any one of the possible locations.
 
     Returns None if no config file could be found.
     """
-    # noinspection PyProtectedMember
-    path = Config._Directories.namespace_dir / Config._Filenames.root_config
-    if not path.exists():
-        # noinspection PyProtectedMember
-        path = Config._Directories.namespace_dir.parent / Config._Filenames.root_config
-    if not path.exists():
-        # noinspection PyProtectedMember
-        path = Config._Directories.user_configs / Config._Filenames.root_config
-    if not path.exists():
-        path = None
-    return path
+    for path in POSSIBLE_CONFIG_PATHS:
+        if path.exists():
+            return path
+    return None
 
 
 config_path = get_config_path()
