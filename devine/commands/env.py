@@ -1,5 +1,8 @@
 import logging
+import os
 import shutil
+import sys
+from pathlib import Path
 from typing import Optional
 
 import click
@@ -38,10 +41,20 @@ def info() -> None:
     table.add_column("Name", no_wrap=True)
     table.add_column("Path")
 
+    path_vars = {
+        x: Path(os.getenv(x))
+        for x in ("TEMP", "APPDATA", "LOCALAPPDATA", "USERPROFILE")
+        if sys.platform == "win32" and os.getenv(x)
+    }
+
     for name in sorted(dir(config.directories)):
         if name.startswith("__") or name == "app_dirs":
             continue
         path = getattr(config.directories, name).resolve()
+        for var, var_path in path_vars.items():
+            if path.is_relative_to(var_path):
+                path = rf"%{var}%\{path.relative_to(var_path)}"
+                break
         table.add_row(name.title(), str(path))
 
     console.print(Padding(
