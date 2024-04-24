@@ -1,34 +1,45 @@
+import shutil
 import sys
-
-from devine.core.utilities import get_binary_path
+from pathlib import Path
+from typing import Optional
 
 __shaka_platform = {
     "win32": "win",
     "darwin": "osx"
 }.get(sys.platform, sys.platform)
 
-FFMPEG = get_binary_path("ffmpeg")
-FFProbe = get_binary_path("ffprobe")
-FFPlay = get_binary_path("ffplay")
-SubtitleEdit = get_binary_path("SubtitleEdit")
-ShakaPackager = get_binary_path(
+
+def find(*names: str) -> Optional[Path]:
+    """Find the path of the first found binary name."""
+    for name in names:
+        path = shutil.which(name)
+        if path:
+            return Path(path)
+    return None
+
+
+FFMPEG = find("ffmpeg")
+FFProbe = find("ffprobe")
+FFPlay = find("ffplay")
+SubtitleEdit = find("SubtitleEdit")
+ShakaPackager = find(
     "shaka-packager",
     "packager",
     f"packager-{__shaka_platform}",
     f"packager-{__shaka_platform}-x64"
 )
-Aria2 = get_binary_path("aria2c", "aria2")
-CCExtractor = get_binary_path(
+Aria2 = find("aria2c", "aria2")
+CCExtractor = find(
     "ccextractor",
     "ccextractorwin",
     "ccextractorwinfull"
 )
-HolaProxy = get_binary_path("hola-proxy")
-MPV = get_binary_path("mpv")
-Caddy = get_binary_path("caddy")
+HolaProxy = find("hola-proxy")
+MPV = find("mpv")
+Caddy = find("caddy")
 
 
 __all__ = (
     "FFMPEG", "FFProbe", "FFPlay", "SubtitleEdit", "ShakaPackager",
-    "Aria2", "CCExtractor", "HolaProxy", "MPV", "Caddy"
+    "Aria2", "CCExtractor", "HolaProxy", "MPV", "Caddy", "find"
 )
