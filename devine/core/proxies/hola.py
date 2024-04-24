@@ -3,8 +3,8 @@ import re
 import subprocess
 from typing import Optional
 
+from devine.core import binaries
 from devine.core.proxies.proxy import Proxy
-from devine.core.utilities import get_binary_path
 
 
 class Hola(Proxy):
@@ -13,7 +13,7 @@ class Hola(Proxy):
         Proxy Service using Hola's direct connections via the hola-proxy project.
         https://github.com/Snawoot/hola-proxy
         """
-        self.binary = get_binary_path("hola-proxy")
+        self.binary = binaries.HolaProxy
         if not self.binary:
             raise EnvironmentError("hola-proxy executable not found but is required for the Hola proxy provider.")
 

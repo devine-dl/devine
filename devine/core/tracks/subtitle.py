@@ -17,8 +17,9 @@ from pycaption.geometry import Layout
 from pymp4.parser import MP4
 from subtitle_filter import Subtitles
 
+from devine.core import binaries
 from devine.core.tracks.track import Track
-from devine.core.utilities import get_binary_path, try_ensure_utf8
+from devine.core.utilities import try_ensure_utf8
 
 
 class Subtitle(Track):
@@ -233,14 +234,13 @@ class Subtitle(Track):
 
         output_path = self.path.with_suffix(f".{codec.value.lower()}")
 
-        sub_edit_executable = get_binary_path("SubtitleEdit")
-        if sub_edit_executable and self.codec not in (Subtitle.Codec.fTTML, Subtitle.Codec.fVTT):
+        if binaries.SubtitleEdit and self.codec not in (Subtitle.Codec.fTTML, Subtitle.Codec.fVTT):
             sub_edit_format = {
                 Subtitle.Codec.SubStationAlphav4: "AdvancedSubStationAlpha",
                 Subtitle.Codec.TimedTextMarkupLang: "TimedText1.0"
             }.get(codec, codec.name)
             sub_edit_args = [
-                sub_edit_executable,
+                binaries.SubtitleEdit,
                 "/Convert", self.path, sub_edit_format,
                 f"/outputfilename:{output_path.name}",
                 "/encoding:utf8"
@@ -500,8 +500,7 @@ class Subtitle(Track):
         if not self.path or not self.path.exists():
             raise ValueError("You must download the subtitle track first.")
 
-        executable = get_binary_path("SubtitleEdit")
-        if executable:
+        if binaries.SubtitleEdit:
             if self.codec == Subtitle.Codec.SubStationAlphav4:
                 output_format = "AdvancedSubStationAlpha"
             elif self.codec == Subtitle.Codec.TimedTextMarkupLang:
@@ -510,7 +509,7 @@ class Subtitle(Track):
                 output_format = self.codec.name
             subprocess.run(
                 [
-                    executable,
+                    binaries.SubtitleEdit,
                     "/Convert", self.path, output_format,
                     "/encoding:utf8",
                     "/overwrite",
@@ -539,8 +538,7 @@ class Subtitle(Track):
         if not self.path or not self.path.exists():
             raise ValueError("You must download the subtitle track first.")
 
-        executable = get_binary_path("SubtitleEdit")
-        if not executable:
+        if not binaries.SubtitleEdit:
             raise EnvironmentError("SubtitleEdit executable not found...")
 
         if self.codec == Subtitle.Codec.SubStationAlphav4:
@@ -552,7 +550,7 @@ class Subtitle(Track):
 
         subprocess.run(
             [
-                executable,
+                binaries.SubtitleEdit,
                 "/Convert", self.path, output_format,
                 "/ReverseRtlStartEnd",
                 "/encoding:utf8",

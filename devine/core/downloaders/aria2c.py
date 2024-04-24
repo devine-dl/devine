@@ -15,10 +15,11 @@ from requests.cookies import cookiejar_from_dict, get_cookie_header
 from rich import filesize
 from rich.text import Text
 
+from devine.core import binaries
 from devine.core.config import config
 from devine.core.console import console
 from devine.core.constants import DOWNLOAD_CANCELLED
-from devine.core.utilities import get_binary_path, get_extension, get_free_port
+from devine.core.utilities import get_extension, get_free_port
 
 
 def rpc(caller: Callable, secret: str, method: str, params: Optional[list[Any]] = None) -> Any:
@@ -87,8 +88,7 @@ def download(
     if not isinstance(urls, list):
         urls = [urls]
 
-    executable = get_binary_path("aria2c", "aria2")
-    if not executable:
+    if not binaries.Aria2:
         raise EnvironmentError("Aria2c executable not found...")
 
     if proxy and not proxy.lower().startswith("http://"):
@@ -186,7 +186,7 @@ def download(
     try:
         p = subprocess.Popen(
             [
-                executable,
+                binaries.Aria2,
                 *arguments
             ],
             stdin=subprocess.PIPE,
