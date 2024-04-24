@@ -614,11 +614,14 @@ class dl:
                             break
                     video_track_n += 1
 
-                if sub_format:
-                    with console.status(f"Converting Subtitles to {sub_format.name}..."):
-                        for subtitle in title.tracks.subtitles:
+                with console.status("Converting Subtitles..."):
+                    for subtitle in title.tracks.subtitles:
+                        if sub_format:
                             if subtitle.codec != sub_format:
                                 subtitle.convert(sub_format)
+                        elif subtitle.codec == Subtitle.Codec.TimedTextMarkupLang:
+                            # MKV does not support TTML, VTT is the next best option
+                            subtitle.convert(Subtitle.Codec.WebVTT)
 
                 with console.status("Checking Subtitles for Fonts..."):
                     font_names = []
