@@ -10,10 +10,11 @@ from typing import Any, Optional, Union
 
 from langcodes import Language
 
+from devine.core import binaries
 from devine.core.config import config
 from devine.core.tracks.subtitle import Subtitle
 from devine.core.tracks.track import Track
-from devine.core.utilities import FPS, get_binary_path, get_boxes
+from devine.core.utilities import FPS, get_boxes
 
 
 class Video(Track):
@@ -257,8 +258,7 @@ class Video(Track):
                 f"it's codec, {self.codec.value}, is not yet supported."
             )
 
-        executable = get_binary_path("ffmpeg")
-        if not executable:
+        if not binaries.FFMPEG:
             raise EnvironmentError("FFmpeg executable \"ffmpeg\" was not found but is required for this call.")
 
         filter_key = {
@@ -270,7 +270,7 @@ class Video(Track):
         output_path = original_path.with_stem(f"{original_path.stem}_{['limited', 'full'][range_]}_range")
 
         subprocess.run([
-            executable, "-hide_banner",
+            binaries.FFMPEG, "-hide_banner",
             "-loglevel", "panic",
             "-i", original_path,
             "-codec", "copy",
@@ -288,8 +288,7 @@ class Video(Track):
         if not self.path:
             raise ValueError("You must download the track first.")
 
-        executable = get_binary_path("ccextractor", "ccextractorwin", "ccextractorwinfull")
-        if not executable:
+        if not binaries.CCExtractor:
             raise EnvironmentError("ccextractor executable was not found.")
 
         # ccextractor often fails in weird ways unless we repack
@@ -299,7 +298,7 @@ class Video(Track):
 
         try:
             subprocess.run([
-                executable,
+                binaries.CCExtractor,
                 "-trim",
                 "-nobom",
                 "-noru", "-ru1",
@@ -380,8 +379,7 @@ class Video(Track):
         if not self.path or not self.path.exists():
             raise ValueError("Cannot clean a Track that has not been downloaded.")
 
-        executable = get_binary_path("ffmpeg")
-        if not executable:
+        if not binaries.FFMPEG:
             raise EnvironmentError("FFmpeg executable \"ffmpeg\" was not found but is required for this call.")
 
         log = logging.getLogger("x264-clean")
@@ -402,7 +400,7 @@ class Video(Track):
         original_path = self.path
         cleaned_path = original_path.with_suffix(f".cleaned{original_path.suffix}")
         subprocess.run([
-            executable, "-hide_banner",
+            binaries.FFMPEG, "-hide_banner",
             "-loglevel", "panic",
             "-i", original_path,
             "-map_metadata", "-1",

@@ -19,12 +19,13 @@ from pywidevine.cdm import Cdm as WidevineCdm
 from pywidevine.pssh import PSSH
 from requests import Session
 
+from devine.core import binaries
 from devine.core.constants import DOWNLOAD_CANCELLED, DOWNLOAD_LICENCE_ONLY, AnyTrack
 from devine.core.downloaders import requests as requests_downloader
 from devine.core.drm import DRM_T, ClearKey, Widevine
 from devine.core.events import events
 from devine.core.tracks import Audio, Subtitle, Tracks, Video
-from devine.core.utilities import get_binary_path, get_extension, is_close_match, try_ensure_utf8
+from devine.core.utilities import get_extension, is_close_match, try_ensure_utf8
 
 
 class HLS:
@@ -556,8 +557,7 @@ class HLS:
 
         Returns the file size of the merged file.
         """
-        ffmpeg = get_binary_path("ffmpeg")
-        if not ffmpeg:
+        if not binaries.FFMPEG:
             raise EnvironmentError("FFmpeg executable was not found but is required to merge HLS segments.")
 
         demuxer_file = segments[0].parent / "ffmpeg_concat_demuxer.txt"
@@ -567,7 +567,7 @@ class HLS:
         ]))
 
         subprocess.check_call([
-            ffmpeg, "-hide_banner",
+            binaries.FFMPEG, "-hide_banner",
             "-loglevel", "panic",
             "-f", "concat",
             "-safe", "0",

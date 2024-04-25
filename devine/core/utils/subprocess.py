@@ -3,11 +3,16 @@ import subprocess
 from pathlib import Path
 from typing import Union
 
+from devine.core import binaries
+
 
 def ffprobe(uri: Union[bytes, Path]) -> dict:
     """Use ffprobe on the provided data to get stream information."""
+    if not binaries.FFProbe:
+        raise EnvironmentError("FFProbe executable \"ffprobe\" not found but is required.")
+
     args = [
-        "ffprobe",
+        binaries.FFProbe,
         "-v", "quiet",
         "-of", "json",
         "-show_streams"

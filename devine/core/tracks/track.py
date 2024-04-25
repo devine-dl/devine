@@ -15,12 +15,13 @@ from zlib import crc32
 from langcodes import Language
 from requests import Session
 
+from devine.core import binaries
 from devine.core.config import config
 from devine.core.constants import DOWNLOAD_CANCELLED, DOWNLOAD_LICENCE_ONLY
 from devine.core.downloaders import aria2c, curl_impersonate, requests
 from devine.core.drm import DRM_T, Widevine
 from devine.core.events import events
-from devine.core.utilities import get_binary_path, get_boxes, try_ensure_utf8
+from devine.core.utilities import get_boxes, try_ensure_utf8
 from devine.core.utils.subprocess import ffprobe
 
 
@@ -470,8 +471,7 @@ class Track:
         if not self.path or not self.path.exists():
             raise ValueError("Cannot repackage a Track that has not been downloaded.")
 
-        executable = get_binary_path("ffmpeg")
-        if not executable:
+        if not binaries.FFMPEG:
             raise EnvironmentError("FFmpeg executable \"ffmpeg\" was not found but is required for this call.")
 
         original_path = self.path
@@ -480,7 +480,7 @@ class Track:
         def _ffmpeg(extra_args: list[str] = None):
             subprocess.run(
                 [
-                    executable, "-hide_banner",
+                    binaries.FFMPEG, "-hide_banner",
                     "-loglevel", "error",
                     "-i", original_path,
                     *(extra_args or []),

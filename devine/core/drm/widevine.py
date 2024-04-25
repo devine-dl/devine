@@ -3,7 +3,6 @@ from __future__ import annotations
 import base64
 import shutil
 import subprocess
-import sys
 import textwrap
 from pathlib import Path
 from typing import Any, Callable, Optional, Union
@@ -17,10 +16,11 @@ from pywidevine.pssh import PSSH
 from requests import Session
 from rich.text import Text
 
+from devine.core import binaries
 from devine.core.config import config
 from devine.core.console import console
 from devine.core.constants import AnyTrack
-from devine.core.utilities import get_binary_path, get_boxes
+from devine.core.utilities import get_boxes
 from devine.core.utils.subprocess import ffprobe
 
 
@@ -223,9 +223,7 @@ class Widevine:
         if not self.content_keys:
             raise ValueError("Cannot decrypt a Track without any Content Keys...")
 
-        platform = {"win32": "win", "darwin": "osx"}.get(sys.platform, sys.platform)
-        executable = get_binary_path("shaka-packager", "packager", f"packager-{platform}", f"packager-{platform}-x64")
-        if not executable:
+        if not binaries.ShakaPackager:
             raise EnvironmentError("Shaka Packager executable not found but is required.")
         if not path or not path.exists():
             raise ValueError("Tried to decrypt a file that does not exist.")
@@ -252,7 +250,7 @@ class Widevine:
             ]
 
             p = subprocess.Popen(
-                [executable, *arguments],
+                [binaries.ShakaPackager, *arguments],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.PIPE,
                 universal_newlines=True

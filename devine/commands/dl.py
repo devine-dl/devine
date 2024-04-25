@@ -38,6 +38,7 @@ from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
 
+from devine.core import binaries
 from devine.core.config import config
 from devine.core.console import console
 from devine.core.constants import DOWNLOAD_LICENCE_ONLY, AnyTrack, context_settings
@@ -51,7 +52,7 @@ from devine.core.titles import Movie, Song, Title_T
 from devine.core.titles.episode import Episode
 from devine.core.tracks import Audio, Subtitle, Tracks, Video
 from devine.core.tracks.attachment import Attachment
-from devine.core.utilities import get_binary_path, get_system_fonts, is_close_match, time_elapsed_since
+from devine.core.utilities import get_system_fonts, is_close_match, time_elapsed_since
 from devine.core.utils.click_types import LANGUAGE_RANGE, QUALITY_LIST, SEASON_RANGE, ContextData, MultipleChoice
 from devine.core.utils.collections import merge_dict
 from devine.core.utils.subprocess import ffprobe
@@ -198,7 +199,7 @@ class dl:
                     self.proxy_providers.append(Basic(**config.proxy_providers["basic"]))
                 if config.proxy_providers.get("nordvpn"):
                     self.proxy_providers.append(NordVPN(**config.proxy_providers["nordvpn"]))
-                if get_binary_path("hola-proxy"):
+                if binaries.HolaProxy:
                     self.proxy_providers.append(Hola())
                 for proxy_provider in self.proxy_providers:
                     self.log.info(f"Loaded {proxy_provider.__class__.__name__}: {proxy_provider}")
@@ -558,14 +559,17 @@ class dl:
             except Exception as e:  # noqa
                 error_messages = [
                     ":x: Download Failed...",
-                    "   One of the track downloads had an error!",
-                    "   See the error trace above for more information."
                 ]
-                if isinstance(e, subprocess.CalledProcessError):
-                    # ignore process exceptions as proper error logs are already shown
-                    error_messages.append(f"   Process exit code: {e.returncode}")
+                if isinstance(e, EnvironmentError):
+                    error_messages.append(f"   {e}")
                 else:
-                    console.print_exception()
+                    error_messages.append("   An unexpected error occurred in one of the download workers.",)
+                    if hasattr(e, "returncode"):
+                        error_messages.append(f"   Binary call failed, Process exit code: {e.returncode}")
+                    error_messages.append("   See the error trace above for more information.")
+                    if isinstance(e, subprocess.CalledProcessError):
+                        # CalledProcessError already lists the exception trace
+                        console.print_exception()
                 console.print(Padding(
                     Group(*error_messages),
                     (1, 5)
@@ -622,11 +626,14 @@ class dl:
                             break
                     video_track_n += 1
 
-                if sub_format:
-                    with console.status(f"Converting Subtitles to {sub_format.name}..."):
-                        for subtitle in title.tracks.subtitles:
+                with console.status("Converting Subtitles..."):
+                    for subtitle in title.tracks.subtitles:
+                        if sub_format:
                             if subtitle.codec != sub_format:
                                 subtitle.convert(sub_format)
+                        elif subtitle.codec == Subtitle.Codec.TimedTextMarkupLang:
+                            # MKV does not support TTML, VTT is the next best option
+                            subtitle.convert(Subtitle.Codec.WebVTT)
 
                 with console.status("Checking Subtitles for Fonts..."):
                     font_names = []

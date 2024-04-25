@@ -12,13 +12,13 @@ from rich.rule import Rule
 from rich.tree import Tree
 
 from devine.commands.dl import dl
+from devine.core import binaries
 from devine.core.config import config
 from devine.core.console import console
 from devine.core.constants import context_settings
 from devine.core.proxies import Basic, Hola, NordVPN
 from devine.core.service import Service
 from devine.core.services import Services
-from devine.core.utilities import get_binary_path
 from devine.core.utils.click_types import ContextData
 from devine.core.utils.collections import merge_dict
 
@@ -72,7 +72,7 @@ def search(
                 proxy_providers.append(Basic(**config.proxy_providers["basic"]))
             if config.proxy_providers.get("nordvpn"):
                 proxy_providers.append(NordVPN(**config.proxy_providers["nordvpn"]))
-            if get_binary_path("hola-proxy"):
+            if binaries.HolaProxy:
                 proxy_providers.append(Hola())
             for proxy_provider in proxy_providers:
                 log.info(f"Loaded {proxy_provider.__class__.__name__}: {proxy_provider}")

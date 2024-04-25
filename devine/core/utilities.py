@@ -3,7 +3,6 @@ import contextlib
 import importlib.util
 import os
 import re
-import shutil
 import socket
 import sys
 import time
@@ -85,15 +84,6 @@ def import_module_by_path(path: Path) -> ModuleType:
     spec.loader.exec_module(module)
 
     return module
-
-
-def get_binary_path(*names: str) -> Optional[Path]:
-    """Find the path of the first found binary name."""
-    for name in names:
-        path = shutil.which(name)
-        if path:
-            return Path(path)
-    return None
 
 
 def sanitize_filename(filename: str, spacer: str = ".") -> str:

@@ -2,9 +2,9 @@ import subprocess
 
 import click
 
+from devine.core import binaries
 from devine.core.config import config
 from devine.core.constants import context_settings
-from devine.core.utilities import get_binary_path
 
 
 @click.command(
@@ -29,11 +29,10 @@ def serve(host: str, port: int, caddy: bool) -> None:
     from pywidevine import serve
 
     if caddy:
-        executable = get_binary_path("caddy")
-        if not executable:
+        if not binaries.Caddy:
             raise click.ClickException("Caddy executable \"caddy\" not found but is required for --caddy.")
         caddy_p = subprocess.Popen([
-            executable,
+            binaries.Caddy,
             "run",
             "--config", str(config.directories.user_configs / "Caddyfile")
         ])

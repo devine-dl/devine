@@ -4,8 +4,8 @@ from pathlib import Path
 import click
 from pymediainfo import MediaInfo
 
+from devine.core import binaries
 from devine.core.constants import context_settings
-from devine.core.utilities import get_binary_path
 
 
 @click.group(short_help="Various helper scripts and programs.", context_settings=context_settings)
@@ -38,8 +38,7 @@ def crop(path: Path, aspect: str, letter: bool, offset: int, preview: bool) -> N
     as it may go from being 2px away from a perfect crop, to 20px over-cropping
     again due to sub-sampled chroma.
     """
-    executable = get_binary_path("ffmpeg")
-    if not executable:
+    if not binaries.FFMPEG:
         raise click.ClickException("FFmpeg executable \"ffmpeg\" not found but is required.")
 
     if path.is_dir():
@@ -87,7 +86,7 @@ def crop(path: Path, aspect: str, letter: bool, offset: int, preview: bool) -> N
             ]))))]
 
         ffmpeg_call = subprocess.Popen([
-            executable, "-y",
+            binaries.FFMPEG, "-y",
             "-i", str(video_path),
             "-map", "0:v:0",
             "-c", "copy",
@@ -95,7 +94,7 @@ def crop(path: Path, aspect: str, letter: bool, offset: int, preview: bool) -> N
         ] + out_path, stdout=subprocess.PIPE)
         try:
             if preview:
-                previewer = get_binary_path("mpv", "ffplay")
+                previewer = binaries.MPV or binaries.FFPlay
                 if not previewer:
                     raise click.ClickException("MPV/FFplay executables weren't found but are required for previewing.")
                 subprocess.Popen((previewer, "-"), stdin=ffmpeg_call.stdout)
@@ -120,8 +119,7 @@ def range_(path: Path, full: bool, preview: bool) -> None:
     then you're video may have the range set to the wrong value. Flip its range to the
     opposite value and see if that fixes it.
     """
-    executable = get_binary_path("ffmpeg")
-    if not executable:
+    if not binaries.FFMPEG:
         raise click.ClickException("FFmpeg executable \"ffmpeg\" not found but is required.")
 
     if path.is_dir():
@@ -157,7 +155,7 @@ def range_(path: Path, full: bool, preview: bool) -> None:
             ]))))]
 
         ffmpeg_call = subprocess.Popen([
-            executable, "-y",
+            binaries.FFMPEG, "-y",
             "-i", str(video_path),
             "-map", "0:v:0",
             "-c", "copy",
@@ -165,7 +163,7 @@ def range_(path: Path, full: bool, preview: bool) -> None:
         ] + out_path, stdout=subprocess.PIPE)
         try:
             if preview:
-                previewer = get_binary_path("mpv", "ffplay")
+                previewer = binaries.MPV or binaries.FFPlay
                 if not previewer:
                     raise click.ClickException("MPV/FFplay executables weren't found but are required for previewing.")
                 subprocess.Popen((previewer, "-"), stdin=ffmpeg_call.stdout)
@@ -188,8 +186,7 @@ def test(path: Path, map_: str) -> None:
     You may choose specific streams using the -m/--map parameter. E.g.,
     '0:v:0' to test the first video stream, or '0:a' to test all audio streams.
     """
-    executable = get_binary_path("ffmpeg")
-    if not executable:
+    if not binaries.FFMPEG:
         raise click.ClickException("FFmpeg executable \"ffmpeg\" not found but is required.")
 
     if path.is_dir():
@@ -199,7 +196,7 @@ def test(path: Path, map_: str) -> None:
     for video_path in paths:
         print("Starting...")
         p = subprocess.Popen([
-            executable, "-hide_banner",
+            binaries.FFMPEG, "-hide_banner",
             "-benchmark",
             "-i", str(video_path),
             "-map", map_,
