@@ -7,6 +7,25 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 Versions [3.0.0] and older use a format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 but versions thereafter use a custom changelog format using [git-cliff](https://git-cliff.org).
 
+## [3.3.3] - 2024-05-07
+
+### Bug Fixes
+
+- *dl*: Automatically convert TTML Subs to WebVTT for MKV support
+- *Subtitle*: Correct timestamps when merging fragmented WebVTT
+
+### Changes
+
+- *env*: List all directories as table in info
+- *env*: List possible config path locations when not found
+- *binaries*: Move all binary definitions to core/binaries file
+- *curl-impersonate*: Remove manual fix for curl proxy SSL
+- *curl-impersonate*: Update the default browser to chrome124
+- *Config*: Move possible config paths out of func to constant
+- *utilities*: Remove get_binary_path, use binaries.find instead
+- *dl*: Improve readability of download worker errors
+- *env*: Shorten paths on Windows with env vars
+
 ## [3.3.2] - 2024-04-16
 
 ### Bug Fixes
@@ -795,6 +814,7 @@ This release brings a huge change to the fundamentals of Devine's logging, UI, a
 
 Initial public release under the name Devine.
 
+[3.3.3]: https://github.com/devine-dl/devine/releases/tag/v3.3.3
 [3.3.2]: https://github.com/devine-dl/devine/releases/tag/v3.3.2
 [3.3.1]: https://github.com/devine-dl/devine/releases/tag/v3.3.1
 [3.3.0]: https://github.com/devine-dl/devine/releases/tag/v3.3.0
