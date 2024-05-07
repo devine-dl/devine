@@ -730,20 +730,21 @@ testing = ["bson", "ecdsa", "feedparser", "gmpy2", "numpy", "pandas", "pymongo",
 
 [[package]]
 name = "langcodes"
-version = "3.3.0"
+version = "3.4.0"
 description = "Tools for labeling human languages with IETF language tags"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.8"
 files = [
-    {file = "langcodes-3.3.0-py3-none-any.whl", hash = "sha256:4d89fc9acb6e9c8fdef70bcdf376113a3db09b67285d9e1d534de6d8818e7e69"},
-    {file = "langcodes-3.3.0.tar.gz", hash = "sha256:794d07d5a28781231ac335a1561b8442f8648ca07cd518310aeb45d6f0807ef6"},
+    {file = "langcodes-3.4.0-py3-none-any.whl", hash = "sha256:10a4cc078b8e8937d8485d3352312a0a89a3125190db9f2bb2074250eef654e9"},
+    {file = "langcodes-3.4.0.tar.gz", hash = "sha256:ae5a77d1a01d0d1e91854a671890892b7ce9abb601ab7327fc5c874f899e1979"},
 ]
 
 [package.dependencies]
-language-data = {version = ">=1.1,<2.0", optional = true, markers = "extra == \"data\""}
+language-data = ">=1.2"
 
 [package.extras]
-data = ["language-data (>=1.1,<2.0)"]
+build = ["build", "twine"]
+test = ["pytest", "pytest-cov"]
 
 [[package]]
 name = "language-data"
@@ -2007,4 +2008,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "4d40927d8e7b25e21de0f56910d6dce05ba2b7c8ce71c465d9e23463f74bc94a"
+content-hash = "8bbbd788ab179a0669e8d7c6f45c0746e79f11c24ac39f6d4856563e76ec2f94"
