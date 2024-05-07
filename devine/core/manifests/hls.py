@@ -256,10 +256,14 @@ class HLS:
         downloader = track.downloader
 
         urls: list[dict[str, Any]] = []
+        segment_durations: list[int] = []
+
         range_offset = 0
         for segment in master.segments:
             if segment in unwanted_segments:
                 continue
+
+            segment_durations.append(int(segment.duration))
 
             if segment.byterange:
                 if downloader.__name__ == "aria2c":
@@ -276,6 +280,8 @@ class HLS:
                     "Range": f"bytes={byte_range}"
                 } if byte_range else {}
             })
+
+        track.data["hls"]["segment_durations"] = segment_durations
 
         segment_save_dir = save_dir / "segments"
 

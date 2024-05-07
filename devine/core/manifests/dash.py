@@ -285,12 +285,15 @@ class DASH:
             segment_base = adaptation_set.find("SegmentBase")
 
         segments: list[tuple[str, Optional[str]]] = []
+        segment_timescale: float = 0
+        segment_durations: list[int] = []
         track_kid: Optional[UUID] = None
 
         if segment_template is not None:
             segment_template = copy(segment_template)
             start_number = int(segment_template.get("startNumber") or 1)
             segment_timeline = segment_template.find("SegmentTimeline")
+            segment_timescale = float(segment_template.get("timescale") or 1)
 
             for item in ("initialization", "media"):
                 value = segment_template.get(item)
@@ -318,17 +321,16 @@ class DASH:
                 track_kid = track.get_key_id(init_data)
 
             if segment_timeline is not None:
-                seg_time_list = []
                 current_time = 0
                 for s in segment_timeline.findall("S"):
                     if s.get("t"):
                         current_time = int(s.get("t"))
                     for _ in range(1 + (int(s.get("r") or 0))):
-                        seg_time_list.append(current_time)
+                        segment_durations.append(current_time)
                         current_time += int(s.get("d"))
-                seg_num_list = list(range(start_number, len(seg_time_list) + start_number))
+                seg_num_list = list(range(start_number, len(segment_durations) + start_number))
 
-                for t, n in zip(seg_time_list, seg_num_list):
+                for t, n in zip(segment_durations, seg_num_list):
                     segments.append((
                         DASH.replace_fields(
                             segment_template.get("media"),
@@ -342,8 +344,7 @@ class DASH:
                 if not period_duration:
                     raise ValueError("Duration of the Period was unable to be determined.")
                 period_duration = DASH.pt_to_sec(period_duration)
-                segment_duration = float(segment_template.get("duration"))
-                segment_timescale = float(segment_template.get("timescale") or 1)
+                segment_duration = float(segment_template.get("duration")) or 1
                 total_segments = math.ceil(period_duration / (segment_duration / segment_timescale))
 
                 for s in range(start_number, start_number + total_segments):
@@ -356,7 +357,11 @@ class DASH:
                             Time=s
                         ), None
                     ))
+                    # TODO: Should we floor/ceil/round, or is int() ok?
+                    segment_durations.append(int(segment_duration))
         elif segment_list is not None:
+            segment_timescale = float(segment_list.get("timescale") or 1)
+
             init_data = None
             initialization = segment_list.find("Initialization")
             if initialization is not None:
@@ -388,6 +393,7 @@ class DASH:
                     media_url,
                     segment_url.get("mediaRange")
                 ))
+                segment_durations.append(int(segment_url.get("duration") or 1))
         elif segment_base is not None:
             media_range = None
             init_data = None
@@ -419,6 +425,10 @@ class DASH:
             log.error("Could not find a way to get segments from this MPD manifest.")
             log.debug(track.url)
             sys.exit(1)
+
+        # TODO: Should we floor/ceil/round, or is int() ok?
+        track.data["dash"]["timescale"] = int(segment_timescale)
+        track.data["dash"]["segment_durations"] = segment_durations
 
         if not track.drm and isinstance(track, (Video, Audio)):
             try:
