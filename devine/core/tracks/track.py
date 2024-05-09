@@ -4,6 +4,7 @@ import logging
 import re
 import shutil
 import subprocess
+from collections import defaultdict
 from copy import copy
 from enum import Enum
 from functools import partial
@@ -42,7 +43,7 @@ class Track:
         drm: Optional[Iterable[DRM_T]] = None,
         edition: Optional[str] = None,
         downloader: Optional[Callable] = None,
-        data: Optional[dict] = None,
+        data: Optional[Union[dict, defaultdict]] = None,
         id_: Optional[str] = None,
     ) -> None:
         if not isinstance(url, (str, list)):
@@ -63,8 +64,8 @@ class Track:
             raise TypeError(f"Expected edition to be a {str}, not {type(edition)}")
         if not isinstance(downloader, (Callable, type(None))):
             raise TypeError(f"Expected downloader to be a {Callable}, not {type(downloader)}")
-        if not isinstance(data, (dict, type(None))):
-            raise TypeError(f"Expected data to be a {dict}, not {type(data)}")
+        if not isinstance(data, (dict, defaultdict, type(None))):
+            raise TypeError(f"Expected data to be a {dict} or {defaultdict}, not {type(data)}")
 
         invalid_urls = ", ".join(set(type(x) for x in url if not isinstance(x, str)))
         if invalid_urls:
@@ -93,6 +94,7 @@ class Track:
         self.drm = drm
         self.edition: str = edition
         self.downloader = downloader
+        self._data: defaultdict[Any, Any] = defaultdict(dict)
         self.data = data or {}
 
         if self.name is None:
@@ -131,6 +133,42 @@ class Track:
 
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, Track) and self.id == other.id
+
+    @property
+    def data(self) -> defaultdict[Any, Any]:
+        """
+        Arbitrary track data dictionary.
+
+        A defaultdict is used with a dict as the factory for easier
+        nested saving and safer exists-checks.
+
+        Reserved keys:
+
+        - "hls" used by the HLS class.
+          - playlist: m3u8.model.Playlist - The primary track information.
+          - media: m3u8.model.Media - The audio/subtitle track information.
+          - segment_durations: list[int] - A list of each segment's duration.
+        - "dash" used by the DASH class.
+          - manifest: lxml.ElementTree - DASH MPD manifest.
+          - period: lxml.Element - The period of this track.
+          - adaptation_set: lxml.Element - The adaptation set of this track.
+          - representation: lxml.Element - The representation of this track.
+          - timescale: int - The timescale of the track's segments.
+          - segment_durations: list[int] - A list of each segment's duration.
+
+        You should not add, change, or remove any data within reserved keys.
+        You may use their data but do note that the values of them may change
+        or be removed at any point.
+        """
+        return self._data
+
+    @data.setter
+    def data(self, value: Union[dict, defaultdict]) -> None:
+        if not isinstance(value, (dict, defaultdict)):
+            raise TypeError(f"Expected data to be a {dict} or {defaultdict}, not {type(value)}")
+        if isinstance(value, dict):
+            value = defaultdict(dict, **value)
+        self._data = value
 
     def download(
         self,
