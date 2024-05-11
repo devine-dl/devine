@@ -37,7 +37,7 @@ class Attachment:
             mime_type = {
                 ".ttf": "application/x-truetype-font",
                 ".otf": "application/vnd.ms-opentype"
-            }.get(path.suffix, mimetypes.guess_type(path)[0])
+            }.get(path.suffix.lower(), mimetypes.guess_type(path)[0])
             if not mime_type:
                 raise ValueError("The attachment mime-type could not be automatically detected.")
 
