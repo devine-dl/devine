@@ -292,6 +292,7 @@ class DASH:
         if segment_template is not None:
             segment_template = copy(segment_template)
             start_number = int(segment_template.get("startNumber") or 1)
+            end_number = int(segment_template.get("endNumber") or 0) or None
             segment_timeline = segment_template.find("SegmentTimeline")
             segment_timescale = float(segment_template.get("timescale") or 1)
 
@@ -328,9 +329,11 @@ class DASH:
                     for _ in range(1 + (int(s.get("r") or 0))):
                         segment_durations.append(current_time)
                         current_time += int(s.get("d"))
-                seg_num_list = list(range(start_number, len(segment_durations) + 1))
 
-                for t, n in zip(segment_durations, seg_num_list):
+                if not end_number:
+                    end_number = len(segment_durations)
+
+                for t, n in zip(segment_durations, range(start_number, end_number + 1)):
                     segments.append((
                         DASH.replace_fields(
                             segment_template.get("media"),
@@ -345,9 +348,11 @@ class DASH:
                     raise ValueError("Duration of the Period was unable to be determined.")
                 period_duration = DASH.pt_to_sec(period_duration)
                 segment_duration = float(segment_template.get("duration")) or 1
-                total_segments = math.ceil(period_duration / (segment_duration / segment_timescale))
 
-                for s in range(start_number, total_segments + 1):
+                if not end_number:
+                    end_number = math.ceil(period_duration / (segment_duration / segment_timescale))
+
+                for s in range(start_number, end_number + 1):
                     segments.append((
                         DASH.replace_fields(
                             segment_template.get("media"),
