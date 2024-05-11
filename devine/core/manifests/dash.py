@@ -472,6 +472,7 @@ class DASH:
         if downloader.__name__ == "aria2c" and any(bytes_range is not None for url, bytes_range in segments):
             # aria2(c) is shit and doesn't support the Range header, fallback to the requests downloader
             downloader = requests_downloader
+            log.warning("Falling back to the requests downloader as aria2(c) doesn't support the Range header")
 
         for status_update in downloader(
             urls=[

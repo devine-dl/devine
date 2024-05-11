@@ -254,6 +254,12 @@ class HLS:
         progress(total=total_segments)
 
         downloader = track.downloader
+        if (
+            downloader.__name__ == "aria2c" and
+            any(x.byterange for x in master.segments if x not in unwanted_segments)
+        ):
+            downloader = requests_downloader
+            log.warning("Falling back to the requests downloader as aria2(c) doesn't support the Range header")
 
         urls: list[dict[str, Any]] = []
         segment_durations: list[int] = []
@@ -266,9 +272,6 @@ class HLS:
             segment_durations.append(int(segment.duration))
 
             if segment.byterange:
-                if downloader.__name__ == "aria2c":
-                    # aria2(c) is shit and doesn't support the Range header, fallback to the requests downloader
-                    downloader = requests_downloader
                 byte_range = HLS.calculate_byte_range(segment.byterange, range_offset)
                 range_offset = byte_range.split("-")[0]
             else:
