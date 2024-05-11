@@ -26,6 +26,7 @@ ShakaPackager = find(
     "shaka-packager",
     "packager",
     f"packager-{__shaka_platform}",
+    f"packager-{__shaka_platform}-arm64",
     f"packager-{__shaka_platform}-x64"
 )
 Aria2 = find("aria2c", "aria2")
