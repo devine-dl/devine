@@ -328,7 +328,7 @@ class DASH:
                     for _ in range(1 + (int(s.get("r") or 0))):
                         segment_durations.append(current_time)
                         current_time += int(s.get("d"))
-                seg_num_list = list(range(start_number, len(segment_durations) + start_number))
+                seg_num_list = list(range(start_number, len(segment_durations) + 1))
 
                 for t, n in zip(segment_durations, seg_num_list):
                     segments.append((
@@ -347,7 +347,7 @@ class DASH:
                 segment_duration = float(segment_template.get("duration")) or 1
                 total_segments = math.ceil(period_duration / (segment_duration / segment_timescale))
 
-                for s in range(start_number, start_number + total_segments):
+                for s in range(start_number, total_segments + 1):
                     segments.append((
                         DASH.replace_fields(
                             segment_template.get("media"),
