@@ -123,18 +123,18 @@ def get_boxes(data: bytes, box_type: bytes, as_bytes: bool = False) -> Box:
     # since it doesn't care what child box the wanted box is from, this works fine.
     if not isinstance(data, (bytes, bytearray)):
         raise ValueError("data must be bytes")
+
+    offset = 0
     while True:
         try:
-            index = data.index(box_type)
+            index = data[offset:].index(box_type)
         except ValueError:
             break
         if index < 0:
             break
-        if index > 4:
-            index -= 4  # size is before box type and is 4 bytes long
-        data = data[index:]
+        index -= 4  # size is before box type and is 4 bytes long
         try:
-            box = Box.parse(data)
+            box = Box.parse(data[offset:][index:])
         except IOError:
             # since get_init_segment might cut off unexpectedly, pymp4 may be unable to read
             # the expected amounts of data and complain, so let's just end the function here
@@ -147,6 +147,7 @@ def get_boxes(data: bytes, box_type: bytes, as_bytes: bool = False) -> Box:
             raise e
         if as_bytes:
             box = Box.build(box)
+        offset += index + len(Box.build(box))
         yield box
 
 
