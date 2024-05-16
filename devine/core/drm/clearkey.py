@@ -7,7 +7,7 @@ from typing import Optional, Union
 from urllib.parse import urljoin
 
 from Cryptodome.Cipher import AES
-from Cryptodome.Util.Padding import pad, unpad
+from Cryptodome.Util.Padding import unpad
 from m3u8.model import Key
 from requests import Session
 
@@ -43,7 +43,7 @@ class ClearKey:
 
         decrypted = AES. \
             new(self.key, AES.MODE_CBC, self.iv). \
-            decrypt(pad(path.read_bytes(), AES.block_size))
+            decrypt(path.read_bytes())
 
         try:
             decrypted = unpad(decrypted, AES.block_size)
