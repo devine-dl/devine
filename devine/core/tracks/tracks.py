@@ -316,7 +316,7 @@ class Tracks:
             ][:per_language or None])
         return selected
 
-    def mux(self, title: str, delete: bool = True, progress: Optional[partial] = None) -> tuple[Path, int, str]:
+    def mux(self, title: str, delete: bool = True, progress: Optional[partial] = None) -> tuple[Path, int, list[str]]:
         """
         Multiplex all the Tracks into a Matroska Container file.
 
@@ -410,17 +410,18 @@ class Tracks:
 
         # let potential failures go to caller, caller should handle
         try:
-            output = ""
+            errors = []
             p = subprocess.Popen([
                 *cl,
                 "--output", str(output_path),
                 "--gui-mode"
             ], text=True, stdout=subprocess.PIPE)
             for line in iter(p.stdout.readline, ""):
-                output += line
+                if line.startswith("#GUI#error") or line.startswith("#GUI#warning"):
+                    errors.append(line)
                 if "progress" in line:
                     progress(total=100, completed=int(line.strip()[14:-1]))
-            return output_path, p.wait(), output
+            return output_path, p.wait(), errors
         finally:
             if chapters_path:
                 # regardless of delete param, we delete as it's a file we made during muxing

@@ -701,18 +701,22 @@ class dl:
                     ):
                         for task_id, task_tracks in multiplex_tasks:
                             progress.start_task(task_id)  # TODO: Needed?
-                            muxed_path, return_code, output = task_tracks.mux(
+                            muxed_path, return_code, errors = task_tracks.mux(
                                 str(title),
                                 progress=partial(progress.update, task_id=task_id),
                                 delete=False
                             )
                             muxed_paths.append(muxed_path)
-                            if return_code == 1:
-                                self.log.warning(output)
-                                self.log.warning("mkvmerge had at least one warning, will continue anyway...")
-                            elif return_code >= 2:
-                                self.log.warning(output)
-                                self.log.error(f"Failed to Mux video to Matroska file ({return_code})")
+                            if return_code >= 2:
+                                self.log.error(f"Failed to Mux video to Matroska file ({return_code}):")
+                            elif return_code == 1 or errors:
+                                self.log.warning("mkvmerge had at least one warning or error, continuing anyway...")
+                            for line in errors:
+                                if line.startswith("#GUI#error"):
+                                    self.log.error(line)
+                                else:
+                                    self.log.warning(line)
+                            if return_code >= 2:
                                 sys.exit(1)
                             for video_track in task_tracks.videos:
                                 video_track.delete()
