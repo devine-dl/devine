@@ -206,17 +206,19 @@ class Subtitle(Track):
         elif self.codec == Subtitle.Codec.WebVTT:
             text = self.path.read_text("utf8")
             if self.descriptor == Track.Descriptor.DASH:
-                text = merge_segmented_webvtt(
-                    text,
-                    segment_durations=self.data["dash"]["segment_durations"],
-                    timescale=self.data["dash"]["timescale"]
-                )
+                if len(self.data["dash"]["segment_durations"]) > 1:
+                    text = merge_segmented_webvtt(
+                        text,
+                        segment_durations=self.data["dash"]["segment_durations"],
+                        timescale=self.data["dash"]["timescale"]
+                    )
             elif self.descriptor == Track.Descriptor.HLS:
-                text = merge_segmented_webvtt(
-                    text,
-                    segment_durations=self.data["hls"]["segment_durations"],
-                    timescale=1  # ?
-                )
+                if len(self.data["hls"]["segment_durations"]) > 1:
+                    text = merge_segmented_webvtt(
+                        text,
+                        segment_durations=self.data["hls"]["segment_durations"],
+                        timescale=1  # ?
+                    )
             caption_set = pycaption.WebVTTReader().read(text)
             Subtitle.merge_same_cues(caption_set)
             subtitle_text = pycaption.WebVTTWriter().write(caption_set)
