@@ -178,9 +178,10 @@ class dl:
             except ValueError as e:
                 self.log.error(f"Failed to load Widevine CDM, {e}")
                 sys.exit(1)
-            self.log.info(
-                f"Loaded {self.cdm.__class__.__name__} Widevine CDM: {self.cdm.system_id} (L{self.cdm.security_level})"
-            )
+            if self.cdm:
+                self.log.info(
+                    f"Loaded {self.cdm.__class__.__name__} Widevine CDM: {self.cdm.system_id} (L{self.cdm.security_level})"
+                )
 
         with console.status("Loading Key Vaults...", spinner="dots"):
             self.vaults = Vaults(self.service)
@@ -936,21 +937,21 @@ class dl:
                 return Credential.loads(credentials)  # type: ignore
 
     @staticmethod
-    def get_cdm(service: str, profile: Optional[str] = None) -> WidevineCdm:
+    def get_cdm(service: str, profile: Optional[str] = None) -> Optional[WidevineCdm]:
         """
         Get CDM for a specified service (either Local or Remote CDM).
         Raises a ValueError if there's a problem getting a CDM.
         """
         cdm_name = config.cdm.get(service) or config.cdm.get("default")
         if not cdm_name:
-            raise ValueError("A CDM to use wasn't listed in the config")
+            return None
 
         if isinstance(cdm_name, dict):
             if not profile:
-                raise ValueError("CDM config is mapped for profiles, but no profile was chosen")
+                return None
             cdm_name = cdm_name.get(profile) or config.cdm.get("default")
             if not cdm_name:
-                raise ValueError(f"A CDM to use was not mapped for the profile {profile}")
+                return None
 
         cdm_api = next(iter(x for x in config.remote_cdm if x["name"] == cdm_name), None)
         if cdm_api:
