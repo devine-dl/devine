@@ -387,15 +387,27 @@ class HLS:
                 elif len(files) != range_len:
                     raise ValueError(f"Missing {range_len - len(files)} segment files for {segment_range}...")
 
-                merge(
-                    to=merged_path,
-                    via=files,
-                    delete=True,
-                    include_map_data=True
-                )
-
-                drm.decrypt(merged_path)
-                merged_path.rename(decrypted_path)
+                if isinstance(drm, Widevine):
+                    # with widevine we can merge all segments and decrypt once
+                    merge(
+                        to=merged_path,
+                        via=files,
+                        delete=True,
+                        include_map_data=True
+                    )
+                    drm.decrypt(merged_path)
+                    merged_path.rename(decrypted_path)
+                else:
+                    # with other drm we must decrypt separately and then merge them
+                    # for aes this is because each segment likely has 16-byte padding
+                    for file in files:
+                        drm.decrypt(file)
+                    merge(
+                        to=merged_path,
+                        via=files,
+                        delete=True,
+                        include_map_data=True
+                    )
 
                 events.emit(
                     events.Types.TRACK_DECRYPTED,
