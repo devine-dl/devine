@@ -396,8 +396,8 @@ class dl:
                             self.log.error(f"There's no {vbitrate}kbps Video Track...")
                             sys.exit(1)
 
-                    video_languages = v_lang or lang
-                    if video_languages and "all" not in video_languages:
+                    video_languages = [lang for lang in (v_lang or lang) if lang != "best"]
+                    if video_languages:
                         title.tracks.videos = title.tracks.by_language(title.tracks.videos, video_languages)
                         if not title.tracks.videos:
                             self.log.error(f"There's no {video_languages} Video Track...")
@@ -470,11 +470,23 @@ class dl:
                         if not title.tracks.audio:
                             self.log.error(f"There's no {channels} Audio Track...")
                             sys.exit(1)
-                    if lang and "all" not in lang:
-                        title.tracks.audio = title.tracks.by_language(title.tracks.audio, lang, per_language=1)
-                        if not title.tracks.audio:
-                            self.log.error(f"There's no {lang} Audio Track, cannot continue...")
-                            sys.exit(1)
+                    if lang and "best" in lang:
+                        # Get unique languages and select highest quality for each
+                        unique_languages = {track.language for track in title.tracks.audio}
+                        selected_audio = []
+                        for language in unique_languages:
+                            highest_quality = max(
+                                (track for track in title.tracks.audio if track.language == language),
+                                key=lambda x: x.bitrate or 0,
+                            )
+                            selected_audio.append(highest_quality)
+                        title.tracks.audio = selected_audio
+                    else:
+                        if lang and "best" not in lang:
+                            title.tracks.audio = title.tracks.by_language(title.tracks.audio, lang, per_language=1)
+                            if not title.tracks.audio:
+                                self.log.error("There's no %s Audio Track, cannot continue...", lang)
+                                sys.exit(1)
 
                 if video_only or audio_only or subs_only or chapters_only:
                     kept_tracks = []
