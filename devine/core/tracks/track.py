@@ -542,6 +542,7 @@ class Track:
             else:
                 raise
 
+        original_path.unlink()
         self.path = output_path
 
 
