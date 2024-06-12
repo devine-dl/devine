@@ -284,8 +284,16 @@ def get_system_fonts() -> dict[str, Path]:
                 for n in range(0, total_fonts)
                 for name, filename, _ in [winreg.EnumValue(key, n)]
             }
+    elif sys.platform == "linux":
+        import subprocess
+        return {
+            # fc-list should be installed by default on every system.
+            name.strip() if ":" not in name else name.split(":")[0].strip() : Path(path)
+            for font in subprocess.getstatusoutput("fc-list")[1].split("\n")
+            for path, name in [font.split(":", 1)]
+        }
     else:
-        # TODO: Get System Fonts for Linux and mac OS
+        # TODO: Get System Fonts for mac OS
         return {}
 
 
