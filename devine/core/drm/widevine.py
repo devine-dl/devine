@@ -274,6 +274,9 @@ class Widevine:
                 if "Insufficient bits in bitstream for given AVC profile" in line:
                     # this is a warning and is something we don't have to worry about
                     continue
+                if "I0" in line:
+                    # ignore demuxer info messages
+                    continue
                 shaka_log_buffer += f"{line.strip()}\n"
 
             if shaka_log_buffer:
