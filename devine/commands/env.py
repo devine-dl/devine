@@ -14,12 +14,51 @@ from devine.core.config import POSSIBLE_CONFIG_PATHS, config, config_path
 from devine.core.console import console
 from devine.core.constants import context_settings
 from devine.core.services import Services
+from devine.core.utils.osenvironment import get_os_arch
 
 
 @click.group(short_help="Manage and configure the project environment.", context_settings=context_settings)
 def env() -> None:
     """Manage and configure the project environment."""
 
+@env.command()
+def check() -> None:
+    """Checks environment for the required dependencies."""
+    table = Table(title="Dependencies", expand=True)
+    table.add_column("Name", no_wrap=True)
+    table.add_column("Installed", justify="center")
+    table.add_column("Path", no_wrap=False,  overflow="fold")
+
+    # builds shaka-packager based on os, arch
+    packager_dep = get_os_arch("packager")
+
+    dependencies = [
+        {"name": "CCExtractor", "binary": "ccextractor"},
+        {"name": "FFMpeg", "binary": "ffmpeg"},
+        {"name": "MKVToolNix", "binary": "mkvmerge"},
+        {"name": "Shaka-Packager", "binary": packager_dep},
+        {"name": "Aria2(c)", "binary": "aria2c"}
+    ]
+
+    for dep in dependencies:
+        path = shutil.which(dep["binary"])
+
+        if path:
+            installed = "[green]:heavy_check_mark:[/green]"
+            path_output = path.lower()
+        else:
+            installed = "[red]:x:[/red]"
+            path_output = "Not Found"
+
+        # Add to the table
+        table.add_row(dep["name"], installed, path_output)
+
+    # Replace spinner with the result
+    console.clear()
+    console.print(Padding(
+        table,
+        (1, 5)
+    ))
 
 @env.command()
 def info() -> None:
@@ -39,7 +78,7 @@ def info() -> None:
 
     table = Table(title="Directories", expand=True)
     table.add_column("Name", no_wrap=True)
-    table.add_column("Path")
+    table.add_column("Path", no_wrap=False,  overflow="fold")
 
     path_vars = {
         x: Path(os.getenv(x))
