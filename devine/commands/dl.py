@@ -730,6 +730,9 @@ class dl:
                 for muxed_path in muxed_paths:
                     media_info = MediaInfo.parse(muxed_path)
                     final_dir = config.directories.downloads
+                    if isinstance(title, Episode):
+                        final_dir = Path(str(config.directories.downloads).format(**title.__dict__))
+
                     final_filename = title.get_filename(media_info, show_service=not no_source)
 
                     if not no_folder and isinstance(title, (Episode, Song)):
