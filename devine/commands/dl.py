@@ -132,6 +132,8 @@ class dl:
                   help="Disable folder creation for TV Shows.")
     @click.option("--no-source", is_flag=True, default=False,
                   help="Disable the source tag from the output file name and path.")
+    @click.option("--no-subs", is_flag=True, default=False,
+                  help="Disable downloading of subtitles.")
     @click.option("--workers", type=int, default=None,
                   help="Max workers/threads to download with per-track. Default depends on the downloader.")
     @click.option("--downloads", type=int, default=1,
@@ -279,6 +281,7 @@ class dl:
         no_proxy: bool,
         no_folder: bool,
         no_source: bool,
+        no_subs: bool,
         workers: Optional[int],
         downloads: int,
         *_: Any,
@@ -338,6 +341,11 @@ class dl:
                 events.subscribe(events.Types.TRACK_REPACKED, service.on_track_repacked)
                 events.subscribe(events.Types.TRACK_MULTIPLEX, service.on_track_multiplex)
 
+            if no_subs:
+                console.log("Skipped subtitles as --no-subs was used...")
+                s_lang = None
+                title.tracks.subtitles = []
+            
             with console.status("Getting tracks...", spinner="dots"):
                 title.tracks.add(service.get_tracks(title), warn_only=True)
                 title.tracks.chapters = service.get_chapters(title)
