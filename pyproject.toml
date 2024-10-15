@@ -62,6 +62,7 @@ Unidecode = "^1.3.8"
 urllib3 = "^2.2.1"
 chardet = "^5.2.0"
 curl-cffi = "^0.7.0b4"
+subby = {git = "https://github.com/Parasitic5283/subby.git", rev = "Update-lxml"} # Until https://github.com/vevv/subby/pull/31 is merged
 
 [tool.poetry.dev-dependencies]
 pre-commit = "^3.7.0"

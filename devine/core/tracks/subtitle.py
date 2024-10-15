@@ -16,6 +16,7 @@ from pycaption import Caption, CaptionList, CaptionNode, WebVTTReader
 from pycaption.geometry import Layout
 from pymp4.parser import MP4
 from subtitle_filter import Subtitles
+from subby import ISMTConverter
 
 from devine.core import binaries
 from devine.core.tracks.track import Track
@@ -274,6 +275,12 @@ class Subtitle(Track):
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL
             )
+        elif self.codec in Subtitle.Codec.fTTML:
+            output_path = self.path.with_suffix(".srt")
+            converter = ISMTConverter()
+            srt = converter.from_file(self.path)
+            srt.save(output_path)
+            codec = Subtitle.Codec.SubRip
         else:
             writer = {
                 # pycaption generally only supports these subtitle formats
