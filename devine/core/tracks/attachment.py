@@ -7,7 +7,6 @@ from typing import Optional, Union
 from zlib import crc32
 import requests
 from urllib.parse import urlparse
-
 from devine.core.config import config
 
 
@@ -46,17 +45,14 @@ class Attachment:
             if not isinstance(url, str):
                 raise ValueError("The attachment URL must be a string.")
 
-            # If a URL is provided, download the file to the temp directory
             parsed_url = urlparse(url)
             file_name = os.path.basename(parsed_url.path) or "attachment"
 
-            # Use provided name for the file if available
             if name:
                 file_name = f"{name.replace(' ', '_')}{os.path.splitext(file_name)[1]}"
 
             download_path = config.directories.temp / file_name
 
-            # Download the file
             try:
                 session = session or requests.Session()
                 response = session.get(url, stream=True)
