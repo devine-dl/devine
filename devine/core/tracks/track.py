@@ -14,13 +14,15 @@ from uuid import UUID
 from zlib import crc32
 
 from langcodes import Language
+from pyplayready.cdm import Cdm as PlayReadyCdm
+from pywidevine.cdm import Cdm as WidevineCdm
 from requests import Session
 
 from devine.core import binaries
 from devine.core.config import config
 from devine.core.constants import DOWNLOAD_CANCELLED, DOWNLOAD_LICENCE_ONLY
 from devine.core.downloaders import aria2c, curl_impersonate, requests
-from devine.core.drm import DRM_T, Widevine
+from devine.core.drm import DRM_T, PlayReady, Widevine
 from devine.core.events import events
 from devine.core.utilities import get_boxes, try_ensure_utf8
 from devine.core.utils.subprocess import ffprobe
@@ -175,7 +177,9 @@ class Track:
         session: Session,
         prepare_drm: partial,
         max_workers: Optional[int] = None,
-        progress: Optional[partial] = None
+        progress: Optional[partial] = None,
+        *,
+        cdm: Optional[object] = None,
     ):
         """Download and optionally Decrypt this Track."""
         from devine.core.manifests import DASH, HLS
@@ -232,7 +236,8 @@ class Track:
                     session=session,
                     proxy=proxy,
                     max_workers=max_workers,
-                    license_widevine=prepare_drm
+                    license_widevine=prepare_drm,
+                    cdm=cdm
                 )
             elif self.descriptor == self.Descriptor.DASH:
                 DASH.download_track(
@@ -243,7 +248,8 @@ class Track:
                     session=session,
                     proxy=proxy,
                     max_workers=max_workers,
-                    license_widevine=prepare_drm
+                    license_widevine=prepare_drm,
+                    cdm=cdm
                 )
             elif self.descriptor == self.Descriptor.URL:
                 try:
@@ -258,11 +264,18 @@ class Track:
 
                     if self.drm:
                         track_kid = self.get_key_id(session=session)
-                        drm = self.drm[0]  # just use the first supported DRM system for now
+                        drm = self.get_drm_for_cdm(cdm)
                         if isinstance(drm, Widevine):
                             # license and grab content keys
                             if not prepare_drm:
                                 raise ValueError("prepare_drm func must be supplied to use Widevine DRM")
+                            progress(downloaded="LICENSING")
+                            prepare_drm(drm, track_kid=track_kid)
+                            progress(downloaded="[yellow]LICENSED")
+                        elif isinstance(drm, PlayReady):
+                            # license and grab content keys
+                            if not prepare_drm:
+                                raise ValueError("prepare_drm func must be supplied to use PlayReady DRM")
                             progress(downloaded="LICENSING")
                             prepare_drm(drm, track_kid=track_kid)
                             progress(downloaded="[yellow]LICENSED")
@@ -375,6 +388,22 @@ class Track:
     def get_track_name(self) -> Optional[str]:
         """Get the Track Name."""
         return self.name
+
+    def get_drm_for_cdm(self, cdm: Optional[object]) -> Optional[DRM_T]:
+        """Return the DRM matching the provided CDM, if available."""
+        if not self.drm:
+            return None
+
+        if isinstance(cdm, WidevineCdm):
+            for drm in self.drm:
+                if isinstance(drm, Widevine):
+                    return drm
+        elif isinstance(cdm, PlayReadyCdm):
+            for drm in self.drm:
+                if isinstance(drm, PlayReady):
+                    return drm
+
+        return self.drm[0]
 
     def get_key_id(self, init_data: Optional[bytes] = None, *args, **kwargs) -> Optional[UUID]:
         """

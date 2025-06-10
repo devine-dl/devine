@@ -117,7 +117,33 @@ def is_close_match(language: Union[str, Language], languages: Sequence[Union[str
 
 
 def get_boxes(data: bytes, box_type: bytes, as_bytes: bool = False) -> Box:
-    """Scan a byte array for a wanted box, then parse and yield each find."""
+    """
+    Scan a byte array for a wanted MP4/ISOBMFF box, then parse and yield each find.
+
+    This function searches through binary MP4 data to find and parse specific box types.
+    The MP4/ISOBMFF box format consists of:
+    - 4 bytes: size of the box (including size and type fields)
+    - 4 bytes: box type identifier (e.g., 'moov', 'trak', 'pssh')
+    - Remaining bytes: box data
+
+    The function uses slicing to directly locate the requested box type in the data
+    rather than recursively traversing the box hierarchy. This is efficient when 
+    looking for specific box types regardless of their position in the hierarchy.
+
+    Parameters:
+        data: Binary data containing MP4/ISOBMFF boxes
+        box_type: 4-byte identifier of the box type to find (e.g., b'pssh')
+        as_bytes: If True, returns the box as bytes, otherwise returns parsed box object
+
+    Yields:
+        Box objects of the requested type found in the data
+
+    Notes:
+        - For each box found, the function updates the search offset to skip past 
+          the current box to avoid finding the same box multiple times
+        - The function handles validation errors for certain box types (e.g., tenc)
+        - The size field is located 4 bytes before the box type identifier
+    """
     # using slicing to get to the wanted box is done because parsing the entire box and recursively
     # scanning through each box and its children often wouldn't scan far enough to reach the wanted box.
     # since it doesn't care what child box the wanted box is from, this works fine.
@@ -125,30 +151,37 @@ def get_boxes(data: bytes, box_type: bytes, as_bytes: bool = False) -> Box:
         raise ValueError("data must be bytes")
 
     offset = 0
-    while True:
+    while offset < len(data):
         try:
             index = data[offset:].index(box_type)
         except ValueError:
             break
-        if index < 0:
-            break
-        index -= 4  # size is before box type and is 4 bytes long
+
+        pos = offset + index
+
+        if pos < 4:
+            offset = pos + len(box_type)
+            continue
+
+        box_start = pos - 4
+
         try:
-            box = Box.parse(data[offset:][index:])
+            box = Box.parse(data[box_start:])
+            if as_bytes:
+                box = Box.build(box)
+
+            yield box
+
+            box_size = len(Box.build(box))
+            offset = box_start + box_size
+
         except IOError:
-            # since get_init_segment might cut off unexpectedly, pymp4 may be unable to read
-            # the expected amounts of data and complain, so let's just end the function here
             break
         except ValidationError as e:
             if box_type == b"tenc":
-                # ignore this error on tenc boxes as the tenc definition isn't consistent,
-                # some services don't even put valid data and mix it up with avc1...
+                offset = pos + len(box_type)
                 continue
             raise e
-        if as_bytes:
-            box = Box.build(box)
-        offset += index + len(Box.build(box))
-        yield box
 
 
 def ap_case(text: str, keep_spaces: bool = False, stop_words: tuple[str] = None) -> str:

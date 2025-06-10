@@ -25,9 +25,10 @@ import jsonpickle
 import yaml
 from construct import ConstError
 from pymediainfo import MediaInfo
+from pyplayready.cdm import Cdm as PlayReadyCdm
+from pyplayready.device import Device as PlayReadyDevice
 from pywidevine.cdm import Cdm as WidevineCdm
 from pywidevine.device import Device
-from pywidevine.remotecdm import RemoteCdm
 from rich.console import Group
 from rich.live import Live
 from rich.padding import Padding
@@ -43,7 +44,7 @@ from devine.core.config import config
 from devine.core.console import console
 from devine.core.constants import DOWNLOAD_LICENCE_ONLY, AnyTrack, context_settings
 from devine.core.credential import Credential
-from devine.core.drm import DRM_T, Widevine
+from devine.core.drm import DRM_T, PlayReady, Widevine
 from devine.core.events import events
 from devine.core.proxies import Basic, Hola, NordVPN
 from devine.core.service import Service
@@ -172,16 +173,20 @@ class dl:
                 self.service_config = {}
             merge_dict(config.services.get(self.service), self.service_config)
 
-        with console.status("Loading Widevine CDM...", spinner="dots"):
+        with console.status("Loading DRM CDM...", spinner="dots"):
             try:
                 self.cdm = self.get_cdm(self.service, self.profile)
             except ValueError as e:
-                self.log.error(f"Failed to load Widevine CDM, {e}")
+                self.log.error(f"Failed to load CDM, {e}")
                 sys.exit(1)
+
             if self.cdm:
-                self.log.info(
-                    f"Loaded {self.cdm.__class__.__name__} Widevine CDM: {self.cdm.system_id} (L{self.cdm.security_level})"
-                )
+                if hasattr(self.cdm, "device_type") and self.cdm.device_type.name in ["ANDROID", "CHROME"]:
+                    self.log.info(f"Loaded Widevine CDM: {self.cdm.system_id} (L{self.cdm.security_level})")
+                else:
+                    self.log.info(
+                        f"Loaded PlayReady CDM: {self.cdm.certificate_chain.get_name()} (L{self.cdm.security_level})"
+                    )
 
         with console.status("Loading Key Vaults...", spinner="dots"):
             self.vaults = Vaults(self.service)
@@ -508,36 +513,39 @@ class dl:
                     refresh_per_second=5
                 ):
                     with ThreadPoolExecutor(downloads) as pool:
-                        for download in futures.as_completed((
-                            pool.submit(
-                                track.download,
-                                session=service.session,
-                                prepare_drm=partial(
-                                    partial(
-                                        self.prepare_drm,
-                                        table=download_table
-                                    ),
-                                    track=track,
-                                    title=title,
-                                    certificate=partial(
-                                        service.get_widevine_service_certificate,
+                        for download in futures.as_completed(
+                            (
+                                pool.submit(
+                                    track.download,
+                                    session=service.session,
+                                    prepare_drm=partial(
+                                        partial(self.prepare_drm, table=download_table),
+                                        track=track,
                                         title=title,
-                                        track=track
+                                        certificate=partial(
+                                            service.get_widevine_service_certificate,
+                                            title=title,
+                                            track=track,
+                                        ),
+                                        licence=partial(
+                                            service.get_playready_license
+                                            if isinstance(self.cdm, PlayReadyCdm)
+                                            and hasattr(service, "get_playready_license")
+                                            else service.get_widevine_license,
+                                            title=title,
+                                            track=track,
+                                        ),
+                                        cdm_only=cdm_only,
+                                        vaults_only=vaults_only,
+                                        export=export,
                                     ),
-                                    licence=partial(
-                                        service.get_widevine_license,
-                                        title=title,
-                                        track=track
-                                    ),
-                                    cdm_only=cdm_only,
-                                    vaults_only=vaults_only,
-                                    export=export
-                                ),
-                                max_workers=workers,
-                                progress=tracks_progress_callables[i]
+                                    cdm=self.cdm,
+                                    max_workers=workers,
+                                    progress=tracks_progress_callables[i],
+                                )
+                                for i, track in enumerate(title.tracks)
                             )
-                            for i, track in enumerate(title.tracks)
-                        )):
+                        ):
                             download.result()
             except KeyboardInterrupt:
                 console.print(Padding(
@@ -778,6 +786,11 @@ class dl:
         if not drm:
             return
 
+        if isinstance(drm, Widevine) and not isinstance(self.cdm, WidevineCdm):
+            self.cdm = self.get_cdm(self.service, self.profile, drm="widevine")
+        elif isinstance(drm, PlayReady) and not isinstance(self.cdm, PlayReadyCdm):
+            self.cdm = self.get_cdm(self.service, self.profile, drm="playready")
+
         if isinstance(drm, Widevine):
             with self.DRM_TABLE_LOCK:
                 cek_tree = Tree(Text.assemble(
@@ -879,6 +892,93 @@ class dl:
                     keys[str(title)][str(track)].update(drm.content_keys)
                     export.write_text(jsonpickle.dumps(keys, indent=4), encoding="utf8")
 
+        elif isinstance(drm, PlayReady):
+            with self.DRM_TABLE_LOCK:
+                cek_tree = Tree(
+                    Text.assemble(
+                        ("PlayReady", "cyan"),
+                        (f"({drm.pssh_b64 or ''})", "text"),
+                        overflow="fold",
+                    )
+                )
+                pre_existing_tree = next(
+                    (x for x in table.columns[0].cells if isinstance(x, Tree) and x.label == cek_tree.label), None
+                )
+                if pre_existing_tree:
+                    cek_tree = pre_existing_tree
+
+                for kid in drm.kids:
+                    if kid in drm.content_keys:
+                        continue
+
+                    is_track_kid = ["", "*"][kid == track_kid]
+
+                    if not cdm_only:
+                        content_key, vault_used = self.vaults.get_key(kid)
+                        if content_key:
+                            drm.content_keys[kid] = content_key
+                            label = f"[text2]{kid.hex}:{content_key}{is_track_kid} from {vault_used}"
+                            if not any(f"{kid.hex}:{content_key}" in x.label for x in cek_tree.children):
+                                cek_tree.add(label)
+                            self.vaults.add_key(kid, content_key, excluding=vault_used)
+                        elif vaults_only:
+                            msg = f"No Vault has a Key for {kid.hex} and --vaults-only was used"
+                            cek_tree.add(f"[logging.level.error]{msg}")
+                            if not pre_existing_tree:
+                                table.add_row(cek_tree)
+                            raise PlayReady.Exceptions.CEKNotFound(msg)
+
+                    if kid not in drm.content_keys and not vaults_only:
+                        from_vaults = drm.content_keys.copy()
+
+                        try:
+                            drm.get_content_keys(cdm=self.cdm, licence=licence, certificate=certificate)
+                        except Exception as e:
+                            if isinstance(e, (PlayReady.Exceptions.EmptyLicense, PlayReady.Exceptions.CEKNotFound)):
+                                msg = str(e)
+                            else:
+                                msg = f"An exception occurred in the Service's license function: {e}"
+                            cek_tree.add(f"[logging.level.error]{msg}")
+                            if not pre_existing_tree:
+                                table.add_row(cek_tree)
+                            raise e
+
+                        for kid_, key in drm.content_keys.items():
+                            label = f"[text2]{kid_.hex}:{key}{is_track_kid}"
+                            if not any(f"{kid_.hex}:{key}" in x.label for x in cek_tree.children):
+                                cek_tree.add(label)
+
+                        drm.content_keys.update(from_vaults)
+
+                        successful_caches = self.vaults.add_keys(drm.content_keys)
+                        self.log.info(
+                            f"Cached {len(drm.content_keys)} Key{'' if len(drm.content_keys) == 1 else 's'} to "
+                            f"{successful_caches}/{len(self.vaults)} Vaults"
+                        )
+                        break
+
+                if track_kid and track_kid not in drm.content_keys:
+                    msg = f"No Content Key for KID {track_kid.hex} was returned in the License"
+                    cek_tree.add(f"[logging.level.error]{msg}")
+                    if not pre_existing_tree:
+                        table.add_row(cek_tree)
+                    raise PlayReady.Exceptions.CEKNotFound(msg)
+
+                if cek_tree.children and not pre_existing_tree:
+                    table.add_row()
+                    table.add_row(cek_tree)
+
+                if export:
+                    keys = {}
+                    if export.is_file():
+                        keys = jsonpickle.loads(export.read_text(encoding="utf8"))
+                    if str(title) not in keys:
+                        keys[str(title)] = {}
+                    if str(track) not in keys[str(title)]:
+                        keys[str(title)][str(track)] = {}
+                    keys[str(title)][str(track)].update(drm.content_keys)
+                    export.write_text(jsonpickle.dumps(keys, indent=4), encoding="utf8")
+
     @staticmethod
     def get_cookie_path(service: str, profile: Optional[str]) -> Optional[Path]:
         """Get Service Cookie File Path for Profile."""
@@ -937,7 +1037,7 @@ class dl:
                 return Credential.loads(credentials)  # type: ignore
 
     @staticmethod
-    def get_cdm(service: str, profile: Optional[str] = None) -> Optional[WidevineCdm]:
+    def get_cdm(service: str, profile: Optional[str] = None, drm: Optional[str] = None,) -> Optional[object]:
         """
         Get CDM for a specified service (either Local or Remote CDM).
         Raises a ValueError if there's a problem getting a CDM.
@@ -947,16 +1047,35 @@ class dl:
             return None
 
         if isinstance(cdm_name, dict):
-            if not profile:
-                return None
-            cdm_name = cdm_name.get(profile) or config.cdm.get("default")
+            lower_keys = {k.lower(): v for k, v in cdm_name.items()}
+            if {"widevine", "playready"} & lower_keys.keys():
+                drm_key = None
+                if drm:
+                    drm_key = {
+                        "wv": "widevine",
+                        "widevine": "widevine",
+                        "pr": "playready",
+                        "playready": "playready",
+                    }.get(drm.lower())
+                cdm_name = lower_keys.get(drm_key or "widevine") or lower_keys.get(
+                    "playready"
+                )
+            else:
+                if not profile:
+                    return None
+                cdm_name = cdm_name.get(profile) or config.cdm.get("default")
             if not cdm_name:
                 return None
 
         cdm_api = next(iter(x for x in config.remote_cdm if x["name"] == cdm_name), None)
         if cdm_api:
             del cdm_api["name"]
-            return RemoteCdm(**cdm_api)
+        prd_path = config.directories.prds / f"{cdm_name}.prd"
+        if not prd_path.is_file():
+            prd_path = config.directories.wvds / f"{cdm_name}.prd"
+        if prd_path.is_file():
+            device = PlayReadyDevice.load(prd_path)
+            return PlayReadyCdm.from_device(device)
 
         cdm_path = config.directories.wvds / f"{cdm_name}.wvd"
         if not cdm_path.is_file():

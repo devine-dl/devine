@@ -26,6 +26,7 @@ class Config:
         cookies = data / "Cookies"
         logs = Path(app_dirs.user_log_dir)
         wvds = data / "WVDs"
+        prds = data / "PRDs"
         dcsl = data / "DCSL"
 
     class _Filenames:

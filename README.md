@@ -33,9 +33,9 @@
 - 🚀 Seamless Installation via [pip](#installation)
 - 🎥 Movie, Episode, and Song Service Frameworks
 - 🛠️ Built-in [DASH] and [HLS] Parsers
-- 🔒 Widevine DRM integration via [pywidevine](https://github.com/devine-dl/pywidevine)
+- 🔒 Widevine and PlayReady DRM integration via [pywidevine](https://github.com/devine-dl/pywidevine) and [pyplayready](https://pypi.org/project/pyplayready/)
 - 💾 Local & Remote DRM Key-vaults
-- 🌍 Local & Remote Widevine CDMs
+- 🌍 Local & Remote Widevine and PlayReady CDMs
 - 👥 Multi-profile Authentication per-service with Credentials and/or Cookies
 - 🤖 Automatic P2P filename structure with Group Tag
 - ⚙️ YAML for Configuration
@@ -95,6 +95,7 @@ Here's a checklist on what I recommend getting started with, in no particular or
 - [ ] Add [Services](#services), these will be used in `devine dl`.
 - [ ] Add [Profiles](#profiles-cookies--credentials), these are your cookies and credentials.
 - [ ] Add [Widevine Provisions](#widevine-provisions), also known as CDMs, these are used for DRM-protected content.
+- [ ] Add [PlayReady Devices](#playready-devices) for PlayReady DRM.
 - [ ] Set your Group Tag, the text at the end of the final filename, e.g., `devine cfg tag NOGRP` for `...-NOGRP`.
 - [ ] Set Up a Local Key Vault, take a look at the [Key Vaults Config](CONFIG.md#keyvaults-listdict).
 
@@ -315,6 +316,14 @@ provision where possible.
 An alternative would be using a pywidevine Serve-compliant CDM API. Of course, you would need to know someone who is
 serving one, and they would need to give you access. Take a look at the [remote_cdm](CONFIG.md#remotecdm-listdict)
 config option for setup information. For further information on it see the pywidevine repository.
+
+## PlayReady Devices
+
+PlayReady content also requires a provisioned device file. Devine supports `.PRD`
+files (PlayReady Devices). Place these files in the PRDs directory shown by
+`devine env info`. When specifying a device with `devine cfg cdm.default`, only
+the filename (without extension) is required. Devine will look for the file in
+both the PRDs and WVDs directories.
 
 ## End User License Agreement
 

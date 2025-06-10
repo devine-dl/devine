@@ -17,13 +17,14 @@ from zlib import crc32
 import requests
 from langcodes import Language, tag_is_valid
 from lxml.etree import Element, ElementTree
+from pyplayready.system.pssh import PSSH as PR_PSSH
 from pywidevine.cdm import Cdm as WidevineCdm
 from pywidevine.pssh import PSSH
 from requests import Session
 
 from devine.core.constants import DOWNLOAD_CANCELLED, DOWNLOAD_LICENCE_ONLY, AnyTrack
 from devine.core.downloaders import requests as requests_downloader
-from devine.core.drm import Widevine
+from devine.core.drm import DRM_T, PlayReady, Widevine
 from devine.core.events import events
 from devine.core.tracks import Audio, Subtitle, Tracks, Video
 from devine.core.utilities import is_close_match, try_ensure_utf8
@@ -104,6 +105,8 @@ class DASH:
 
         for period in self.manifest.findall("Period"):
             if callable(period_filter) and period_filter(period):
+                continue
+            if next(iter(period.xpath("SegmentType/@value")), "content") != "content":
                 continue
 
             for adaptation_set in period.findall("AdaptationSet"):
@@ -237,7 +240,9 @@ class DASH:
         session: Optional[Session] = None,
         proxy: Optional[str] = None,
         max_workers: Optional[int] = None,
-        license_widevine: Optional[Callable] = None
+        license_widevine: Optional[Callable] = None,
+        *,
+        cdm: Optional[object] = None
     ):
         if not session:
             session = Session()
@@ -443,15 +448,13 @@ class DASH:
                 log.warning("No Widevine PSSH was found for this track, is it DRM free?")
 
         if track.drm:
-            # last chance to find the KID, assumes first segment will hold the init data
             track_kid = track_kid or track.get_key_id(url=segments[0][0], session=session)
-            # TODO: What if we don't want to use the first DRM system?
-            drm = track.drm[0]
-            if isinstance(drm, Widevine):
+            drm = track.get_drm_for_cdm(cdm)
+            if isinstance(drm, (Widevine, PlayReady)):
                 # license and grab content keys
                 try:
                     if not license_widevine:
-                        raise ValueError("license_widevine func must be supplied to use Widevine DRM")
+                        raise ValueError("license_widevine func must be supplied to use DRM")
                     progress(downloaded="LICENSING")
                     license_widevine(drm, track_kid=track_kid)
                     progress(downloaded="[yellow]LICENSED")
@@ -474,23 +477,25 @@ class DASH:
             downloader = requests_downloader
             log.warning("Falling back to the requests downloader as aria2(c) doesn't support the Range header")
 
-        for status_update in downloader(
+        downloader_args = dict(
             urls=[
-                {
-                    "url": url,
-                    "headers": {
-                        "Range": f"bytes={bytes_range}"
-                    } if bytes_range else {}
-                }
-                for url, bytes_range in segments
-            ],
-            output_dir=save_dir,
-            filename="{i:0%d}.mp4" % (len(str(len(segments)))),
-            headers=session.headers,
-            cookies=session.cookies,
-            proxy=proxy,
-            max_workers=max_workers
-        ):
+                    {
+                        "url": url,
+                        "headers": {
+                            "Range": f"bytes={bytes_range}"
+                        } if bytes_range else {}
+                    }
+                    for url, bytes_range in segments
+                ],
+                output_dir=save_dir,
+                filename="{i:0%d}.mp4" % (len(str(len(segments)))),
+                headers=session.headers,
+                cookies=session.cookies,
+                proxy=proxy,
+                max_workers=max_workers
+        )
+
+        for status_update in downloader(**downloader_args):
             file_downloaded = status_update.get("file_downloaded")
             if file_downloaded:
                 events.emit(events.Types.SEGMENT_DOWNLOADED, track=track, segment=file_downloaded)
@@ -711,40 +716,49 @@ class DASH:
         ), None)
 
     @staticmethod
-    def get_drm(protections: list[Element]) -> list[Widevine]:
-        drm = []
+    def get_drm(protections: list[Element]) -> list[DRM_T]:
+        drm: list[DRM_T] = []
 
         for protection in protections:
-            # TODO: Add checks for PlayReady, FairPlay, maybe more
             urn = (protection.get("schemeIdUri") or "").lower()
-            if urn != WidevineCdm.urn:
-                continue
 
-            pssh = protection.findtext("pssh")
-            if not pssh:
-                continue
-            pssh = PSSH(pssh)
+            if urn == WidevineCdm.urn:
+                pssh_text = protection.findtext("pssh")
+                if not pssh_text:
+                    continue
+                pssh = PSSH(pssh_text)
 
-            kid = protection.get("kid")
-            if kid:
-                kid = UUID(bytes=base64.b64decode(kid))
+                kid = protection.get("kid")
+                if kid:
+                    kid = UUID(bytes=base64.b64decode(kid))
 
-            default_kid = protection.get("default_KID")
-            if default_kid:
-                kid = UUID(default_kid)
+                default_kid = protection.get("default_KID")
+                if default_kid:
+                    kid = UUID(default_kid)
 
-            if not pssh.key_ids and not kid:
-                # weird manifest, look across all protections for a default_KID
-                kid = next((
-                    UUID(protection.get("default_KID"))
-                    for protection in protections
-                    if protection.get("default_KID")
-                ), None)
+                if not pssh.key_ids and not kid:
+                    kid = next((
+                        UUID(p.get("default_KID"))
+                        for p in protections
+                        if p.get("default_KID")
+                    ), None)
 
-            drm.append(Widevine(
-                pssh=pssh,
-                kid=kid
-            ))
+                drm.append(Widevine(pssh=pssh, kid=kid))
+
+            elif urn in ("urn:uuid:9a04f079-9840-4286-ab92-e65be0885f95", "urn:microsoft:playready"):
+                pr_pssh_b64 = protection.findtext("pssh") or protection.findtext("pro")
+                if not pr_pssh_b64:
+                    continue
+                pr_pssh = PR_PSSH(pr_pssh_b64)
+                kid_b64 = protection.findtext("kid")
+                kid = None
+                if kid_b64:
+                    try:
+                        kid = UUID(bytes=base64.b64decode(kid_b64))
+                    except Exception:
+                        kid = None
+
+                drm.append(PlayReady(pssh=pr_pssh, kid=kid, pssh_b64=pr_pssh_b64))
 
         return drm
 

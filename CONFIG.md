@@ -31,8 +31,8 @@ which does not keep comments.
 
 ## cdm (dict)
 
-Pre-define which widevine device to use for each Service by Service Tag as Key (case-sensitive).  
-The value should be a WVD filename without the file extension.
+Pre-define which Widevine or PlayReady device to use for each Service by Service Tag as Key (case-sensitive).  
+The value should be a WVD or PRD filename without the file extension. When loading the device, Devine will look in both the `WVDs` and `PRDs` directories for a matching file.
 
 For example,
 
@@ -129,6 +129,7 @@ The following directories are available and may be overridden,
 - `cookies` - Expiring Cookie data.
 - `logs` - Logs.
 - `wvds` - Widevine Devices.
+- `prds` - PlayReady Devices.
 
 For example,
 
